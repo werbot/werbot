@@ -116,7 +116,7 @@ func (l *link) run(ctx context.Context) error {
 		kctx, kstop := context.WithCancel(ctx)
 		dropped := make(chan struct{})
 		go func() { _ = c.Wait(); kstop(); close(dropped) }()
-		keepalive(kctx, c)
+		Keepalive(kctx, c, keepaliveInterval)
 		if ctx.Err() != nil {
 			_ = c.Close()
 			<-dropped
@@ -170,10 +170,10 @@ func final(err error) bool {
 	return errors.Is(err, errHostKeyMismatch) || strings.Contains(err.Error(), "ssh: unable to authenticate")
 }
 
-// keepalive sends keepalive@openssh.com every keepaliveInterval until ctx ends
-// and closes c when keepaliveMisses intervals in a row pass without a reply.
-func keepalive(ctx context.Context, c *ssh.Client) {
-	t := time.NewTicker(keepaliveInterval)
+// Keepalive sends keepalive@openssh.com every interval until ctx ends and
+// closes c when keepaliveMisses intervals in a row pass without a reply.
+func Keepalive(ctx context.Context, c *ssh.Client, every time.Duration) {
+	t := time.NewTicker(every)
 	defer t.Stop()
 	reply := make(chan error, 1)
 	pending, misses := false, 0

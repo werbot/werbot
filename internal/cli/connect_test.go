@@ -104,6 +104,11 @@ func TestConnectVNetFlags(t *testing.T) {
 	assert.Equal(t, h.home, got.Home)
 	require.NotNil(t, got.Profile)
 	assert.Equal(t, "alice", got.Profile.Login)
+	assert.NotNil(t, got.Open, "without sudo an MFA URL opens in the browser")
+	h.vars["SUDO_UID"] = "501"
+	require.NoError(t, h.run("connect", "--vnet"))
+	assert.Nil(t, got.Open, "under sudo an MFA URL is printed only")
+	delete(h.vars, "SUDO_UID")
 
 	require.NoError(t, h.run("connect", "--vnet-prefix=10.10.0.0/16", "--vnet"))
 	assert.Equal(t, netip.MustParsePrefix("10.10.0.0/16"), got.Prefix)

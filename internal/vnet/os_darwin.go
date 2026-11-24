@@ -15,6 +15,9 @@ import (
 // resolverDir holds the per-domain resolver files of macOS.
 const resolverDir = "/etc/resolver"
 
+// ngroupsMax is NGROUPS_MAX of macOS: setgroups refuses more groups.
+const ngroupsMax = 16
+
 // openTUN creates the next free utunN; macOS allows it only to root.
 func openTUN() (tun.Device, error) {
 	if os.Geteuid() != 0 {

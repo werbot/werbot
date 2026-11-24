@@ -27,6 +27,7 @@ type system struct {
 	openTUN   func() (tun.Device, error) // checks the privileges first
 	drop      func() (regain func() error, err error)
 	configure func(dev string, addr netip.Addr, prefix netip.Prefix, suffix string) (cleanup func() error, err error)
+	dialer    func(Options) Dialer
 	out       io.Writer // the name → address lines
 }
 
@@ -36,14 +37,23 @@ var refreshEvery = 60 * time.Second
 // Run gives every accessible resource an address and a name under
 // <org>.werbot until ctx ends. Order (Ruling G8): open the TUN as root, drop
 // to the sudo user for the API calls, regain root for the address, route and
-// DNS, drop again to serve, and regain root for the cleanup on exit.
+// DNS, drop again to serve, and on exit stop the dialer, then regain root for
+// the cleanup and close the TUN.
 func Run(ctx context.Context, opts Options) error {
 	return run(ctx, opts, system{
 		openTUN:   openTUN,
 		drop:      func() (func() error, error) { return dropPrivileges(os.Getenv) },
 		configure: configure,
+		dialer:    gatewayDialerOf,
 		out:       os.Stdout,
 	})
+}
+
+// gatewayDialerOf dials as the profile's login with its certificate; opts.Open
+// opens MFA URLs in a browser (nil prints them only).
+func gatewayDialerOf(opts Options) Dialer {
+	p, home := opts.Profile, opts.Home
+	return newGatewayDialer(p.Login, func(ctx context.Context) (ssh.Signer, error) { return p.Signer(ctx, home) }, opts.Open)
 }
 
 func run(ctx context.Context, opts Options, sys system) error {
@@ -62,17 +72,17 @@ func run(ctx context.Context, opts Options, sys system) error {
 	if err != nil {
 		return errors.Join(err, cleanup(), dev.Close())
 	}
-	p, home := opts.Profile, opts.Home
-	d := newGatewayDialer(p.Login, func(ctx context.Context) (ssh.Signer, error) { return p.Signer(ctx, home) }, nil)
+	d := sys.dialer(opts)
 	e, err := newEngine(dev, opts.Prefix, suffix, d)
 	if err != nil {
 		_ = d.Close()
 		return errors.Join(err, regain(), cleanup(), dev.Close())
 	}
 	err = serve(ctx, e, opts, suffix, rs, sys.out)
+	serr := e.stop() // nothing dials or writes the profile as root
 	rerr := regain() // root for the OS cleanup, then close the TUN
 	cerr := cleanup()
-	return errors.Join(err, rerr, cerr, e.Close())
+	return errors.Join(err, serr, rerr, cerr, e.Close())
 }
 
 // setup calls the API with root dropped, then sets up the interface and the

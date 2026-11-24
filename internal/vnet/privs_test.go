@@ -72,3 +72,15 @@ func TestDropPrivilegesKeepsOwnership(t *testing.T) {
 	assert.Equal(t, uint32(gid), st.Gid) //nolint:gosec // test ids are small
 	require.NoError(t, os.Remove(filepath.Join(rootOnly, "f")), "root again after regain")
 }
+
+// The groups of the current user fit NGROUPS_MAX of the OS (16 on macOS),
+// with the primary group first: setgroups refuses a longer list.
+func TestGroupsOfFitsNGroupsMax(t *testing.T) {
+	u, err := user.Current()
+	require.NoError(t, err)
+	gid, err := strconv.Atoi(u.Gid)
+	require.NoError(t, err)
+	got := groupsOf(u.Uid, gid)
+	assert.LessOrEqual(t, len(got), ngroupsMax)
+	assert.Equal(t, gid, got[0])
+}

@@ -64,6 +64,7 @@ type engine struct {
 	ctx      context.Context
 	cancel   context.CancelFunc
 	wg       sync.WaitGroup
+	closeTUN sync.Once
 
 	mu     sync.Mutex
 	closed bool
@@ -227,8 +228,10 @@ func protos(r Resource) []string {
 	return out
 }
 
-// Close stops the engine and closes the TUN device and the Dialer.
-func (e *engine) Close() error {
+// stop ends the forwarders: it closes the open connections and channels and
+// the Dialer, so nothing dials or renews the certificate after it. The TUN
+// stays open.
+func (e *engine) stop() error {
 	e.mu.Lock()
 	if e.closed {
 		e.mu.Unlock()
@@ -245,10 +248,18 @@ func (e *engine) Close() error {
 	for _, c := range gone {
 		_ = c.Close()
 	}
-	err := e.dev.Close()
-	e.ep.Close()
-	e.stack.Close()
-	e.stack.Wait()
-	e.wg.Wait()
-	return errors.Join(err, e.d.Close())
+	return e.d.Close()
+}
+
+// Close stops the engine and closes the TUN device.
+func (e *engine) Close() error {
+	err := e.stop()
+	e.closeTUN.Do(func() {
+		err = errors.Join(err, e.dev.Close())
+		e.ep.Close()
+		e.stack.Close()
+		e.stack.Wait()
+		e.wg.Wait()
+	})
+	return err
 }

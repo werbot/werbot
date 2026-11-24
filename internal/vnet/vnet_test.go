@@ -146,7 +146,7 @@ func fakeSystem(t *testing.T, ev *events, out *syncBuffer, failRegain bool) syst
 		openTUN: func() (tun.Device, error) {
 			ev.add("tun")
 			dev, _, err := netstack.CreateNetTUN([]netip.Addr{IfaceAddr(testPrefix)}, []netip.Addr{DNSAddr(testPrefix)}, 1500)
-			return dev, err
+			return closingTUN{dev, ev}, err
 		},
 		drop: func() (func() error, error) {
 			ev.add("drop")
@@ -162,13 +162,30 @@ func fakeSystem(t *testing.T, ev *events, out *syncBuffer, failRegain bool) syst
 			ev.add("configure " + addr.String() + " " + prefix.String() + " " + suffix)
 			return func() error { ev.add("cleanup"); return nil }, nil
 		},
-		out: out,
+		dialer: func(Options) Dialer { return closingDialer{newFakeDialer(t), ev} },
+		out:    out,
 	}
 }
 
+// closingTUN and closingDialer add "tun close" and "dialer close" to ev on Close.
+type closingTUN struct {
+	tun.Device
+	ev *events
+}
+
+func (c closingTUN) Close() error { c.ev.add("tun close"); return c.Device.Close() }
+
+type closingDialer struct {
+	Dialer
+	ev *events
+}
+
+func (c closingDialer) Close() error { c.ev.add("dialer close"); return c.Dialer.Close() }
+
 // Run opens the TUN as root, calls the API with privileges dropped, sets up
 // the OS as root, serves and refreshes with privileges dropped, and on exit
-// regains root before the OS cleanup (Ruling G8).
+// closes the dialer, so nothing dials or renews the certificate as root, then
+// regains root for the OS cleanup and closes the TUN last (Ruling G8).
 func TestRunOrder(t *testing.T) {
 	old := refreshEvery
 	refreshEvery = 20 * time.Millisecond
@@ -202,16 +219,12 @@ func TestRunOrder(t *testing.T) {
 	assert.Equal(t, 2, strings.Count(text, "pg.acme-corp.werbot"), "the list is printed at start and when it changes, not on each refresh")
 
 	got := ev.get()
-	// a refresh in flight at cancel reaches the fake server after run returned
-	for len(got) > 0 && got[len(got)-1] == "resources" {
-		got = got[:len(got)-1]
-	}
 	require.GreaterOrEqual(t, len(got), 9)
 	assert.Equal(t, []string{"tun", "drop", "session", "resources", "regain", "configure 100.64.0.1 100.64.0.0/10 acme-corp.werbot", "drop"}, got[:7])
-	assert.Equal(t, []string{"regain", "cleanup"}, got[len(got)-2:])
-	for _, e := range got[7 : len(got)-2] {
-		assert.Equal(t, "resources", e, "only refreshes run between the second drop and the final regain")
-	}
+	// only refreshes run after the second drop; a refresh in flight at cancel
+	// may reach the fake server at any later step
+	exit := slices.DeleteFunc(got[7:], func(e string) bool { return e == "resources" })
+	assert.Equal(t, []string{"dialer close", "regain", "cleanup", "tun close"}, exit)
 }
 
 // A regain that fails after the API calls stops Run before the OS setup.
@@ -219,7 +232,7 @@ func TestRunStopsWhenRegainFails(t *testing.T) {
 	_, ev, opts := testRun(t)
 	err := run(ctxT(t, 5*time.Second), opts, fakeSystem(t, ev, &syncBuffer{}, true)) // ends even when it would serve
 	require.ErrorContains(t, err, "seteuid: operation not permitted")
-	assert.Equal(t, []string{"tun", "drop", "session", "resources", "regain"}, ev.get())
+	assert.Equal(t, []string{"tun", "drop", "session", "resources", "regain", "tun close"}, ev.get())
 }
 
 func TestRunRejectsPrefix(t *testing.T) {

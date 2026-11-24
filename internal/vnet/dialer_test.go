@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -27,6 +28,8 @@ import (
 type sshGateway struct {
 	ln      net.Listener
 	hostKey string // authorized_keys line
+
+	silent atomic.Bool // answers no global request, as a gateway gone dead
 
 	mu     sync.Mutex
 	conns  []*ssh.ServerConn
@@ -81,7 +84,14 @@ func (g *sshGateway) serve(c net.Conn, conf *ssh.ServerConfig) {
 	g.mu.Lock()
 	g.conns = append(g.conns, sc)
 	g.mu.Unlock()
-	go ssh.DiscardRequests(reqs)
+	if g.silent.Load() {
+		go func() {
+			for range reqs { // never replies
+			}
+		}()
+	} else {
+		go ssh.DiscardRequests(reqs)
+	}
 	for nc := range chans {
 		var d sshdgram.OpenData
 		if ssh.Unmarshal(nc.ExtraData(), &d) != nil {
@@ -193,4 +203,32 @@ func TestGatewayDialerClosed(t *testing.T) {
 	require.Error(t, err, "Close ends the clients and their channels")
 	_, err = d.DialTCP(ctxT(t, 10*time.Second), pg, 5432)
 	require.ErrorIs(t, err, net.ErrClosed)
+}
+
+// A gateway that answers no keepalive is dropped after three intervals: its
+// channels end and the next dial connects again.
+func TestGatewayDialerKeepalive(t *testing.T) {
+	old := keepaliveEvery
+	keepaliveEvery = 50 * time.Millisecond
+	t.Cleanup(func() { keepaliveEvery = old })
+	d, g := testDialer(t)
+	g.silent.Store(true)
+	pg := res("pg", "stream")
+	pg.SSHAddress, pg.HostKey = g.ln.Addr().String(), g.hostKey
+	ctx := ctxT(t, 10*time.Second)
+	c, err := d.DialTCP(ctx, pg, 5432)
+	require.NoError(t, err)
+	read := make(chan error, 1)
+	go func() { _, err := c.Read(make([]byte, 1)); read <- err }()
+	select {
+	case err := <-read:
+		require.Error(t, err)
+	case <-time.After(5 * time.Second):
+		_ = d.Close()
+		t.Fatal("the connection to a silent gateway was kept")
+	}
+	c, err = d.DialTCP(ctx, pg, 5432)
+	require.NoError(t, err)
+	roundTrip(t, c, "again")
+	require.Equal(t, 2, g.count())
 }

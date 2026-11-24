@@ -61,7 +61,8 @@ func setIDs(groups []int, gid, uid int) error {
 	return nil
 }
 
-// groupsOf lists the groups of the user uid; only gid when they are unknown.
+// groupsOf lists the groups of the user uid, gid first and at most
+// ngroupsMax of them; only gid when they are unknown.
 func groupsOf(uid string, gid int) []int {
 	out := []int{gid}
 	u, err := user.LookupId(uid)
@@ -77,5 +78,5 @@ func groupsOf(uid string, gid int) []int {
 			out = append(out, g)
 		}
 	}
-	return out
+	return out[:min(len(out), ngroupsMax)]
 }

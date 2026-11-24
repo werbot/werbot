@@ -12,11 +12,11 @@ import (
 	"github.com/werbot/werbot/internal/app"
 )
 
-// Main runs the werbot CLI until SIGINT or SIGTERM. An error with an
+// Main runs the werbot CLI until one of stopSignals. An error with an
 // ExitCode method ends the process with that code and no message; any other
 // error prints "werbot: <err>" and exits 1.
 func Main() {
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(context.Background(), stopSignals()...)
 	err := app.Run(ctx, os.Args[1:], os.Getenv, os.Stdout)
 	stop()
 	code, report := exitCode(err)
@@ -38,4 +38,14 @@ func exitCode(err error) (code int, report bool) {
 		return ec.ExitCode(), false
 	}
 	return 1, true
+}
+
+// stopSignals end the CLI: SIGINT, SIGTERM and SIGHUP (terminal closed)
+// unless the process started with SIGHUP ignored (nohup).
+func stopSignals() []os.Signal {
+	sigs := []os.Signal{syscall.SIGINT, syscall.SIGTERM}
+	if !signal.Ignored(syscall.SIGHUP) {
+		sigs = append(sigs, syscall.SIGHUP)
+	}
+	return sigs
 }

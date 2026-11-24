@@ -9,13 +9,14 @@ import (
 	"os"
 	"syscall"
 
+	"golang.org/x/sys/unix"
 	"golang.zx2c4.com/wireguard/tun"
 )
 
 const (
 	tunName = "werbot0"
-	// capNetAdmin is CAP_NET_ADMIN of linux/capability.h (x/sys stays indirect).
-	capNetAdmin = 12
+	// ngroupsMax is NGROUPS_MAX of linux/limits.h: setgroups refuses more groups.
+	ngroupsMax = 65536
 )
 
 // openTUN creates werbot0; without root or CAP_NET_ADMIN the kernel refuses it.
@@ -58,5 +59,5 @@ func procAttr() *syscall.SysProcAttr {
 	if os.Geteuid() == 0 {
 		return nil
 	}
-	return &syscall.SysProcAttr{AmbientCaps: []uintptr{capNetAdmin}}
+	return &syscall.SysProcAttr{AmbientCaps: []uintptr{unix.CAP_NET_ADMIN}}
 }

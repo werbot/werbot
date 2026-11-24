@@ -22,11 +22,13 @@ import (
 
 const handshakeTimeout = 30 * time.Second
 
+// keepaliveEvery is the keepalive interval of a dialed connection; three
+// unanswered in a row drop it. Tests shorten it.
+var keepaliveEvery = 30 * time.Second
+
 // gatewayDialer reaches resources through the gateway with one lazily dialed
 // SSH connection per resource (user <login>+<resource>). A connection that
-// drops is dialed again by the next call.
-// ponytail: no keepalive; a dead gateway shows when the OS times out the
-// TCP connection. Add keepalive@openssh.com like connectcli's link if needed.
+// drops, or misses its keepalives, is dialed again by the next call.
 type gatewayDialer struct {
 	login  string
 	signer func(context.Context) (ssh.Signer, error)
@@ -130,9 +132,12 @@ func (d *gatewayDialer) connect(k clientKey, r Resource, cl *client) {
 		_, _ = fmt.Fprintf(d.out, "%s: %v\n", r.Name, cl.err)
 	}
 	if cl.err == nil {
+		kctx, kstop := context.WithCancel(d.ctx)
+		go connectcli.Keepalive(kctx, cl.c, keepaliveEvery)
 		stop := context.AfterFunc(d.ctx, func() { _ = cl.c.Close() })
 		_ = cl.c.Wait()
 		stop()
+		kstop()
 	}
 	d.forget(k, cl.c)
 }

@@ -38,7 +38,7 @@ The responder answers only names under `<org>.werbot`, over UDP and TCP (several
 
 - Linux: root or `CAP_NET_ADMIN`. Prefer the capability: `sudo setcap cap_net_admin+ep "$(command -v werbot)"`, then run `werbot connect --vnet` as yourself. `ip` and `resolvectl` get the capability as an ambient capability. Without either: `--vnet needs CAP_NET_ADMIN: run with sudo or "sudo setcap cap_net_admin+ep <path>"`.
 - macOS: root (`--vnet needs root: run "sudo werbot connect --vnet"`); it uses `ifconfig`, `route` and `/etc/resolver`.
-- Under `sudo` the profile comes from the home of `SUDO_USER` (`~/.werbot`) unless `WERBOT_HOME` is set. Root is used only to open the interface, to set the address, route and DNS, and to remove them on exit. The API calls, the certificate renewal and the gateway connections run with the effective user and group of `SUDO_UID`/`SUDO_GID` and the user's groups, so the profile files stay yours. The saved user id stays root, so the process can take root back: on Linux `setcap` avoids root altogether.
+- Under `sudo` the profile comes from the home of `SUDO_USER` (`~/.werbot`) unless `WERBOT_HOME` is set. Root is used only to open the interface, to set the address, route and DNS, and to remove them on exit. The API calls, the certificate renewal and the gateway connections run with the effective user and group of `SUDO_UID`/`SUDO_GID` and the user's groups (on macOS the first 16, the system limit), so the profile files stay yours. The saved user id stays root, so the process can take root back: on Linux `setcap` avoids root altogether.
 - Windows: not supported (`--vnet is not supported on windows`); it is planned for Werbot Desktop.
 
 ## Flags
@@ -49,11 +49,11 @@ The responder answers only names under `<org>.werbot`, over UDP and TCP (several
 ## Security
 
 - Every process and every local user of the computer can reach the resources through the addresses while `--vnet` runs, with your access. Do not run it on shared machines.
-- Only packets from the interface address enter: traffic that other hosts or containers route to the prefix is dropped.
+- Only packets from the interface address enter: traffic that other hosts route to the prefix is dropped. Containers whose traffic the host NATs (Docker's default bridge) leave with the interface address, so they count as local processes and reach the resources too.
 
 ## Cleanup
 
-Ctrl+C (or `SIGTERM`) removes the interface with its address, route and Linux DNS settings, and on macOS the file `/etc/resolver/<org>.werbot`. After `kill -9` or a crash on macOS remove it yourself: `sudo rm /etc/resolver/<org>.werbot`. On Linux everything goes with the interface.
+Ctrl+C, `SIGTERM` or a closed terminal (`SIGHUP`, unless started with `nohup`) removes the interface with its address, route and Linux DNS settings, and on macOS the file `/etc/resolver/<org>.werbot`. After `kill -9` or a crash on macOS remove it yourself: `sudo rm /etc/resolver/<org>.werbot`. On Linux everything goes with the interface.
 
 ## Manual check on macOS
 

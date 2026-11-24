@@ -170,12 +170,16 @@ func (e *engine) goTracked(fn func()) bool {
 	return true
 }
 
-// serveDNSUDP answers the queries of one client socket until it stays idle.
+// dnsUDPIdle frees the DNS flow of a client socket that sends no query.
+const dnsUDPIdle = 2 * time.Second
+
+// serveDNSUDP answers the queries of one client socket (up to 4 KiB each,
+// the EDNS size) until it stays idle.
 func serveDNSUDP(c *gonet.UDPConn, r *resolver) {
 	defer c.Close()
-	buf := make([]byte, 65535)
+	buf := make([]byte, 4096)
 	for {
-		_ = c.SetReadDeadline(time.Now().Add(tcpIdle))
+		_ = c.SetReadDeadline(time.Now().Add(dnsUDPIdle))
 		n, err := c.Read(buf)
 		if err != nil {
 			return

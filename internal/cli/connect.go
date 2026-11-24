@@ -145,8 +145,12 @@ func hasFlag(args []string, name string) bool {
 var runVNet = vnet.Run
 
 // connectVNet runs werbot connect --vnet with the profile of the user who
-// ran sudo, when under sudo.
+// ran sudo, when under sudo. Only without sudo does MFA open the browser.
 func connectVNet(ctx context.Context, env Env, prefix netip.Prefix) error {
+	open := env.OpenBrowser
+	if env.Getenv("SUDO_UID") != "" {
+		open = nil
+	}
 	if home, ok := vnet.SudoHome(env.Getenv); ok {
 		getenv := env.Getenv
 		env.Getenv = func(k string) string {
@@ -160,7 +164,7 @@ func connectVNet(ctx context.Context, env Env, prefix netip.Prefix) error {
 	if err != nil {
 		return err
 	}
-	return runVNet(ctx, vnet.Options{Profile: p, Home: home, Prefix: prefix})
+	return runVNet(ctx, vnet.Options{Profile: p, Home: home, Prefix: prefix, Open: open})
 }
 
 // vnetFlags takes --vnet and --vnet-prefix out of args (before "--"); the

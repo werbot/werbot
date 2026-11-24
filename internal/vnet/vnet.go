@@ -12,8 +12,9 @@ import (
 // GetSession inside Run, which calls the API only after dropping root.
 type Options struct {
 	Profile *clientauth.Profile
-	Home    string       // profile home: SudoHome under sudo, else clientauth.Home
-	Prefix  netip.Prefix // DefaultPrefix or --vnet-prefix
+	Home    string             // profile home: SudoHome under sudo, else clientauth.Home
+	Prefix  netip.Prefix       // DefaultPrefix or --vnet-prefix
+	Open    func(string) error // opens an MFA URL in a browser; nil prints it only (under sudo)
 }
 
 // SudoHome is <home of SUDO_USER>/.werbot when the command runs under sudo
