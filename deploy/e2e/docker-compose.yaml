@@ -108,6 +108,13 @@ services:
     ports:
       - "8088:8088"
       - "8448:8448"
+    # healthy once nginx accepts on both ports: `up --wait edge` (ws.sh) then
+    # means listening, not just started
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z -w1 127.0.0.1 8088 && nc -z -w1 127.0.0.1 8448"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
     networks:
       public:
         ipv4_address: 172.30.0.10
