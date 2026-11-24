@@ -101,6 +101,9 @@ func (e *sshEnv) serve(t *testing.T, f *sshFront, ln net.Listener) string {
 		cancel()
 		e.p.stopNow() // the front closes its connections once the pipeline stops
 		require.NoError(t, <-done)
+		// a session ends after its connection: every one spools its end and closes
+		// its recording before the spool and its TempDir go (cleanups run LIFO)
+		require.True(t, waitFor(e.p.active.idle(), 10*time.Second), "sessions still open after the front stopped")
 	})
 	return ln.Addr().String()
 }
