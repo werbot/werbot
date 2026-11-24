@@ -76,13 +76,14 @@ func (h *Handler) Stream(ctx context.Context, st *tunnelStream) error {
 	if err != nil {
 		return err
 	}
-	return apperr.ToConnect(h.d.Relay.Bridge(ctx, g, id, &streamPipe{st: st}))
+	return apperr.ToConnect(h.d.Relay.Bridge(ctx, g, id, &streamPipe{recv: st.Receive, send: st.Send}))
 }
 
 // streamPipe is the Pipe of a Stream; sends are serialized, a close frame
 // is sent once and nothing after it.
 type streamPipe struct {
-	st     *tunnelStream
+	recv   func() (*gatewayv1.StreamRequest, error)
+	send   func(*gatewayv1.StreamResponse) error
 	mu     sync.Mutex
 	closed bool
 }
@@ -93,7 +94,7 @@ var errPipeClosed = errors.New("stream pipe closed")
 // frames are skipped.
 func (p *streamPipe) Read() ([]byte, int, int, error) {
 	for {
-		m, err := p.st.Receive()
+		m, err := p.recv()
 		if err != nil {
 			return nil, 0, 0, err
 		}
@@ -114,7 +115,7 @@ func (p *streamPipe) Read() ([]byte, int, int, error) {
 func (p *streamPipe) Write(b []byte) error {
 	for len(b) > 0 {
 		n := min(len(b), streamFrameBytes)
-		if err := p.send(&gatewayv1.StreamFrame{Frame: &gatewayv1.StreamFrame_Data{Data: b[:n]}}, false); err != nil {
+		if err := p.sendFrame(&gatewayv1.StreamFrame{Frame: &gatewayv1.StreamFrame_Data{Data: b[:n]}}, false); err != nil {
 			return err
 		}
 		b = b[n:]
@@ -123,25 +124,25 @@ func (p *streamPipe) Write(b []byte) error {
 }
 
 func (p *streamPipe) Resize(cols, rows int) error {
-	return p.send(&gatewayv1.StreamFrame{Frame: &gatewayv1.StreamFrame_Resize{
+	return p.sendFrame(&gatewayv1.StreamFrame{Frame: &gatewayv1.StreamFrame_Resize{
 		Resize: &gatewayv1.Resize{Cols: int32(cols), Rows: int32(rows)}}}, false) //nolint:gosec // the relay bounds windows
 }
 
 func (p *streamPipe) Close(reason string) error {
-	err := p.send(&gatewayv1.StreamFrame{Frame: &gatewayv1.StreamFrame_Close{Close: &gatewayv1.StreamClose{Reason: reason}}}, true)
+	err := p.sendFrame(&gatewayv1.StreamFrame{Frame: &gatewayv1.StreamFrame_Close{Close: &gatewayv1.StreamClose{Reason: reason}}}, true)
 	if errors.Is(err, errPipeClosed) {
 		return nil
 	}
 	return err
 }
 
-// send sends f unless the pipe is closed; last marks it closed.
-func (p *streamPipe) send(f *gatewayv1.StreamFrame, last bool) error {
+// sendFrame sends f unless the pipe is closed; last marks it closed.
+func (p *streamPipe) sendFrame(f *gatewayv1.StreamFrame, last bool) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if p.closed {
 		return errPipeClosed
 	}
 	p.closed = last
-	return p.st.Send(&gatewayv1.StreamResponse{Frame: f})
+	return p.send(&gatewayv1.StreamResponse{Frame: f})
 }
