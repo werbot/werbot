@@ -1,4 +1,4 @@
-.PHONY: build test lint dev-db proto sqlc web e2e e2e-network e2e-sso e2e-cluster redteam redteam-go load release-check release-snapshot
+.PHONY: build test lint dev-db proto sqlc web e2e e2e-network e2e-sso e2e-cluster redteam redteam-go load fuzz release-check release-snapshot
 
 VERSION ?= dev
 GORELEASER ?= go run github.com/goreleaser/goreleaser/v2@v2.20.0
@@ -89,6 +89,13 @@ load:
 	    { rc=1; echo "== $$l" >> $(CLUSTER_LOG); $(CLUSTER_LOGS) >> $(CLUSTER_LOG); }; \
 	  $(CLUSTER) down -v --remove-orphans; \
 	done; exit $$rc
+
+# Short fuzz runs of the parser targets; a crasher is written under testdata/fuzz and committed.
+FUZZTIME ?= 30s
+FUZZ_TARGETS = ./internal/platform/shellclass:FuzzClassify ./internal/platform/shellclass:FuzzAnalyze ./internal/platform/sshdgram:FuzzReadFrame ./internal/tunnel:FuzzStreamFrame
+fuzz:
+	@for t in $(FUZZ_TARGETS); do pkg=$${t%%:*}; fn=$${t##*:}; echo "== $$fn"; \
+	  go test -run '^$$' -fuzz "^$$fn$$" -fuzztime $(FUZZTIME) $$pkg || exit 1; done
 
 release-check:
 	$(GORELEASER) check

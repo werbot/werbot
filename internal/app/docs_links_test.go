@@ -44,7 +44,7 @@ func slug(h string) string {
 // headings returns the slugs of all headings outside code fences and the H1 count.
 func headings(t *testing.T, path string) (slugs []string, h1 int) {
 	t.Helper()
-	raw, err := os.ReadFile(path)
+	raw, err := os.ReadFile(path) //nolint:gosec // repo doc path from a fixed list
 	require.NoError(t, err)
 	fenced := false
 	for line := range strings.SplitSeq(string(raw), "\n") {
@@ -99,7 +99,7 @@ func TestDocsIndexAndLinks(t *testing.T) {
 // checkLinks verifies the relative .md links of src that start with prefix.
 func checkLinks(t *testing.T, anchors map[string][]string, src, prefix string) {
 	t.Helper()
-	raw, err := os.ReadFile(src)
+	raw, err := os.ReadFile(src) //nolint:gosec // repo doc path from a fixed list
 	require.NoError(t, err)
 	for _, m := range mdLink.FindAllStringSubmatch(string(raw), -1) {
 		target, frag, _ := strings.Cut(m[1], "#")
