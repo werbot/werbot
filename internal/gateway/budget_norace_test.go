@@ -27,20 +27,31 @@ func TestExecDecisionP99(t *testing.T) {
 	}
 }
 
-// TestExecDecisionAtL2Scale measures the same decision at the L2 scale of the
-// load test (10 000 bindings, 200 command rules, 100 agents; O1). The p99
+// BenchmarkExecDecisionAtL2Scale measures the same decision at the L2 scale of
+// the load test (10 000 bindings, 200 command rules, 100 agents; O1). The p99
 // budget holds at 1 000 bindings only: the cost grows with the bindings, and
-// splitting the policies per resource is phase 3. The test logs and never
-// fails on latency; it fails only when the decision is not the measured one.
-func TestExecDecisionAtL2Scale(t *testing.T) {
-	p, human, agent := execBench(t, scaleL2)
+// splitting the policies per resource is phase 3. It reports p50-ms and p99-ms
+// of one round of 2 000 decisions and never fails on latency; it fails only
+// when the decision is not the measured one. go test runs no benchmark by
+// default, so it never slows the unit tests. Run it alone:
+//
+//	go test -run '^$' -bench '^BenchmarkExecDecisionAtL2Scale$' -benchtime 1x ./internal/gateway/
+func BenchmarkExecDecisionAtL2Scale(b *testing.B) {
+	p, human, agent := execBench(b, scaleL2)
 	for who, r := range map[string]AccessRequest{"human": human, "agent": agent} {
 		for name, command := range map[string]string{"bench": benchCommand, "worst": worstCommand} {
 			r.Command = command
-			require.Equal(t, []string{ObligationApproval}, decideExec(p, r).Obligations, "%s/%s", who, name)
-			warmUp(p, r)
-			p50, p99 := latencyRound(p, r)
-			t.Logf("L2 scale %s/%s: p50 %v, p99 %v (budget at 1 000 bindings: 5ms)", who, name, p50, p99)
+			require.Equal(b, []string{ObligationApproval}, decideExec(p, r).Obligations, "%s/%s", who, name)
+			b.Run(who+"/"+name, func(b *testing.B) {
+				warmUp(p, r)
+				var p50, p99 time.Duration
+				for b.Loop() {
+					p50, p99 = latencyRound(p, r)
+				}
+				b.ReportMetric(0, "ns/op") // one op is a whole round
+				b.ReportMetric(float64(p50)/float64(time.Millisecond), "p50-ms")
+				b.ReportMetric(float64(p99)/float64(time.Millisecond), "p99-ms")
+			})
 		}
 	}
 }

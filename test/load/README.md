@@ -32,7 +32,11 @@ Every criterion prints a `RESULT | <load> | <metric> | <criterion> | <result> | 
 
 ### Exec decision at 10 000 bindings (known limit)
 
-The classifier and policy decision of an `ssh_exec` (analysis, path rules, `Decide`) has no stand test. `TestExecDecisionP99` (`internal/gateway`, run alone) holds p99 ≤ 5 ms at the budget snapshot: 1 000 resources and bindings, 100 command rules, 100 path rules of 4 globs, 10 custom policies. `TestExecDecisionAtL2Scale` measures the L2 scale (10 000 resources and bindings, 200 command rules, half with an approval, 100 path rules of 4 globs, 5 custom policies, 50 grants, 10 locks, 100 agents) and only logs: it never fails on latency.
+The classifier and policy decision of an `ssh_exec` (analysis, path rules, `Decide`) has no stand test. `TestExecDecisionP99` (`internal/gateway`, run alone) holds p99 ≤ 5 ms at the budget snapshot: 1 000 resources and bindings, 100 command rules, 100 path rules of 4 globs, 10 custom policies. `BenchmarkExecDecisionAtL2Scale` measures the L2 scale (10 000 resources and bindings, 200 command rules, half with an approval, 100 path rules of 4 globs, 5 custom policies, 50 grants, 10 locks, 100 agents). It reports p50 and p99 and never fails on latency. `go test ./...` and CI do not run it. Run it by hand (about 35 s):
+
+```sh
+go test -run '^$' -bench '^BenchmarkExecDecisionAtL2Scale$' -benchtime 1x ./internal/gateway/
+```
 
 The cost grows with the number of bindings, so at 10 000 bindings the 5 ms p99 budget does not hold. Development machine (macOS, 12 cores, other load running), 2 000 runs after 100 warm-up runs:
 

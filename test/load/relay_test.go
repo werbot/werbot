@@ -76,7 +76,7 @@ func l5Relays(t *testing.T) {
 	<-hold.Done()
 	browsers, bridges := streams() // still open after the hold: no terminal was closed by a replica
 	release()
-	broken.wait()
+	broken.wg.Wait()
 	stop()
 	all := <-samples
 
@@ -94,8 +94,6 @@ type held struct {
 	wg   sync.WaitGroup
 	errs atomic.Int64
 }
-
-func (h *held) wait() { h.wg.Wait() }
 
 // holdTerminals reads every terminal (a replica pings it and closes it when it
 // does not answer) and writes one line to all of them every relayLine until ctx ends.

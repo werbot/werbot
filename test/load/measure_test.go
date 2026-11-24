@@ -113,16 +113,9 @@ func takeSample(ctx context.Context, st *cluster.Stand, pids map[string]int, add
 		if err != nil {
 			continue
 		}
-		active, err := cluster.ReadMetric(addrs[svc.service], svc.metric)
+		active, err := readActive(addrs[svc.service], svc.metric, svc.plus)
 		if err != nil {
 			continue
-		}
-		if svc.plus != "" {
-			extra, err := cluster.ReadMetric(addrs[svc.service], svc.plus)
-			if err != nil {
-				continue
-			}
-			active += extra
 		}
 		s.RSS[svc.service], s.Active[svc.service] = rss, active
 	}
@@ -143,6 +136,16 @@ func takeSample(ctx context.Context, st *cluster.Stand, pids map[string]int, add
 		}
 	}
 	return s
+}
+
+// readActive reads metric at addr and adds the metric plus when it is set.
+func readActive(addr, metric, plus string) (int64, error) {
+	active, err := cluster.ReadMetric(addr, metric)
+	if err != nil || plus == "" {
+		return active, err
+	}
+	extra, err := cluster.ReadMetric(addr, plus)
+	return active + extra, err
 }
 
 // p99 is the nearest-rank 99th percentile: sorted[ceil(0.99*n) - 1]; 0 for no values.

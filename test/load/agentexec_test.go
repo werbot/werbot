@@ -25,7 +25,7 @@ const maxRunCalls = 1000
 
 // TestL5 is the agent load of stage 16 (10 §8.3 L5): AgentExec, then Relays on the same stand.
 // The classifier and PDP latency has no stand test: TestExecDecisionP99 and
-// TestExecDecisionAtL2Scale of internal/gateway measure it (see README).
+// BenchmarkExecDecisionAtL2Scale of internal/gateway measure it (see README).
 func TestL5(t *testing.T) {
 	needStand(t)
 	t.Run("AgentExec", l5AgentExec)
