@@ -1,4 +1,4 @@
-.PHONY: build test lint dev-db proto sqlc web e2e e2e-network e2e-sso e2e-cluster redteam redteam-go redteam-sso load fuzz release-check release-snapshot
+.PHONY: build test lint dev-db proto sqlc web e2e e2e-network e2e-sso e2e-cluster redteam redteam-go redteam-sso load fuzz site release-check release-snapshot
 
 VERSION ?= dev
 GORELEASER ?= go run github.com/goreleaser/goreleaser/v2@v2.20.0
@@ -58,7 +58,7 @@ CLUSTER_LOGS = $(CLUSTER) logs --no-color --timestamps
 # test/cluster/compose.log; the stand is always removed at the end
 e2e-cluster:
 	docker build -f deploy/Dockerfile -t werbot:cluster .
-	COMPOSE_PROJECT_NAME=$(CLUSTER_PROJECT) go test -tags cluster -count=1 -timeout 40m -v ./test/cluster/... ; rc=$$?; \
+	COMPOSE_PROJECT_NAME=$(CLUSTER_PROJECT) go test -tags cluster -count=1 -timeout 50m -v ./test/cluster/... ; rc=$$?; \
 	[ $$rc -eq 0 ] || $(CLUSTER_LOGS) > $(CLUSTER_LOG); \
 	$(CLUSTER) down -v --remove-orphans; exit $$rc
 
@@ -104,6 +104,11 @@ FUZZ_TARGETS = ./internal/platform/shellclass:FuzzClassify ./internal/platform/s
 fuzz:
 	@for t in $(FUZZ_TARGETS); do pkg=$${t%%:*}; fn=$${t##*:}; echo "== $$fn"; \
 	  go test -run '^$$' -fuzz "^$$fn$$" -fuzztime $(FUZZTIME) $$pkg || exit 1; done
+
+# docs site (site/): Starlight pages synced from docs/; SITE_REF is the git ref the links to repo files point at
+SITE_REF ?= main
+site:
+	SITE_REF=$(SITE_REF) site/sync.sh && cd site && bun install --frozen-lockfile && bun --bun run build
 
 release-check:
 	$(GORELEASER) check

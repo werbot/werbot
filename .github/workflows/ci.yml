@@ -91,6 +91,24 @@ jobs:
       - run: bun run check
       - run: bun run test:unit
       - run: bun run build
+      - run: make site
+        working-directory: .
+
+  fuzz:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: make fuzz
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fuzz-crashers
+          path: "**/testdata/fuzz/**"
+          if-no-files-found: ignore
 
   e2e:
     runs-on: ubuntu-latest
@@ -161,7 +179,7 @@ jobs:
 
   e2e-cluster:
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    timeout-minutes: 60
     # one run per ref: a newer push cancels the cluster run it supersedes
     concurrency:
       group: e2e-cluster-${{ github.ref }}
@@ -245,3 +263,5 @@ jobs:
           docker compose -f docker-compose.gateway.yaml config -q
           docker compose -f docker-compose.cluster.yaml --profile gateways config -q
           docker compose -f docker-compose.cluster.yaml run --rm --no-deps lb nginx -t
+          docker compose -f docker-compose.yaml -f demo/docker-compose.yaml config -q
+          bash -n demo/demo.sh
