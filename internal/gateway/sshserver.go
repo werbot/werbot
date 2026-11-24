@@ -2,6 +2,7 @@ package gateway
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -56,7 +57,7 @@ func (f *sshFront) Serve(ctx context.Context, ln net.Listener, p *Pipeline) erro
 			ctx.SetValue(connIdleKey{}, idle)
 			return newHandshakeConn(ctx, conn, f.handshakeTimeout, func() { idle.stop(); h.authFailed(ctx) })
 		},
-		ServerConfigCallback: authenticated,
+		ServerConfigCallback: h.verified,
 	}
 	srv.AddHostKey(f.hostKey)
 	served := make(chan error, 1)
@@ -236,6 +237,9 @@ func (h *sshHandler) request(ctx ssh.Context, resource string, kind Kind, w Wind
 	if a, _ := ctx.Value(userKey{}).(*authed); a != nil && a.id.Value == fp {
 		r.Identity, r.Handshake = a.id, &Handshake{User: a.u, At: a.at}
 	}
+	r.MFA.Method, _ = ctx.Value(mfaMethodKey{}).(string)
+	sid, _ := ctx.Value(ssh.ContextKeySessionID).(string) // hex, set with the connection metadata
+	r.MFA.Session, _ = hex.DecodeString(sid)
 	return r
 }
 

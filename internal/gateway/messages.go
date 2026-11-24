@@ -10,6 +10,34 @@ import (
 
 const usageText = "Use ssh <login>+<resource>@<host> to run commands or forward ports"
 
+// Errors of an MFA step; the user reads their text.
+var (
+	ErrMFATimeout         = errors.New("Permission denied (MFA timeout)")        //nolint:staticcheck // the user reads this text
+	ErrMFATooManyAttempts = errors.New("Too many MFA attempts, try again later") //nolint:staticcheck // the user reads this text
+	// ErrMFARequired is an mfa obligation the front cannot ask for: a web
+	// terminal closes "mfa_required", a forwarded port is refused.
+	ErrMFARequired = errors.New("MFA required, reconnect to confirm")
+)
+
+// mfaText is the user text of a failed MFA step; "" for any other error.
+func mfaText(err error) string {
+	for _, e := range []error{ErrMFATimeout, ErrMFATooManyAttempts, ErrMFARequired} {
+		if errors.Is(err, e) {
+			return e.Error()
+		}
+	}
+	return ""
+}
+
+// promptText asks for the second factor: the confirmation page and its code,
+// or a TOTP code when one meets the rule.
+func promptText(url, code string, totp bool) string {
+	if totp {
+		return fmt.Sprintf("Open %s (code %s) or enter TOTP: ", url, code)
+	}
+	return fmt.Sprintf("Open %s (code %s): ", url, code)
+}
+
 // openText is the user text for an Open error; denied and unknown resources read the same.
 func openText(err error, resource string, kind Kind, pol *Policy) string {
 	switch {
@@ -23,7 +51,7 @@ func openText(err error, resource string, kind Kind, pol *Policy) string {
 	case errors.Is(err, ErrShellDenied):
 		return "Interactive shell is not allowed on " + resource
 	}
-	return cmp.Or(agentRunText(err), CommandErrorText(err))
+	return cmp.Or(agentRunText(err), mfaText(err), CommandErrorText(err))
 }
 
 // runText is the user text for a connector error.

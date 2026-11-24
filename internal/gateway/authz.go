@@ -24,6 +24,10 @@ type User struct {
 	TeamIDs []uuid.UUID
 	Country string
 	Agent   *Agent // the agent run the user sponsors on this request; nil: the user
+	// MFAAgeSeconds and MFAMethod are the user's last second factor for the
+	// identity it was found by (AccessRequest fields of the same name).
+	MFAAgeSeconds int64
+	MFAMethod     string
 }
 
 // Resource is a resource of the pool as the snapshot lists it.

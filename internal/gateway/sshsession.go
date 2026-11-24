@@ -120,6 +120,10 @@ func (h *sshHandler) sessionRequest(s ssh.Session, resource string, pty ssh.Pty,
 	}
 	r := h.request(s.Context(), resource, kind, w, "")
 	r.Command, r.Notice, r.ToolCall = s.RawCommand(), notice, toolCallOf(s.Environ())
+	r.MFA.Prompt = noticePrompt(notice)
+	if kind == KindTerminal {
+		r.MFA.Prompt = terminalPrompt(s)
+	}
 	return r
 }
 

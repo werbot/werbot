@@ -56,7 +56,7 @@ func (c *tunnelClient) AuthenticateUser(ctx context.Context, id Identity, ip net
 
 // userOf is the user of an AuthenticateUser answer, without its agent run.
 func userOf(m *gatewayv1.AuthenticateUserResponse) (User, error) {
-	u := User{Login: m.GetLogin(), Country: m.GetCountry()}
+	u := User{Login: m.GetLogin(), Country: m.GetCountry(), MFAAgeSeconds: m.GetMfaAgeSeconds(), MFAMethod: m.GetMfaMethod()}
 	var err error
 	if u.ID, err = uuid.Parse(m.GetUserId()); err != nil {
 		return User{}, errors.New("authenticate user: invalid user_id in response")

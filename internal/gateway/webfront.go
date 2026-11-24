@@ -184,6 +184,8 @@ func streamCloseReason(err error) string {
 		errors.Is(err, ErrUnsupportedKind), errors.Is(err, ErrApprovalDenied), errors.Is(err, ErrApprovalTimeout),
 		errors.Is(err, ErrShellDenied):
 		return "denied"
+	case errors.Is(err, ErrMFARequired):
+		return "mfa_required"
 	}
 	return "error"
 }

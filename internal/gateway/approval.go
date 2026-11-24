@@ -83,6 +83,9 @@ func (c *tunnelClient) dispatch(msg *gatewayv1.ConnectResponse) {
 	if d := msg.GetApprovalDecided(); d != nil {
 		c.approvals.deliver(d.GetApprovalId())
 	}
+	if m := msg.GetMfaConfirmed(); m != nil {
+		c.mfaWaits.deliver(m.GetChallengeId())
+	}
 	if o := msg.GetOpenStream(); o != nil {
 		c.command("open_stream", o.GetTicketId(), c.onOpenStream)
 	}

@@ -135,19 +135,6 @@ func (c *connIdle) stop() {
 	}
 }
 
-// authenticated stops the handshake timer once a signature is verified for a
-// user. A connection the control plane could not check (no user) keeps the
-// timer: every channel gets only the not ready text, so the limit closes it.
-func authenticated(ctx ssh.Context) *gossh.ServerConfig {
-	return &gossh.ServerConfig{VerifiedPublicKeyCallback: func(_ gossh.ConnMetadata, _ gossh.PublicKey, perms *gossh.Permissions, _ string) (*gossh.Permissions, error) {
-		ctx.SetValue(verifiedKey{}, true)
-		if t, ok := ctx.Value(handshakeKey{}).(*time.Timer); ok && handshakeUser(ctx) != nil {
-			t.Stop()
-		}
-		return perms, nil
-	}}
-}
-
 // channelContext is the context of one session channel: the connection's values
 // and metadata, canceled when the channel closes or the connection ends.
 type channelContext struct {

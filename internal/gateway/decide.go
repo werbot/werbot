@@ -35,8 +35,8 @@ func (p *Pipeline) decide(ctx context.Context, r OpenRequest) (pol *Policy, req 
 			return nil, req, "", err
 		}
 	}
-	if d := pol.Decide(req); !d.Allow {
-		return nil, req, "", accessDenied{d.Reasons}
+	if err := p.connect(ctx, pol, &req, r); err != nil {
+		return nil, req, "", err
 	}
 	return pol, req, host, nil
 }

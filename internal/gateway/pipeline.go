@@ -53,6 +53,7 @@ type OpenRequest struct {
 	// Handshake is the user the front authenticated for Identity; nil: none.
 	Handshake *Handshake
 	ToolCall  uuid.UUID // an agent's tool call (sshca.EnvToolCall); uuid.Nil: none
+	MFA       MFAStep
 }
 
 // control is the control plane of the pipeline; *tunnelClient implements it.
