@@ -31,10 +31,16 @@ func TestParseMFAPrompt(t *testing.T) {
 	assert.Equal(t, mfaURL, url)
 	assert.False(t, totp)
 
+	// OpenSSH 8.4+ shows a keyboard-interactive prompt to SSH_ASKPASS as "(user@host) <prompt>".
+	url, code, totp, ok = ParseMFAPrompt("(alice+srv@gw.example) " + totpPrompt)
+	assert.True(t, ok)
+	assert.Equal(t, []string{mfaURL, "BCDF-GHJK"}, []string{url, code})
+	assert.True(t, totp)
+
 	for _, s := range []string{
 		"Password: ", "Open https://w.example/mfa/7: ", "Open https://w.example/m (code ABCD-EFGH): ", // vowels are not in the alphabet
 		"Open file:///etc/passwd (code BCDF-GHJK): ", "Open javascript:alert(1) (code BCDF-GHJK): ",
-		"Open ftp://w.example (code BCDF-GHJK): ", totpPrompt + "\n", "x" + keyPrompt,
+		"Open ftp://w.example (code BCDF-GHJK): ", totpPrompt + "\n", "x" + keyPrompt, "(a b) " + keyPrompt,
 	} {
 		_, _, _, ok = ParseMFAPrompt(s)
 		assert.False(t, ok, s)
