@@ -1,6 +1,7 @@
 package gateway
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -140,7 +141,7 @@ func menu(t *testing.T, c *gossh.Client, input string) (string, int) {
 	if !ended {
 		_, err = io.WriteString(in, input)
 		require.NoError(t, err)
-		require.NoError(t, in.Close()) // EOF after the input: a menu that waits for more ends
+		closeStdin(t, in) // EOF after the input: a menu that waits for more ends
 		select {
 		case waitErr = <-done:
 		case <-time.After(2 * time.Second):
@@ -148,6 +149,15 @@ func menu(t *testing.T, c *gossh.Client, input string) (string, int) {
 		}
 	}
 	return out.String(), exitCode(t, waitErr)
+}
+
+// closeStdin sends EOF on in. A session that ended on the input has closed
+// the channel already, so Close returns io.EOF; the caller checks the end.
+func closeStdin(t *testing.T, in io.WriteCloser) {
+	t.Helper()
+	if err := in.Close(); !errors.Is(err, io.EOF) {
+		require.NoError(t, err)
+	}
 }
 
 func TestMenuSelectsResource(t *testing.T) {
