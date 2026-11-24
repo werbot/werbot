@@ -1,4 +1,4 @@
-.PHONY: build test lint dev-db proto sqlc web e2e e2e-network e2e-sso e2e-cluster redteam redteam-go load fuzz release-check release-snapshot
+.PHONY: build test lint dev-db proto sqlc web e2e e2e-network e2e-sso e2e-cluster redteam redteam-go redteam-sso load fuzz release-check release-snapshot
 
 VERSION ?= dev
 GORELEASER ?= go run github.com/goreleaser/goreleaser/v2@v2.20.0
@@ -73,7 +73,15 @@ redteam-go:
 	[ $$rc -eq 0 ] || $(REDTEAM) logs --no-color --timestamps > test/redteam/compose.log; \
 	$(REDTEAM) down -v --remove-orphans; exit $$rc
 
-redteam: redteam-go
+# red-team browser scenario (web/redteam): the Keycloak stand and the built server on
+# :18080 (needs make dev-db and a free port 18080); the Keycloak stand is always removed
+redteam-sso: build
+	docker compose -f deploy/docker-compose.test.yaml exec -T testdb psql -U postgres -c 'DROP DATABASE IF EXISTS werbot_redteam WITH (FORCE)' -c 'CREATE DATABASE werbot_redteam'
+	$(KEYCLOAK) up -d --wait || { $(KEYCLOAK) down -v; exit 1; }
+	cd web && bunx playwright install chromium && WERBOT_E2E_DATABASE_URL='postgres://postgres:password@localhost:27432/werbot_redteam?sslmode=disable' bunx playwright test -c playwright.redteam.config.ts; rc=$$?; \
+	cd .. && $(KEYCLOAK) down -v; exit $$rc
+
+redteam: redteam-go redteam-sso
 
 LOAD_TESTS ?= L1 L2 L3 L4 L5
 
