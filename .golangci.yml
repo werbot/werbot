@@ -391,6 +391,11 @@ linters:
           files: ["**/*.go", "!**/internal/session/recstore/**"]
           deny:
             - { pkg: github.com/aws/aws-sdk-go-v2, desc: S3 access goes through internal/session/recstore }
+        wireguard-vnet-only:
+          files: ["**/*.go", "!**/internal/vnet/**"]
+          deny:
+            - { pkg: golang.zx2c4.com/wireguard, desc: the TUN device and the userspace stack live only in internal/vnet }
+            - { pkg: gvisor.dev/gvisor, desc: the TUN device and the userspace stack live only in internal/vnet }
         cedar-exp-policy-only:
           files: ["**/*.go", "!**/internal/policy/custom.go", "!**/*_test.go"]
           deny:
