@@ -9,10 +9,13 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
+	"connectrpc.com/connect"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
+	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
 	"github.com/werbot/werbot/internal/mcpserver"
 	"github.com/werbot/werbot/test/cluster"
 )
@@ -38,13 +41,21 @@ func leaks(out string) bool {
 	return false
 }
 
-// agentSecret runs command on secretTarget as a, requires status ok and
-// logs only the sizes and the [masked] count of the output.
-func agentSecret(t *testing.T, a *cluster.Agent, command string) mcpserver.ExecOutput {
+// secretExec runs command on secretTarget as a and requires status ok; the
+// output is never printed: it may carry the secret.
+func secretExec(t *testing.T, a *cluster.Agent, command string) mcpserver.ExecOutput {
 	t.Helper()
 	out, err := a.Exec(t.Context(), mcpserver.ExecInput{Resource: secretTarget, Command: command})
 	require.NoError(t, err)
 	require.Equal(t, "ok", out.Status, out.Message)
+	return out
+}
+
+// agentSecret runs command on secretTarget as a, requires status ok and
+// logs only the sizes and the [masked] count of the output.
+func agentSecret(t *testing.T, a *cluster.Agent, command string) mcpserver.ExecOutput {
+	t.Helper()
+	out := secretExec(t, a, command)
 	t.Logf("%s: stdout %d bytes, stderr %d bytes, %d %s", command, len(out.Stdout), len(out.Stderr),
 		strings.Count(out.Stdout+out.Stderr, maskMarker), maskMarker)
 	if leaks(out.Stdout + out.Stderr) {
@@ -96,9 +107,10 @@ func TestRedteamHumanSeesSecretWhenAgentsOnly(t *testing.T) {
 	if out, code := aliceExec(t, secretTarget, "cat /var/tmp/secret"); out != targetSecret+"\n" || code != 0 {
 		t.Fatalf("under mask_output agents a person does not read the original value (%d bytes, exit %d)", len(out), code)
 	}
+	t0 := time.Now()
 	setMaskOutput(t, "all")
 	var out string
-	masked := within(settle, func() bool {
+	masked := untilMode(t, t0, "mask_output all", func() bool {
 		out, _ = aliceExec(t, secretTarget, "cat /var/tmp/secret")
 		return out == maskMarker+"\n"
 	})
@@ -134,5 +146,92 @@ func TestRedteamRecordingKeepsOriginal(t *testing.T) {
 	t.Logf("recording %s: %d bytes", id, len(body))
 	if !bytes.Contains(body, []byte(targetSecret)) {
 		t.Fatal("the recording does not keep the original output")
+	}
+}
+
+// maskBound is how soon a mask_output change takes effect on every gateway
+// instance of the organization: the binding bound (10 §8.3 #2), on the same
+// snapshot push.
+const maskBound = cluster.BindingPropagation
+
+// untilMode polls cond until it holds or maskBound has passed since t0, the
+// moment before the change, and logs when the exec that saw the new mode started.
+func untilMode(t *testing.T, t0 time.Time, what string, cond func() bool) bool {
+	t.Helper()
+	var at time.Duration
+	ok := within(maskBound-time.Since(t0), func() bool {
+		at = time.Since(t0)
+		return cond()
+	})
+	if ok {
+		t.Logf("%s: first exec in the new mode started %s after the change", what, at.Round(time.Millisecond))
+	}
+	return ok
+}
+
+// agentMasked runs cat /var/tmp/secret on secretTarget as a and reports
+// whether the agent read [masked] and no piece of the secret.
+func agentMasked(t *testing.T, a *cluster.Agent) bool {
+	t.Helper()
+	out := secretExec(t, a, "cat /var/tmp/secret")
+	return strings.Contains(out.Stdout, maskMarker) && !leaks(out.Stdout+out.Stderr)
+}
+
+// pinnedAgent is an agent whose execs all go to one gateway instance.
+type pinnedAgent struct {
+	gw string // gateway_instance.hostname
+	a  *cluster.Agent
+}
+
+// agentOn starts agent name with pool-a pointed at nginx port, the front of
+// one instance: werbot mcp keeps the address of list_resources for
+// mcpserver.ResourceCacheTTL. Cleanup points pool-a back at the pool front.
+func agentOn(t *testing.T, gw, name string, port int) pinnedAgent {
+	t.Helper()
+	_, err := st.Edge.Gateways.UpdateGateway(context.Background(), connect.NewRequest(&werbotv1.UpdateGatewayRequest{
+		Id: st.PoolID.String(), SshAddress: st.Addr(t, "nginx", port),
+	}))
+	require.NoError(t, err)
+	t.Cleanup(func() { st.SetPoolAddress(t) })
+	return pinnedAgent{gw: gw, a: st.StartAgent(t, home, name, "redteam")}
+}
+
+// requirePinned requires every session of the run of p on its instance.
+func requirePinned(t *testing.T, p pinnedAgent) {
+	t.Helper()
+	var hosts []string
+	require.NoError(t, st.DB.QueryRow(context.Background(), `SELECT coalesce(array_agg(DISTINCT gi.hostname), '{}')
+		FROM session s JOIN gateway_instance gi ON gi.id = s.gateway_instance_id WHERE s.agent_run_id = $1`, p.a.RunID).Scan(&hosts))
+	require.Equal(t, []string{p.gw}, hosts, "sessions of %s", p.a.Name)
+}
+
+// TestRedteamMaskTighteningBound: mask_output "none" -> "agents" takes effect
+// on both gateway instances within maskBound: every agent exec started after
+// the bound reads [masked] on gw1 and on gw2.
+func TestRedteamMaskTighteningBound(t *testing.T) {
+	begin(t)
+	useSecretTarget(t)
+	agents := []pinnedAgent{agentOn(t, "gw1", "rt-mask-gw1", 2201), agentOn(t, "gw2", "rt-mask-gw2", 2202)}
+	t0 := time.Now()
+	setMaskOutput(t, "none")
+	for _, p := range agents {
+		require.True(t, untilMode(t, t0, "none on "+p.gw, func() bool { return !agentMasked(t, p.a) }),
+			"mask_output none reaches %s within %s", p.gw, maskBound)
+	}
+
+	t0 = time.Now()
+	setMaskOutput(t, "agents")
+	for _, p := range agents {
+		require.True(t, untilMode(t, t0, "agents on "+p.gw, func() bool { return agentMasked(t, p.a) }),
+			"mask_output agents reaches %s within %s", p.gw, maskBound)
+	}
+	time.Sleep(time.Until(t0.Add(maskBound)))
+	for range 3 {
+		for _, p := range agents {
+			require.True(t, agentMasked(t, p.a), "agent exec on %s started after %s reads [masked]", p.gw, maskBound)
+		}
+	}
+	for _, p := range agents {
+		requirePinned(t, p)
 	}
 }

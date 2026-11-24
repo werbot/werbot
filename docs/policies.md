@@ -265,6 +265,8 @@ The gateway can hide secrets in the output of exec sessions. The organization se
 | `all` | Every exec session. |
 | `none` | Nothing. |
 
+A change of the masking mode reaches the gateways within 2 seconds; output an agent got before that stays as it was.
+
 What is masked, each match replaced by `[masked]`:
 
 - the credential the gateway used for the session (the resource password or key), wherever it appears;
