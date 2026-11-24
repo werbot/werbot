@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"crypto/hkdf"
 	"crypto/sha256"
 	"log/slog"
 	"net/http"
@@ -178,9 +179,10 @@ func (q emailQueue) EnqueueTx(ctx context.Context, tx pgx.Tx, to, template strin
 
 // oidcConfig is the OIDC login config; the cookie keys derive from WERBOT_SECRET_KEY.
 func oidcConfig(cfg config.Config) oidclogin.Config {
-	hash := sha256.Sum256(append([]byte("werbot-oidc-hash"), cfg.SecretKey...))
-	block := sha256.Sum256(append([]byte("werbot-oidc-block"), cfg.SecretKey...))
-	return oidclogin.Config{WebURL: cfg.WebURL, SecureCookies: cfg.Env != "development", HashKey: hash[:], BlockKey: block[:]}
+	// HKDF fails only for keys longer than 255 hash blocks.
+	hash, _ := hkdf.Key(sha256.New, cfg.SecretKey, nil, "werbot-oidc-hash", 32)
+	block, _ := hkdf.Key(sha256.New, cfg.SecretKey, nil, "werbot-oidc-block", 32)
+	return oidclogin.Config{WebURL: cfg.WebURL, SecureCookies: cfg.Env != "development", HashKey: hash, BlockKey: block}
 }
 
 // mount registers ResourceService, AccessService, ApprovalPolicyService, AccessRequestService, LockService,
