@@ -107,4 +107,14 @@ type Store interface {
 	ListConfirmedMFAChallenges(ctx context.Context, arg dbq.ListConfirmedMFAChallengesParams) ([]uuid.UUID, error)
 	NotifyMFAConfirmed(ctx context.Context, payload string) error
 	LastMFAVerification(ctx context.Context, arg dbq.LastMFAVerificationParams) (dbq.LastMFAVerificationRow, error)
+	GetIdPLinkUser(ctx context.Context, arg dbq.GetIdPLinkUserParams) (uuid.UUID, error)
+	GetMemberByEmail(ctx context.Context, arg dbq.GetMemberByEmailParams) (uuid.UUID, error)
+	LoginTaken(ctx context.Context, login string) (bool, error)
+	UpsertIdPLink(ctx context.Context, arg dbq.UpsertIdPLinkParams) error
+	SetExternalRole(ctx context.Context, arg dbq.SetExternalRoleParams) (string, error)
+	AddExternalTeams(ctx context.Context, arg dbq.AddExternalTeamsParams) error
+	RemoveExternalTeams(ctx context.Context, arg dbq.RemoveExternalTeamsParams) error
+	ListEnabledIdPs(ctx context.Context) ([]dbq.ListEnabledIdPsRow, error)
+	DeleteOrgUserSessions(ctx context.Context, arg dbq.DeleteOrgUserSessionsParams) error
+	RevokeOrgUserCLISessions(ctx context.Context, arg dbq.RevokeOrgUserCLISessionsParams) error
 }

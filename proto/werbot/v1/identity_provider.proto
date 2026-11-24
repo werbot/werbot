@@ -1,0 +1,106 @@
+syntax = "proto3";
+package werbot.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// OIDC identity providers members sign in with; owner and admin only.
+service IdentityProviderService {
+  rpc ListIdentityProviders(ListIdentityProvidersRequest) returns (ListIdentityProvidersResponse);
+  rpc GetIdentityProvider(GetIdentityProviderRequest) returns (GetIdentityProviderResponse);
+  rpc CreateIdentityProvider(CreateIdentityProviderRequest) returns (CreateIdentityProviderResponse);
+  rpc UpdateIdentityProvider(UpdateIdentityProviderRequest) returns (UpdateIdentityProviderResponse);
+  rpc DeleteIdentityProvider(DeleteIdentityProviderRequest) returns (DeleteIdentityProviderResponse);
+}
+
+// IdentityProvider is an OIDC provider of the organization. The client
+// secret is never returned.
+message IdentityProvider {
+  string id = 1;
+  string name = 2;
+  string issuer = 3;
+  string client_id = 4;
+  // Write only: always empty in responses.
+  string client_secret = 5;
+  repeated string scopes = 6;
+  repeated ClaimMapping claims_mapping = 7;
+  // Creates a member for a verified email that matches no member.
+  bool allow_signup = 8;
+  bool enabled = 9;
+  google.protobuf.Timestamp created_at = 10;
+  // Read only: the redirect URI to register at the provider.
+  string redirect_uri = 11;
+}
+
+// ClaimMapping matches a claim (a string or a list of strings) against regex,
+// anchored at both ends; a match puts the user in team_id or gives role.
+// The owner role is never granted or changed.
+message ClaimMapping {
+  string claim = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  string regex = 2 [(buf.validate.field).string = {min_len: 1, max_len: 512}];
+  oneof target {
+    option (buf.validate.oneof).required = true;
+    string team_id = 3 [(buf.validate.field).string.uuid = true];
+    string role = 4 [(buf.validate.field).string = {in: ["admin", "member"]}];
+  }
+}
+
+message ListIdentityProvidersRequest {}
+message ListIdentityProvidersResponse {
+  repeated IdentityProvider identity_providers = 1;
+}
+
+message GetIdentityProviderRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message GetIdentityProviderResponse {
+  IdentityProvider identity_provider = 1;
+}
+
+message CreateIdentityProviderRequest {
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 63}];
+  // https:// (http:// only with WERBOT_ENV=development).
+  string issuer = 2 [(buf.validate.field).string = {uri: true, max_len: 2048}];
+  string client_id = 3 [(buf.validate.field).string = {min_len: 1, max_len: 255}];
+  string client_secret = 4 [(buf.validate.field).string = {min_len: 1, max_len: 1024}];
+  // Empty: openid, email, profile, groups; must contain openid.
+  repeated string scopes = 5 [(buf.validate.field).repeated = {
+    max_items: 20
+    items: {
+      string: {pattern: "^[!#-\\[\\]-~]{1,64}$"}
+    }
+  }];
+  repeated ClaimMapping claims_mapping = 6 [(buf.validate.field).repeated.max_items = 50];
+  bool allow_signup = 7;
+  bool enabled = 8;
+}
+message CreateIdentityProviderResponse {
+  IdentityProvider identity_provider = 1;
+}
+
+// UpdateIdentityProviderRequest replaces the provider as a whole; an empty
+// client_secret keeps the stored one.
+message UpdateIdentityProviderRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  string name = 2 [(buf.validate.field).string = {min_len: 1, max_len: 63}];
+  string issuer = 3 [(buf.validate.field).string = {uri: true, max_len: 2048}];
+  string client_id = 4 [(buf.validate.field).string = {min_len: 1, max_len: 255}];
+  string client_secret = 5 [(buf.validate.field).string.max_len = 1024];
+  repeated string scopes = 6 [(buf.validate.field).repeated = {
+    max_items: 20
+    items: {
+      string: {pattern: "^[!#-\\[\\]-~]{1,64}$"}
+    }
+  }];
+  repeated ClaimMapping claims_mapping = 7 [(buf.validate.field).repeated.max_items = 50];
+  bool allow_signup = 8;
+  bool enabled = 9;
+}
+message UpdateIdentityProviderResponse {
+  IdentityProvider identity_provider = 1;
+}
+
+message DeleteIdentityProviderRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message DeleteIdentityProviderResponse {}

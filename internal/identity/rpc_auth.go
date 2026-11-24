@@ -135,3 +135,16 @@ func (h *Handler) CompleteStepUp(ctx context.Context, req *connect.Request[werbo
 	}
 	return connect.NewResponse(&werbotv1.CompleteStepUpResponse{}), nil
 }
+
+// ListIdentityProviders is public: the login page offers the enabled IdPs.
+func (h *Handler) ListIdentityProviders(ctx context.Context, _ *connect.Request[werbotv1.AuthServiceListIdentityProvidersRequest]) (*connect.Response[werbotv1.AuthServiceListIdentityProvidersResponse], error) {
+	refs, err := h.svc.IdentityProviders(ctx)
+	if err != nil {
+		return nil, apperr.ToConnect(err)
+	}
+	res := &werbotv1.AuthServiceListIdentityProvidersResponse{}
+	for _, r := range refs {
+		res.Providers = append(res.Providers, &werbotv1.IdentityProviderRef{Id: r.ID.String(), Name: r.Name})
+	}
+	return connect.NewResponse(res), nil
+}

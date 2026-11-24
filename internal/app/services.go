@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"crypto/sha256"
 	"log/slog"
 	"net/http"
 	"time"
@@ -20,6 +21,7 @@ import (
 	"github.com/werbot/werbot/internal/credential"
 	"github.com/werbot/werbot/internal/identity"
 	"github.com/werbot/werbot/internal/identity/oauth"
+	"github.com/werbot/werbot/internal/identity/oidclogin"
 	"github.com/werbot/werbot/internal/inventory"
 	"github.com/werbot/werbot/internal/notify"
 	"github.com/werbot/werbot/internal/platform/config"
@@ -101,6 +103,8 @@ type services struct {
 	Recordings *session.Recordings
 	Audit      *audit.Service
 	Relay      *relay.Relay
+	IdPs       *oidclogin.Store //nolint:revive // name fixed by contract
+	OIDC       oidclogin.Config
 	Logger     *slog.Logger // replay errors; nil is slog.Default()
 	Jobs       *river.Client[pgx.Tx]
 }
@@ -157,11 +161,20 @@ func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box
 	s.Identity = identity.New(pool, notify.NewQueue(s.Jobs, box), identity.Config{
 		WebURL: cfg.WebURL, SecureCookies: cfg.Env != "development", Logger: logger, Box: box, Metrics: reg,
 	})
+	s.IdPs, s.OIDC = oidclogin.NewStore(pool, box), oidcConfig(cfg)
 	return s, nil
 }
 
+// oidcConfig is the OIDC login config; the cookie keys derive from WERBOT_SECRET_KEY.
+func oidcConfig(cfg config.Config) oidclogin.Config {
+	hash := sha256.Sum256(append([]byte("werbot-oidc-hash"), cfg.SecretKey...))
+	block := sha256.Sum256(append([]byte("werbot-oidc-block"), cfg.SecretKey...))
+	return oidclogin.Config{WebURL: cfg.WebURL, SecureCookies: cfg.Env != "development", HashKey: hash[:], BlockKey: block[:]}
+}
+
 // mount registers ResourceService, AccessService, ApprovalPolicyService, AccessRequestService, LockService,
-// PolicyService, SessionService, AuditService, AgentService and the recording replay route on mux.
+// PolicyService, SessionService, AuditService, AgentService, IdentityProviderService, the recording
+// replay route and the OIDC login routes on mux.
 func (s *services) mount(mux *http.ServeMux, opts ...connect.HandlerOption) {
 	mux.Handle(werbotv1connect.NewResourceServiceHandler(inventory.NewHandler(s.Inventory, s.Credential, accessibleResources{s.Policy},
 		s.Gateways, s.Access), opts...))
@@ -173,5 +186,7 @@ func (s *services) mount(mux *http.ServeMux, opts ...connect.HandlerOption) {
 	mux.Handle(werbotv1connect.NewSessionServiceHandler(session.NewSessionHandler(s.Sessions, s.Recordings), opts...))
 	mux.Handle(werbotv1connect.NewAuditServiceHandler(audit.NewHandler(s.Audit), opts...))
 	mux.Handle(werbotv1connect.NewAgentServiceHandler(agentic.NewHandler(s.Agents), opts...))
+	mux.Handle(werbotv1connect.NewIdentityProviderServiceHandler(oidclogin.NewIdentityProviderHandler(s.IdPs, s.OIDC), opts...))
 	mux.Handle("GET /api/recordings/{file}", session.NewReplayHandler(s.Sessions, s.Recordings, s.Logger))
+	mux.Handle("/api/oidc/", oidclogin.Handler(s.Identity, s.IdPs, s.OIDC))
 }

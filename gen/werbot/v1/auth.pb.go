@@ -1054,6 +1054,139 @@ func (*CompleteStepUpResponse) Descriptor() ([]byte, []int) {
 	return file_werbot_v1_auth_proto_rawDescGZIP(), []int{19}
 }
 
+type AuthServiceListIdentityProvidersRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuthServiceListIdentityProvidersRequest) Reset() {
+	*x = AuthServiceListIdentityProvidersRequest{}
+	mi := &file_werbot_v1_auth_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthServiceListIdentityProvidersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthServiceListIdentityProvidersRequest) ProtoMessage() {}
+
+func (x *AuthServiceListIdentityProvidersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_auth_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuthServiceListIdentityProvidersRequest.ProtoReflect.Descriptor instead.
+func (*AuthServiceListIdentityProvidersRequest) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_auth_proto_rawDescGZIP(), []int{20}
+}
+
+type AuthServiceListIdentityProvidersResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Providers     []*IdentityProviderRef `protobuf:"bytes,1,rep,name=providers,proto3" json:"providers,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuthServiceListIdentityProvidersResponse) Reset() {
+	*x = AuthServiceListIdentityProvidersResponse{}
+	mi := &file_werbot_v1_auth_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthServiceListIdentityProvidersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthServiceListIdentityProvidersResponse) ProtoMessage() {}
+
+func (x *AuthServiceListIdentityProvidersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_auth_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuthServiceListIdentityProvidersResponse.ProtoReflect.Descriptor instead.
+func (*AuthServiceListIdentityProvidersResponse) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_auth_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *AuthServiceListIdentityProvidersResponse) GetProviders() []*IdentityProviderRef {
+	if x != nil {
+		return x.Providers
+	}
+	return nil
+}
+
+// IdentityProviderRef names an enabled identity provider on the login page.
+type IdentityProviderRef struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IdentityProviderRef) Reset() {
+	*x = IdentityProviderRef{}
+	mi := &file_werbot_v1_auth_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IdentityProviderRef) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IdentityProviderRef) ProtoMessage() {}
+
+func (x *IdentityProviderRef) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_auth_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IdentityProviderRef.ProtoReflect.Descriptor instead.
+func (*IdentityProviderRef) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_auth_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *IdentityProviderRef) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *IdentityProviderRef) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
 var File_werbot_v1_auth_proto protoreflect.FileDescriptor
 
 const file_werbot_v1_auth_proto_rawDesc = "" +
@@ -1122,7 +1255,13 @@ const file_werbot_v1_auth_proto_rawDesc = "" +
 	"^[0-9]{6}$H\x00R\btotpCode\x12<\n" +
 	"\x12webauthn_assertion\x18\x02 \x01(\fB\v\xbaH\bz\x06\x10\x01\x18\x80\x80\x01H\x00R\x11webauthnAssertionB\x0e\n" +
 	"\x05proof\x12\x05\xbaH\x02\b\x01\"\x18\n" +
-	"\x16CompleteStepUpResponse2\x93\x06\n" +
+	"\x16CompleteStepUpResponse\")\n" +
+	"'AuthServiceListIdentityProvidersRequest\"h\n" +
+	"(AuthServiceListIdentityProvidersResponse\x12<\n" +
+	"\tproviders\x18\x01 \x03(\v2\x1e.werbot.v1.IdentityProviderRefR\tproviders\"9\n" +
+	"\x13IdentityProviderRef\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name2\x96\a\n" +
 	"\vAuthService\x12R\n" +
 	"\rGetSetupState\x12\x1f.werbot.v1.GetSetupStateRequest\x1a .werbot.v1.GetSetupStateResponse\x12:\n" +
 	"\x05Setup\x12\x17.werbot.v1.SetupRequest\x1a\x18.werbot.v1.SetupResponse\x12:\n" +
@@ -1134,7 +1273,8 @@ const file_werbot_v1_auth_proto_rawDesc = "" +
 	"\x14RequestPasswordReset\x12&.werbot.v1.RequestPasswordResetRequest\x1a'.werbot.v1.RequestPasswordResetResponse\x12R\n" +
 	"\rResetPassword\x12\x1f.werbot.v1.ResetPasswordRequest\x1a .werbot.v1.ResetPasswordResponse\x12L\n" +
 	"\vBeginStepUp\x12\x1d.werbot.v1.BeginStepUpRequest\x1a\x1e.werbot.v1.BeginStepUpResponse\x12U\n" +
-	"\x0eCompleteStepUp\x12 .werbot.v1.CompleteStepUpRequest\x1a!.werbot.v1.CompleteStepUpResponseB\x90\x01\n" +
+	"\x0eCompleteStepUp\x12 .werbot.v1.CompleteStepUpRequest\x1a!.werbot.v1.CompleteStepUpResponse\x12\x80\x01\n" +
+	"\x15ListIdentityProviders\x122.werbot.v1.AuthServiceListIdentityProvidersRequest\x1a3.werbot.v1.AuthServiceListIdentityProvidersResponseB\x90\x01\n" +
 	"\rcom.werbot.v1B\tAuthProtoP\x01Z/github.com/werbot/werbot/gen/werbot/v1;werbotv1\xa2\x02\x03WXX\xaa\x02\tWerbot.V1\xca\x02\tWerbot\\V1\xe2\x02\x15Werbot\\V1\\GPBMetadata\xea\x02\n" +
 	"Werbot::V1b\x06proto3"
 
@@ -1150,61 +1290,67 @@ func file_werbot_v1_auth_proto_rawDescGZIP() []byte {
 	return file_werbot_v1_auth_proto_rawDescData
 }
 
-var file_werbot_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_werbot_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_werbot_v1_auth_proto_goTypes = []any{
-	(*GetSetupStateRequest)(nil),         // 0: werbot.v1.GetSetupStateRequest
-	(*GetSetupStateResponse)(nil),        // 1: werbot.v1.GetSetupStateResponse
-	(*SetupRequest)(nil),                 // 2: werbot.v1.SetupRequest
-	(*SetupResponse)(nil),                // 3: werbot.v1.SetupResponse
-	(*LoginRequest)(nil),                 // 4: werbot.v1.LoginRequest
-	(*LoginResponse)(nil),                // 5: werbot.v1.LoginResponse
-	(*CompleteMFARequest)(nil),           // 6: werbot.v1.CompleteMFARequest
-	(*CompleteMFAResponse)(nil),          // 7: werbot.v1.CompleteMFAResponse
-	(*LogoutRequest)(nil),                // 8: werbot.v1.LogoutRequest
-	(*LogoutResponse)(nil),               // 9: werbot.v1.LogoutResponse
-	(*GetSessionRequest)(nil),            // 10: werbot.v1.GetSessionRequest
-	(*GetSessionResponse)(nil),           // 11: werbot.v1.GetSessionResponse
-	(*RequestPasswordResetRequest)(nil),  // 12: werbot.v1.RequestPasswordResetRequest
-	(*RequestPasswordResetResponse)(nil), // 13: werbot.v1.RequestPasswordResetResponse
-	(*ResetPasswordRequest)(nil),         // 14: werbot.v1.ResetPasswordRequest
-	(*ResetPasswordResponse)(nil),        // 15: werbot.v1.ResetPasswordResponse
-	(*BeginStepUpRequest)(nil),           // 16: werbot.v1.BeginStepUpRequest
-	(*BeginStepUpResponse)(nil),          // 17: werbot.v1.BeginStepUpResponse
-	(*CompleteStepUpRequest)(nil),        // 18: werbot.v1.CompleteStepUpRequest
-	(*CompleteStepUpResponse)(nil),       // 19: werbot.v1.CompleteStepUpResponse
-	(*User)(nil),                         // 20: werbot.v1.User
-	(*Organization)(nil),                 // 21: werbot.v1.Organization
-	(Role)(0),                            // 22: werbot.v1.Role
+	(*GetSetupStateRequest)(nil),                     // 0: werbot.v1.GetSetupStateRequest
+	(*GetSetupStateResponse)(nil),                    // 1: werbot.v1.GetSetupStateResponse
+	(*SetupRequest)(nil),                             // 2: werbot.v1.SetupRequest
+	(*SetupResponse)(nil),                            // 3: werbot.v1.SetupResponse
+	(*LoginRequest)(nil),                             // 4: werbot.v1.LoginRequest
+	(*LoginResponse)(nil),                            // 5: werbot.v1.LoginResponse
+	(*CompleteMFARequest)(nil),                       // 6: werbot.v1.CompleteMFARequest
+	(*CompleteMFAResponse)(nil),                      // 7: werbot.v1.CompleteMFAResponse
+	(*LogoutRequest)(nil),                            // 8: werbot.v1.LogoutRequest
+	(*LogoutResponse)(nil),                           // 9: werbot.v1.LogoutResponse
+	(*GetSessionRequest)(nil),                        // 10: werbot.v1.GetSessionRequest
+	(*GetSessionResponse)(nil),                       // 11: werbot.v1.GetSessionResponse
+	(*RequestPasswordResetRequest)(nil),              // 12: werbot.v1.RequestPasswordResetRequest
+	(*RequestPasswordResetResponse)(nil),             // 13: werbot.v1.RequestPasswordResetResponse
+	(*ResetPasswordRequest)(nil),                     // 14: werbot.v1.ResetPasswordRequest
+	(*ResetPasswordResponse)(nil),                    // 15: werbot.v1.ResetPasswordResponse
+	(*BeginStepUpRequest)(nil),                       // 16: werbot.v1.BeginStepUpRequest
+	(*BeginStepUpResponse)(nil),                      // 17: werbot.v1.BeginStepUpResponse
+	(*CompleteStepUpRequest)(nil),                    // 18: werbot.v1.CompleteStepUpRequest
+	(*CompleteStepUpResponse)(nil),                   // 19: werbot.v1.CompleteStepUpResponse
+	(*AuthServiceListIdentityProvidersRequest)(nil),  // 20: werbot.v1.AuthServiceListIdentityProvidersRequest
+	(*AuthServiceListIdentityProvidersResponse)(nil), // 21: werbot.v1.AuthServiceListIdentityProvidersResponse
+	(*IdentityProviderRef)(nil),                      // 22: werbot.v1.IdentityProviderRef
+	(*User)(nil),                                     // 23: werbot.v1.User
+	(*Organization)(nil),                             // 24: werbot.v1.Organization
+	(Role)(0),                                        // 25: werbot.v1.Role
 }
 var file_werbot_v1_auth_proto_depIdxs = []int32{
-	20, // 0: werbot.v1.GetSessionResponse.user:type_name -> werbot.v1.User
-	21, // 1: werbot.v1.GetSessionResponse.organization:type_name -> werbot.v1.Organization
-	22, // 2: werbot.v1.GetSessionResponse.role:type_name -> werbot.v1.Role
-	0,  // 3: werbot.v1.AuthService.GetSetupState:input_type -> werbot.v1.GetSetupStateRequest
-	2,  // 4: werbot.v1.AuthService.Setup:input_type -> werbot.v1.SetupRequest
-	4,  // 5: werbot.v1.AuthService.Login:input_type -> werbot.v1.LoginRequest
-	6,  // 6: werbot.v1.AuthService.CompleteMFA:input_type -> werbot.v1.CompleteMFARequest
-	8,  // 7: werbot.v1.AuthService.Logout:input_type -> werbot.v1.LogoutRequest
-	10, // 8: werbot.v1.AuthService.GetSession:input_type -> werbot.v1.GetSessionRequest
-	12, // 9: werbot.v1.AuthService.RequestPasswordReset:input_type -> werbot.v1.RequestPasswordResetRequest
-	14, // 10: werbot.v1.AuthService.ResetPassword:input_type -> werbot.v1.ResetPasswordRequest
-	16, // 11: werbot.v1.AuthService.BeginStepUp:input_type -> werbot.v1.BeginStepUpRequest
-	18, // 12: werbot.v1.AuthService.CompleteStepUp:input_type -> werbot.v1.CompleteStepUpRequest
-	1,  // 13: werbot.v1.AuthService.GetSetupState:output_type -> werbot.v1.GetSetupStateResponse
-	3,  // 14: werbot.v1.AuthService.Setup:output_type -> werbot.v1.SetupResponse
-	5,  // 15: werbot.v1.AuthService.Login:output_type -> werbot.v1.LoginResponse
-	7,  // 16: werbot.v1.AuthService.CompleteMFA:output_type -> werbot.v1.CompleteMFAResponse
-	9,  // 17: werbot.v1.AuthService.Logout:output_type -> werbot.v1.LogoutResponse
-	11, // 18: werbot.v1.AuthService.GetSession:output_type -> werbot.v1.GetSessionResponse
-	13, // 19: werbot.v1.AuthService.RequestPasswordReset:output_type -> werbot.v1.RequestPasswordResetResponse
-	15, // 20: werbot.v1.AuthService.ResetPassword:output_type -> werbot.v1.ResetPasswordResponse
-	17, // 21: werbot.v1.AuthService.BeginStepUp:output_type -> werbot.v1.BeginStepUpResponse
-	19, // 22: werbot.v1.AuthService.CompleteStepUp:output_type -> werbot.v1.CompleteStepUpResponse
-	13, // [13:23] is the sub-list for method output_type
-	3,  // [3:13] is the sub-list for method input_type
-	3,  // [3:3] is the sub-list for extension type_name
-	3,  // [3:3] is the sub-list for extension extendee
-	0,  // [0:3] is the sub-list for field type_name
+	23, // 0: werbot.v1.GetSessionResponse.user:type_name -> werbot.v1.User
+	24, // 1: werbot.v1.GetSessionResponse.organization:type_name -> werbot.v1.Organization
+	25, // 2: werbot.v1.GetSessionResponse.role:type_name -> werbot.v1.Role
+	22, // 3: werbot.v1.AuthServiceListIdentityProvidersResponse.providers:type_name -> werbot.v1.IdentityProviderRef
+	0,  // 4: werbot.v1.AuthService.GetSetupState:input_type -> werbot.v1.GetSetupStateRequest
+	2,  // 5: werbot.v1.AuthService.Setup:input_type -> werbot.v1.SetupRequest
+	4,  // 6: werbot.v1.AuthService.Login:input_type -> werbot.v1.LoginRequest
+	6,  // 7: werbot.v1.AuthService.CompleteMFA:input_type -> werbot.v1.CompleteMFARequest
+	8,  // 8: werbot.v1.AuthService.Logout:input_type -> werbot.v1.LogoutRequest
+	10, // 9: werbot.v1.AuthService.GetSession:input_type -> werbot.v1.GetSessionRequest
+	12, // 10: werbot.v1.AuthService.RequestPasswordReset:input_type -> werbot.v1.RequestPasswordResetRequest
+	14, // 11: werbot.v1.AuthService.ResetPassword:input_type -> werbot.v1.ResetPasswordRequest
+	16, // 12: werbot.v1.AuthService.BeginStepUp:input_type -> werbot.v1.BeginStepUpRequest
+	18, // 13: werbot.v1.AuthService.CompleteStepUp:input_type -> werbot.v1.CompleteStepUpRequest
+	20, // 14: werbot.v1.AuthService.ListIdentityProviders:input_type -> werbot.v1.AuthServiceListIdentityProvidersRequest
+	1,  // 15: werbot.v1.AuthService.GetSetupState:output_type -> werbot.v1.GetSetupStateResponse
+	3,  // 16: werbot.v1.AuthService.Setup:output_type -> werbot.v1.SetupResponse
+	5,  // 17: werbot.v1.AuthService.Login:output_type -> werbot.v1.LoginResponse
+	7,  // 18: werbot.v1.AuthService.CompleteMFA:output_type -> werbot.v1.CompleteMFAResponse
+	9,  // 19: werbot.v1.AuthService.Logout:output_type -> werbot.v1.LogoutResponse
+	11, // 20: werbot.v1.AuthService.GetSession:output_type -> werbot.v1.GetSessionResponse
+	13, // 21: werbot.v1.AuthService.RequestPasswordReset:output_type -> werbot.v1.RequestPasswordResetResponse
+	15, // 22: werbot.v1.AuthService.ResetPassword:output_type -> werbot.v1.ResetPasswordResponse
+	17, // 23: werbot.v1.AuthService.BeginStepUp:output_type -> werbot.v1.BeginStepUpResponse
+	19, // 24: werbot.v1.AuthService.CompleteStepUp:output_type -> werbot.v1.CompleteStepUpResponse
+	21, // 25: werbot.v1.AuthService.ListIdentityProviders:output_type -> werbot.v1.AuthServiceListIdentityProvidersResponse
+	15, // [15:26] is the sub-list for method output_type
+	4,  // [4:15] is the sub-list for method input_type
+	4,  // [4:4] is the sub-list for extension type_name
+	4,  // [4:4] is the sub-list for extension extendee
+	0,  // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_werbot_v1_auth_proto_init() }
@@ -1228,7 +1374,7 @@ func file_werbot_v1_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_werbot_v1_auth_proto_rawDesc), len(file_werbot_v1_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   20,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

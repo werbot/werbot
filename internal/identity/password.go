@@ -96,8 +96,12 @@ func verifyPassword(ctx context.Context, encoded, pw string) (bool, error) {
 }
 
 // checkCurrentPassword verifies a password the user re-enters to confirm a
-// change: a mismatch is ErrInvalidArgument.
+// change: a mismatch is ErrInvalidArgument, a user without a password
+// (created by an IdP) is ErrFailedPrecondition.
 func checkCurrentPassword(ctx context.Context, hash, pw string) error {
+	if hash == "" {
+		return fmt.Errorf("the account has no password, sign in with the identity provider: %w", apperr.ErrFailedPrecondition)
+	}
 	ok, err := verifyPassword(ctx, hash, pw)
 	if err != nil {
 		return err

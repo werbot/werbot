@@ -57,6 +57,9 @@ const (
 	// AuthServiceCompleteStepUpProcedure is the fully-qualified name of the AuthService's
 	// CompleteStepUp RPC.
 	AuthServiceCompleteStepUpProcedure = "/werbot.v1.AuthService/CompleteStepUp"
+	// AuthServiceListIdentityProvidersProcedure is the fully-qualified name of the AuthService's
+	// ListIdentityProviders RPC.
+	AuthServiceListIdentityProvidersProcedure = "/werbot.v1.AuthService/ListIdentityProviders"
 )
 
 // AuthServiceClient is a client for the werbot.v1.AuthService service.
@@ -79,6 +82,9 @@ type AuthServiceClient interface {
 	BeginStepUp(context.Context, *connect.Request[v1.BeginStepUpRequest]) (*connect.Response[v1.BeginStepUpResponse], error)
 	// Finishes a step-up of the caller's credential (session or CLI token).
 	CompleteStepUp(context.Context, *connect.Request[v1.CompleteStepUpRequest]) (*connect.Response[v1.CompleteStepUpResponse], error)
+	// Public: the enabled OIDC identity providers of the installation, for the
+	// login page (start at /api/oidc/{id}/start).
+	ListIdentityProviders(context.Context, *connect.Request[v1.AuthServiceListIdentityProvidersRequest]) (*connect.Response[v1.AuthServiceListIdentityProvidersResponse], error)
 }
 
 // NewAuthServiceClient constructs a client for the werbot.v1.AuthService service. By default, it
@@ -152,21 +158,28 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(authServiceMethods.ByName("CompleteStepUp")),
 			connect.WithClientOptions(opts...),
 		),
+		listIdentityProviders: connect.NewClient[v1.AuthServiceListIdentityProvidersRequest, v1.AuthServiceListIdentityProvidersResponse](
+			httpClient,
+			baseURL+AuthServiceListIdentityProvidersProcedure,
+			connect.WithSchema(authServiceMethods.ByName("ListIdentityProviders")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // authServiceClient implements AuthServiceClient.
 type authServiceClient struct {
-	getSetupState        *connect.Client[v1.GetSetupStateRequest, v1.GetSetupStateResponse]
-	setup                *connect.Client[v1.SetupRequest, v1.SetupResponse]
-	login                *connect.Client[v1.LoginRequest, v1.LoginResponse]
-	completeMFA          *connect.Client[v1.CompleteMFARequest, v1.CompleteMFAResponse]
-	logout               *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
-	getSession           *connect.Client[v1.GetSessionRequest, v1.GetSessionResponse]
-	requestPasswordReset *connect.Client[v1.RequestPasswordResetRequest, v1.RequestPasswordResetResponse]
-	resetPassword        *connect.Client[v1.ResetPasswordRequest, v1.ResetPasswordResponse]
-	beginStepUp          *connect.Client[v1.BeginStepUpRequest, v1.BeginStepUpResponse]
-	completeStepUp       *connect.Client[v1.CompleteStepUpRequest, v1.CompleteStepUpResponse]
+	getSetupState         *connect.Client[v1.GetSetupStateRequest, v1.GetSetupStateResponse]
+	setup                 *connect.Client[v1.SetupRequest, v1.SetupResponse]
+	login                 *connect.Client[v1.LoginRequest, v1.LoginResponse]
+	completeMFA           *connect.Client[v1.CompleteMFARequest, v1.CompleteMFAResponse]
+	logout                *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
+	getSession            *connect.Client[v1.GetSessionRequest, v1.GetSessionResponse]
+	requestPasswordReset  *connect.Client[v1.RequestPasswordResetRequest, v1.RequestPasswordResetResponse]
+	resetPassword         *connect.Client[v1.ResetPasswordRequest, v1.ResetPasswordResponse]
+	beginStepUp           *connect.Client[v1.BeginStepUpRequest, v1.BeginStepUpResponse]
+	completeStepUp        *connect.Client[v1.CompleteStepUpRequest, v1.CompleteStepUpResponse]
+	listIdentityProviders *connect.Client[v1.AuthServiceListIdentityProvidersRequest, v1.AuthServiceListIdentityProvidersResponse]
 }
 
 // GetSetupState calls werbot.v1.AuthService.GetSetupState.
@@ -219,6 +232,11 @@ func (c *authServiceClient) CompleteStepUp(ctx context.Context, req *connect.Req
 	return c.completeStepUp.CallUnary(ctx, req)
 }
 
+// ListIdentityProviders calls werbot.v1.AuthService.ListIdentityProviders.
+func (c *authServiceClient) ListIdentityProviders(ctx context.Context, req *connect.Request[v1.AuthServiceListIdentityProvidersRequest]) (*connect.Response[v1.AuthServiceListIdentityProvidersResponse], error) {
+	return c.listIdentityProviders.CallUnary(ctx, req)
+}
+
 // AuthServiceHandler is an implementation of the werbot.v1.AuthService service.
 type AuthServiceHandler interface {
 	GetSetupState(context.Context, *connect.Request[v1.GetSetupStateRequest]) (*connect.Response[v1.GetSetupStateResponse], error)
@@ -239,6 +257,9 @@ type AuthServiceHandler interface {
 	BeginStepUp(context.Context, *connect.Request[v1.BeginStepUpRequest]) (*connect.Response[v1.BeginStepUpResponse], error)
 	// Finishes a step-up of the caller's credential (session or CLI token).
 	CompleteStepUp(context.Context, *connect.Request[v1.CompleteStepUpRequest]) (*connect.Response[v1.CompleteStepUpResponse], error)
+	// Public: the enabled OIDC identity providers of the installation, for the
+	// login page (start at /api/oidc/{id}/start).
+	ListIdentityProviders(context.Context, *connect.Request[v1.AuthServiceListIdentityProvidersRequest]) (*connect.Response[v1.AuthServiceListIdentityProvidersResponse], error)
 }
 
 // NewAuthServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -308,6 +329,12 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(authServiceMethods.ByName("CompleteStepUp")),
 		connect.WithHandlerOptions(opts...),
 	)
+	authServiceListIdentityProvidersHandler := connect.NewUnaryHandler(
+		AuthServiceListIdentityProvidersProcedure,
+		svc.ListIdentityProviders,
+		connect.WithSchema(authServiceMethods.ByName("ListIdentityProviders")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/werbot.v1.AuthService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AuthServiceGetSetupStateProcedure:
@@ -330,6 +357,8 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 			authServiceBeginStepUpHandler.ServeHTTP(w, r)
 		case AuthServiceCompleteStepUpProcedure:
 			authServiceCompleteStepUpHandler.ServeHTTP(w, r)
+		case AuthServiceListIdentityProvidersProcedure:
+			authServiceListIdentityProvidersHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -377,4 +406,8 @@ func (UnimplementedAuthServiceHandler) BeginStepUp(context.Context, *connect.Req
 
 func (UnimplementedAuthServiceHandler) CompleteStepUp(context.Context, *connect.Request[v1.CompleteStepUpRequest]) (*connect.Response[v1.CompleteStepUpResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.AuthService.CompleteStepUp is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) ListIdentityProviders(context.Context, *connect.Request[v1.AuthServiceListIdentityProvidersRequest]) (*connect.Response[v1.AuthServiceListIdentityProvidersResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.AuthService.ListIdentityProviders is not implemented"))
 }

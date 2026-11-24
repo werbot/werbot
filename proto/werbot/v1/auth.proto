@@ -23,6 +23,9 @@ service AuthService {
   rpc BeginStepUp(BeginStepUpRequest) returns (BeginStepUpResponse);
   // Finishes a step-up of the caller's credential (session or CLI token).
   rpc CompleteStepUp(CompleteStepUpRequest) returns (CompleteStepUpResponse);
+  // Public: the enabled OIDC identity providers of the installation, for the
+  // login page (start at /api/oidc/{id}/start).
+  rpc ListIdentityProviders(AuthServiceListIdentityProvidersRequest) returns (AuthServiceListIdentityProvidersResponse);
 }
 
 message GetSetupStateRequest {}
@@ -111,3 +114,13 @@ message CompleteStepUpRequest {
   }
 }
 message CompleteStepUpResponse {}
+
+message AuthServiceListIdentityProvidersRequest {}
+message AuthServiceListIdentityProvidersResponse {
+  repeated IdentityProviderRef providers = 1;
+}
+// IdentityProviderRef names an enabled identity provider on the login page.
+message IdentityProviderRef {
+  string id = 1;
+  string name = 2;
+}

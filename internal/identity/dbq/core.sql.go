@@ -479,7 +479,7 @@ func (q *Queries) GetProfile(ctx context.Context, id uuid.UUID) (GetProfileRow, 
 const getResetUser = `-- name: GetResetUser :one
 SELECT u.id, u.name, m.org_id
 FROM users u LEFT JOIN membership m ON m.user_id = u.id
-WHERE lower(u.email) = $1
+WHERE lower(u.email) = $1 AND u.password_hash <> ''
 ORDER BY m.created_at
 LIMIT 1
 `
@@ -491,6 +491,7 @@ type GetResetUserRow struct {
 }
 
 // The audit event of a reset goes to the user's first organization, if any.
+// A user without a password (created by an IdP) gets no reset.
 func (q *Queries) GetResetUser(ctx context.Context, email string) (GetResetUserRow, error) {
 	row := q.db.QueryRow(ctx, getResetUser, email)
 	var i GetResetUserRow

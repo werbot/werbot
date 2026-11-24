@@ -52,9 +52,10 @@ RETURNING org_id, user_id, email, role;
 
 -- name: GetResetUser :one
 -- The audit event of a reset goes to the user's first organization, if any.
+-- A user without a password (created by an IdP) gets no reset.
 SELECT u.id, u.name, m.org_id
 FROM users u LEFT JOIN membership m ON m.user_id = u.id
-WHERE lower(u.email) = @email
+WHERE lower(u.email) = @email AND u.password_hash <> ''
 ORDER BY m.created_at
 LIMIT 1;
 

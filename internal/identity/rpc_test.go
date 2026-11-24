@@ -178,7 +178,7 @@ func TestMiddlewareStoreFailureIsUnavailable(t *testing.T) {
 // publicMethods are the only RPCs served without a session.
 var publicMethods = map[string]bool{
 	"GetSetupState": true, "Setup": true, "Login": true, "CompleteMFA": true,
-	"RequestPasswordReset": true, "ResetPassword": true, "AcceptInvite": true,
+	"RequestPasswordReset": true, "ResetPassword": true, "AcceptInvite": true, "ListIdentityProviders": true,
 }
 
 func TestRPCRequiresSession(t *testing.T) {

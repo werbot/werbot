@@ -1,6 +1,7 @@
 package identity
 
 import (
+	"cmp"
 	"context"
 	"errors"
 
@@ -14,7 +15,8 @@ import (
 // Login checks email and password in the user's first organization. A user
 // without a second factor gets a session (LoginResult.Token); a user with one
 // gets an mfa_token for CompleteMFA and no session. Unknown email, wrong
-// password and no membership all return errInvalidCredentials; the password
+// password, a user without a password and no membership all return
+// errInvalidCredentials; the password
 // is verified in every case. Past the login rate limit it returns
 // apperr.ErrResourceExhausted before the check.
 func (s *Service) Login(ctx context.Context, email, password, userAgent string) (LoginResult, error) {
@@ -23,15 +25,13 @@ func (s *Service) Login(ctx context.Context, email, password, userAgent string) 
 		return LoginResult{}, err
 	}
 	// argon2 runs outside the transaction: no pooled connection waits on it.
-	hash := dummyHash
-	if found {
-		hash = u.PasswordHash
-	}
-	ok, err := verifyPassword(ctx, hash, password)
+	// An unknown email and a user without a password (created by an IdP)
+	// cost the same work as a wrong password.
+	ok, err := verifyPassword(ctx, cmp.Or(u.PasswordHash, dummyHash), password)
 	if err != nil {
 		return LoginResult{}, err
 	}
-	if !found || !ok || u.OrgID == nil {
+	if !found || !ok || u.PasswordHash == "" || u.OrgID == nil {
 		return LoginResult{}, errInvalidCredentials
 	}
 	return s.finishLogin(ctx, u.ID, *u.OrgID, userAgent)

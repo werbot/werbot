@@ -60,6 +60,9 @@ func TestFreshMFAProcedures(t *testing.T) {
 		werbotv1connect.ResourceServiceClearCredentialProcedure,
 		werbotv1connect.ResourceServiceClearHostKeyProcedure,
 		werbotv1connect.SettingsServiceUpdateSettingsProcedure,
+		werbotv1connect.IdentityProviderServiceCreateIdentityProviderProcedure,
+		werbotv1connect.IdentityProviderServiceUpdateIdentityProviderProcedure,
+		werbotv1connect.IdentityProviderServiceDeleteIdentityProviderProcedure,
 	}
 	got := freshMFAProcedures()
 	assert.Len(t, got, len(want))
@@ -71,6 +74,7 @@ func TestFreshMFAProcedures(t *testing.T) {
 	for _, svc := range []protoreflect.ServiceDescriptor{
 		werbotv1.File_werbot_v1_approval_policy_proto.Services().ByName("ApprovalPolicyService"),
 		werbotv1.File_werbot_v1_policy_proto.Services().ByName("PolicyService"),
+		werbotv1.File_werbot_v1_identity_provider_proto.Services().ByName("IdentityProviderService"),
 	} {
 		methods := svc.Methods()
 		for i := range methods.Len() {
