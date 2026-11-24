@@ -35,6 +35,13 @@ Owners and admins see every agent and run on **AI agents**; a member sees their 
 
 `--agent` names the agent; without it the agent is named after the MCP client (`claude-code`: lower case, other characters as `-`; `unknown` when the client sends no name). `--reason` is shown to approvers. stdout carries only JSON-RPC; logs go to stderr. The run starts on the first tool call and ends when the client closes stdin. A failed token exchange is a tool error, not an exit.
 
+### MCP Registry (Docker)
+
+The MCP Registry entry ([`server.json`](../server.json), name `io.github.werbot/werbot`) runs `werbot mcp` from the image `ghcr.io/werbot/werbot` with Docker. It mounts your profile directory into the container and needs `WERBOT_SERVER`. Two limits follow from running in a container:
+
+- The image runs as uid 65532. It cannot read a profile of mode `0600` that belongs to another user, so mount a profile this uid owns (or use an [agent profile](#isolated-an-agent-profile) in a directory it owns).
+- The gateway address in the profile is read from inside the container. `localhost:2222` there is the container, not your host: give the pool an address the container reaches (`UpdateGateway`, [gateway.md](gateway.md)).
+
 ### Tools
 
 | Tool | Input | Output |
