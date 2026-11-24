@@ -3,7 +3,7 @@ import { fromDraft, mappingInvalid, toDraft } from './idpDraft.js';
 
 test('a new provider is enabled with the default scopes and no mapping', () => {
 	const d = toDraft();
-	expect(d).toMatchObject({ enabled: true, allowSignup: false, scopes: 'openid email profile groups', mapping: [] });
+	expect(d).toMatchObject({ enabled: true, allowSignup: false, scopes: 'openid email profile', mapping: [] });
 });
 
 test('draft keeps an existing provider and maps claim rows to teams and roles', () => {

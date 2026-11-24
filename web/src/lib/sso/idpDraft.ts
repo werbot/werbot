@@ -25,7 +25,7 @@ export interface IdpDraft {
 
 export type IdpInput = Exclude<MessageInitShape<typeof CreateIdentityProviderRequestSchema>, { $typeName: string }>;
 
-const DEFAULT_SCOPES = 'openid email profile groups';
+const DEFAULT_SCOPES = 'openid email profile';
 
 const rowOf = (c: ClaimMapping): MappingRow => ({
 	claim: c.claim,

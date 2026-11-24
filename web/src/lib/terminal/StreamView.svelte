@@ -20,6 +20,7 @@
 	let sock: Socket | undefined;
 	let size = { cols: 0, rows: 0 };
 	let closed = $state<{ code: number; reason: string } | null>(null);
+	let destroyed = false;
 
 	function open() {
 		closed = null;
@@ -30,8 +31,8 @@
 			onclose: (code, reason) => {
 				sock = undefined;
 				closed = { code, reason };
-				// 4001: the terminal needs a fresh second factor; once confirmed, connect again
-				if (interactive && code === 4001) void requestStepUp().then((ok) => ok && reconnect());
+				// 4001: the terminal needs a fresh second factor; once confirmed, connect again unless the view is gone
+				if (interactive && code === 4001) void requestStepUp().then((ok) => ok && !destroyed && reconnect());
 			}
 		});
 	}
@@ -53,7 +54,10 @@
 		if (!interactive) open();
 	});
 
-	onDestroy(() => sock?.close());
+	onDestroy(() => {
+		destroyed = true;
+		sock?.close();
+	});
 </script>
 
 <div class="stream">

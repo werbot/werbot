@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Button, Drawer, EmptyState, Label, Modal, Skeleton, Table, toast } from '#lib/ui/index.js';
+	import { Button, Drawer, EmptyState, Label, MenuItem, Modal, Skeleton, Table, toast } from '#lib/ui/index.js';
 	import { identityProviders, teams as teamsApi } from '#lib/api.js';
 	import { failToast } from '#lib/errors.js';
 	import type { IdentityProvider } from '#lib/gen/werbot/v1/identity_provider_pb.js';
@@ -11,7 +11,8 @@
 	import PageHeader from '#lib/shell/PageHeader.svelte';
 	import { selectOpen } from '#lib/selectOpen.js';
 	import IdpForm from '#lib/sso/IdpForm.svelte';
-	import { fromDraft, mappingInvalid, toDraft, type IdpDraft } from '#lib/sso/idpDraft.js';
+	import { fromDraft, toDraft, type IdpDraft } from '#lib/sso/idpDraft.js';
+	import MappingDrawer from '#lib/sso/MappingDrawer.svelte';
 	import RequireMfaCard from '#lib/sso/RequireMfaCard.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 
@@ -21,10 +22,10 @@
 	let failed = $state(false);
 	let menuOpen = $state('');
 	let removing = $state<IdentityProvider | null>(null);
+	let mapping = $state<IdentityProvider | null>(null);
 	// the drawer edits `editing` ('new' for a new provider) through `draft`
 	let editing = $state('');
 	let draft = $state<IdpDraft>(toDraft());
-	let submitted = $state(false);
 
 	const current = $derived(list.find((p) => p.id === editing));
 
@@ -40,13 +41,10 @@
 
 	function edit(p?: IdentityProvider) {
 		draft = toDraft(p);
-		submitted = false;
 		editing = p?.id ?? 'new';
 	}
 
 	async function save() {
-		submitted = true;
-		if (draft.mapping.some(mappingInvalid)) return;
 		const input = fromDraft(draft);
 		try {
 			if (editing === 'new') {
@@ -118,7 +116,12 @@
 					<td class="muted">{p.issuer}</td>
 					<td><Label variant="soft">{p.enabled ? m.sso_enabled() : m.sso_disabled()}</Label></td>
 					<td class="more">
-						<RowMenu label={m.sso_delete()} onselect={() => (removing = p)} bind:open={() => menuOpen === p.id, (v) => (menuOpen = v ? p.id : '')} />
+						<RowMenu bind:open={() => menuOpen === p.id, (v) => (menuOpen = v ? p.id : '')}>
+							{#snippet items(close)}
+								<MenuItem icon="people" onclick={() => (close(), (mapping = p))}>{m.sso_mapping()}</MenuItem>
+								<MenuItem icon="trash" danger onclick={() => (close(), (removing = p))}>{m.sso_delete()}</MenuItem>
+							{/snippet}
+						</RowMenu>
 					</td>
 				</tr>
 			{/each}
@@ -136,7 +139,7 @@
 	title={current?.name ?? m.sso_new()}
 >
 	{#if editing}
-		<IdpForm id="idp" bind:draft teams={teamOptions} redirectUri={current?.redirectUri ?? ''} existing={!!current} {submitted} onsubmit={save} />
+		<IdpForm id="idp" bind:draft redirectUri={current?.redirectUri ?? ''} existing={!!current} onsubmit={save} />
 	{/if}
 	{#snippet footer()}
 		{#if current}
@@ -147,6 +150,8 @@
 		<Button size={40} type="submit" form="idp" variant="solid">{current ? m.settings_save() : m.sso_create()}</Button>
 	{/snippet}
 </Drawer>
+
+<MappingDrawer idp={mapping} teams={teamOptions} onclose={() => (mapping = null)} onsaved={load} />
 
 <Modal open={removing !== null} onclose={() => (removing = null)} title={m.sso_delete()}>
 	<p>{m.sso_delete_confirm()}</p>

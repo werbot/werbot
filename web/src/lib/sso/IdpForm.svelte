@@ -1,25 +1,23 @@
 <script lang="ts">
-	import { Button, Checkbox, type SelectOption } from '#lib/ui/index.js';
+	import { Button, Checkbox } from '#lib/ui/index.js';
 	import { failToast } from '#lib/errors.js';
+	import FieldRow from '#lib/FieldRow.svelte';
 	import FormField from '#lib/FormField.svelte';
 	import { m } from '#lib/paraglide/messages.js';
-	import ClaimsMappingEditor from './ClaimsMappingEditor.svelte';
 	import type { IdpDraft } from './idpDraft.js';
 
 	interface Props {
 		/** the form element id: the drawer footer submits it */
 		id: string;
 		draft: IdpDraft;
-		teams: SelectOption[];
 		/** the redirect URI to register at the provider; empty for a provider not saved yet */
 		redirectUri: string;
 		/** an existing provider: the stored client secret is kept when the field is empty */
 		existing: boolean;
-		submitted: boolean;
 		onsubmit: () => void;
 	}
 
-	let { id, draft = $bindable(), teams, redirectUri, existing, submitted, onsubmit }: Props = $props();
+	let { id, draft = $bindable(), redirectUri, existing, onsubmit }: Props = $props();
 
 	let copied = $state(false);
 
@@ -42,16 +40,18 @@
 >
 	<FormField label={m.sso_name()} bind:value={draft.name} required maxlength={63} />
 	<FormField label={m.sso_issuer()} hint={m.sso_issuer_hint()} bind:value={draft.issuer} type="url" required placeholder="https://idp.example.com/realms/acme" />
-	<FormField label={m.sso_client_id()} bind:value={draft.clientId} required maxlength={255} />
-	<FormField
-		label={m.sso_client_secret()}
-		hint={existing ? m.sso_client_secret_keep() : undefined}
-		bind:value={draft.clientSecret}
-		type="password"
-		required={!existing}
-		autocomplete="off"
-		maxlength={1024}
-	/>
+	<FieldRow even>
+		<FormField label={m.sso_client_id()} bind:value={draft.clientId} required maxlength={255} />
+		<FormField
+			label={m.sso_client_secret()}
+			hint={existing ? m.sso_client_secret_keep() : undefined}
+			bind:value={draft.clientSecret}
+			type="password"
+			required={!existing}
+			autocomplete="off"
+			maxlength={1024}
+		/>
+	</FieldRow>
 	<FormField label={m.sso_scopes()} hint={m.sso_scopes_hint()} bind:value={draft.scopes} />
 
 	<div class="checks">
@@ -67,8 +67,6 @@
 			<p class="hint">{m.sso_redirect_uri_after_save()}</p>
 		{/if}
 	</div>
-
-	<ClaimsMappingEditor bind:rows={draft.mapping} {teams} {submitted} />
 </form>
 
 <style>
@@ -80,8 +78,8 @@
 
 	.checks {
 		display: flex;
-		flex-direction: column;
-		gap: var(--miso-sp-08);
+		flex-wrap: wrap;
+		gap: var(--miso-sp-08) var(--miso-sp-24);
 	}
 
 	.redirect {

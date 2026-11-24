@@ -34,10 +34,9 @@ test.describe.serial('mfa', () => {
 		await passkey.getByRole('button', { name: en.mfa_passkey_add }).click();
 		await expect(page.getByRole('cell', { name: 'e2e passkey' })).toBeVisible();
 
-		// a second factor needs a fresh one: the step-up dialog opens, the passkey confirms, the request repeats
+		// the confirmed passkey counts as a fresh factor: the second factor asks no step-up
 		await page.getByRole('button', { name: en.mfa_totp_add }).click();
-		const stepUp = page.getByRole('dialog', { name: en.mfa_stepup_title });
-		await stepUp.getByRole('button', { name: en.auth_mfa_passkey }).click();
+		await expect(page.getByRole('dialog', { name: en.mfa_stepup_title })).toHaveCount(0);
 		const totpDialog = page.getByRole('dialog', { name: en.mfa_totp_title });
 		await expect(totpDialog.getByRole('img', { name: en.mfa_totp_qr })).toBeVisible();
 		const secret = (await totpDialog.locator('code.secret').textContent())!.trim();
@@ -74,11 +73,18 @@ test.describe.serial('mfa', () => {
 
 	test('an admin action asks for a fresh factor, then an MFA rule is saved', async ({ page }) => {
 		await addVirtualAuthenticator(page);
-		await loginAsOwner(page);
+		await loginAsOwner(page); // this session starts before the passkey exists
+		// another session adds the passkey: confirming it makes only that session fresh
+		await page.context().clearCookies();
+		await page.goto('/login');
+		await loginWithNext(page);
+		await expect(page).toHaveURL('/');
 		await page.goto('/profile/mfa');
 		await page.getByRole('button', { name: en.mfa_passkey_add }).first().click();
 		await page.getByRole('dialog', { name: en.mfa_passkey_add }).getByRole('button', { name: en.mfa_passkey_add }).click();
 		await expect(page.getByRole('cell', { name: en.mfa_passkey_default_name })).toBeVisible();
+		await logout(page);
+		await loginAsOwner(page); // back to the first session: it has no fresh factor
 
 		await page.goto('/policies/mfa');
 		await page.getByRole('button', { name: en.mfa_rules_new }).first().click();
@@ -113,10 +119,6 @@ test.describe.serial('mfa', () => {
 		await drawer.getByLabel(en.sso_issuer).fill('http://127.0.0.1:9/realms/e2e');
 		await drawer.getByLabel(en.sso_client_id).fill('werbot');
 		await drawer.getByLabel(en.sso_client_secret, { exact: true }).fill('very-secret-value');
-		await drawer.getByRole('button', { name: en.sso_mapping_add }).click();
-		await drawer.getByLabel(en.sso_mapping_regex).fill('^/admins$');
-		await drawer.getByRole('tab', { name: en.sso_mapping_role }).click();
-		await drawer.getByLabel(en.sso_mapping_role, { exact: true }).selectOption('admin');
 		await drawer.getByRole('button', { name: en.sso_create }).click();
 		await expect(page.getByText(en.common_saved)).toBeVisible();
 
@@ -125,6 +127,20 @@ test.describe.serial('mfa', () => {
 		await expect(saved.getByLabel(en.sso_redirect_uri)).toHaveValue(`${baseURL}/api/oidc/callback`);
 		await expect(saved.getByLabel(en.sso_client_secret, { exact: true })).toHaveValue('');
 		await expect(page.getByText('very-secret-value')).toHaveCount(0);
+		await saved.getByRole('button', { name: en.common_cancel }).click();
+
+		// the claim mapping has its own drawer, opened from the row menu
+		await page.getByRole('row').filter({ hasText: 'E2E IdP' }).getByRole('button', { name: en.common_more }).click();
+		await page.getByRole('menuitem', { name: en.sso_mapping }).click();
+		const mapping = page.getByRole('dialog', { name: `${en.sso_mapping}: E2E IdP` });
+		await mapping.getByRole('button', { name: en.sso_mapping_add }).click();
+		await mapping.getByLabel(en.sso_mapping_regex).fill('^/admins$');
+		await mapping.getByRole('tab', { name: en.sso_mapping_role }).click();
+		await mapping.getByLabel(en.sso_mapping_role, { exact: true }).selectOption('admin');
+		await mapping.getByRole('button', { name: en.settings_save }).click();
+		await expect(mapping).toBeHidden();
+		const { identityProviders: stored } = await rpc(page, 'werbot.v1.IdentityProviderService/ListIdentityProviders', {});
+		expect(stored[0].claimsMapping).toEqual([{ claim: 'groups', regex: '^/admins$', role: 'admin' }]);
 
 		const anon = await browser.newContext({ baseURL });
 		const login = await anon.newPage();
