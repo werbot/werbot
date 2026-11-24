@@ -33,6 +33,7 @@ require (
 	github.com/wneessen/go-mail v0.8.1
 	github.com/zitadel/oidc/v3 v3.51.17
 	golang.org/x/crypto v0.58.0
+	golang.org/x/net v0.62.0
 	golang.org/x/sync v0.25.0
 	golang.org/x/term v0.47.0
 	google.golang.org/protobuf v1.36.12
