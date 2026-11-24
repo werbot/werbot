@@ -8,6 +8,7 @@
 	import PrimaryMenu from '#lib/shell/PrimaryMenu.svelte';
 	import ContextColumn from '#lib/shell/ContextColumn.svelte';
 	import StepUpDialog from '#lib/StepUpDialog.svelte';
+	import { stepUp } from '#lib/stepup.svelte.js';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
@@ -44,7 +45,8 @@
 		<div class="work">{@render children()}</div>
 	</main>
 </div>
-<StepUpDialog />
+<!-- the dialog mounts per step-up, so each one asks the server for its factors afresh -->
+{#if stepUp.open}<StepUpDialog />{/if}
 <Toaster />
 
 <style>

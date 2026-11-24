@@ -12,15 +12,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/werbot/werbot/internal/identity/oauth"
+	"github.com/werbot/werbot/internal/platform/db/dbtest"
 )
-
-// freshMinute waits for the next minute when under 20 s of the current one
-// remain, so the calls of a test fall into one fixed rate window.
-func freshMinute() {
-	if s := time.Now().Second(); s > 40 {
-		time.Sleep(time.Duration(61-s) * time.Second)
-	}
-}
 
 // polled reports whether a poll of userCode reached the storage.
 func polled(t *testing.T, s stand, userCode string) bool {
@@ -37,7 +30,7 @@ func polled(t *testing.T, s stand, userCode string) bool {
 // reaches the storage. Discovery and the device endpoint are not limited.
 func TestTokenGuard(t *testing.T) {
 	s := newStand(t)
-	freshMinute()
+	dbtest.FreshRateWindow()
 	dr := startDevice(t, s.srv)
 	require.NoError(t, s.p.ApproveDeviceCode(context.Background(), cookieAs(s.fx, s.fx.MemberID), dr.UserCode))
 	exchange := url.Values{"grant_type": {"urn:ietf:params:oauth:grant-type:token-exchange"}, "client_id": {oauth.ClientCLI},

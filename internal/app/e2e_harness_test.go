@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"log/slog"
+	"maps"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -68,13 +69,25 @@ type stack struct {
 // opts go to the SSH target. Everything stops at the test cleanup.
 func startStack(t *testing.T, opts ...sshtest.Option) *stack {
 	t.Helper()
+	s, _ := startStackEnv(t, nil, opts...)
+	return s
+}
+
+// startStackEnv is startStack with the server variables extra gives for the
+// HTTP address (nil: none); it also returns alice's cookie client.
+func startStackEnv(t *testing.T, extra func(httpAddr string) map[string]string, opts ...sshtest.Option) (*stack, *http.Client) {
+	t.Helper()
 	pool, dbURL := dbtest.New(t)
 	httpAddr := freeAddr(t)
-	r := startRun(t, []string{"server"}, env(map[string]string{
+	vars := map[string]string{
 		"WERBOT_DATABASE_URL": dbURL, "WERBOT_HTTP_ADDR": httpAddr, "WERBOT_PUBLIC_URL": "http://" + httpAddr,
 		"WERBOT_SECRET_KEY": testSecretKey, "WERBOT_GATEWAY_ADDR": freeAddr(t), "WERBOT_DATA_DIR": t.TempDir(),
 		"WERBOT_ENV": "development",
-	})).healthy(t)
+	}
+	if extra != nil {
+		maps.Copy(vars, extra(httpAddr))
+	}
+	r := startRun(t, []string{"server"}, env(vars)).healthy(t)
 	s := &stack{pool: pool, url: r.api, target: sshtest.StartTarget(t, "target-secret", nil, opts...)}
 	ctx := context.Background()
 
@@ -93,10 +106,7 @@ func startStack(t *testing.T, opts ...sshtest.Option) *stack {
 		gws: werbotv1connect.NewGatewayServiceClient(hc, s.url),
 	}
 
-	s.key = newSigner(t)
-	_, err = s.api.keys.AddSSHKey(ctx, connect.NewRequest(&werbotv1.AddSSHKeyRequest{
-		PublicKey: string(gossh.MarshalAuthorizedKey(s.key.PublicKey()))}))
-	require.NoError(t, err)
+	s.key = s.addKey(t)
 	gw, err := s.api.gws.CreateGateway(ctx, connect.NewRequest(&werbotv1.CreateGatewayRequest{Name: "gw"}))
 	require.NoError(t, err)
 	s.gatewayID = uuid.MustParse(gw.Msg.GetGateway().GetId())
@@ -106,7 +116,17 @@ func startStack(t *testing.T, opts ...sshtest.Option) *stack {
 	s.token = tok.Msg.GetToken()
 	s.gwSSH, s.gwData, err = s.startGateway(t, s.token)
 	require.NoError(t, err)
-	return s
+	return s, hc
+}
+
+// addKey registers a new SSH key of alice.
+func (s *stack) addKey(t *testing.T) gossh.Signer {
+	t.Helper()
+	key := newSigner(t)
+	_, err := s.api.keys.AddSSHKey(context.Background(), connect.NewRequest(&werbotv1.AddSSHKeyRequest{
+		PublicKey: string(gossh.MarshalAuthorizedKey(key.PublicKey()))}))
+	require.NoError(t, err)
+	return key
 }
 
 func newSigner(t *testing.T) gossh.Signer {

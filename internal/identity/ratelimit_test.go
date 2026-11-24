@@ -7,7 +7,6 @@ import (
 	"net/http/httptest"
 	"sync"
 	"testing"
-	"time"
 
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/werbot/werbot/internal/platform/apperr"
 	"github.com/werbot/werbot/internal/platform/clientip"
+	"github.com/werbot/werbot/internal/platform/db/dbtest"
 	"github.com/werbot/werbot/internal/platform/principal"
 )
 
@@ -29,21 +29,13 @@ func ipCtx(ip string) context.Context {
 	return ctx
 }
 
-// freshMinute waits for the next minute when under 20 s of the current one
-// remain, so the calls of a test fall into one fixed rate window.
-func freshMinute() {
-	if s := time.Now().Second(); s > 40 {
-		time.Sleep(time.Duration(61-s) * time.Second)
-	}
-}
-
 // TestLoginRateLimitPerIPEmail: every attempt of one IP and email counts; past
 // LoginPerIPEmail in a minute even the right password is refused, while the
 // same email from another IP still reaches the password check.
 func TestLoginRateLimitPerIPEmail(t *testing.T) {
 	svc, pool, _ := newTestService(t)
 	seedUser(t, pool, seedOrg(t, pool, "Acme"), "alice", principal.RoleOwner)
-	freshMinute()
+	dbtest.FreshRateWindow()
 	a := ipCtx("203.0.113.10")
 	for i := range LoginPerIPEmail {
 		_, err := svc.Login(a, "alice@example.com", "wrong horse battery", "test")
@@ -65,7 +57,7 @@ func TestLoginRateLimitPerIPEmail(t *testing.T) {
 func TestLoginRateLimitPerIP(t *testing.T) {
 	svc, pool, _ := newTestService(t)
 	seedUser(t, pool, seedOrg(t, pool, "Acme"), "alice", principal.RoleOwner)
-	freshMinute()
+	dbtest.FreshRateWindow()
 	a := ipCtx("203.0.113.20")
 	var wg sync.WaitGroup
 	for i := range LoginPerIP {

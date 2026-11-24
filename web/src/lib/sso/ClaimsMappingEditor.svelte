@@ -15,8 +15,8 @@
 	let { rows = $bindable(), teams, submitted }: Props = $props();
 
 	const roles = [
-		{ value: 'member', label: m.sso_role_member() },
-		{ value: 'admin', label: m.sso_role_admin() }
+		{ value: 'member', label: m.role_member() },
+		{ value: 'admin', label: m.role_admin() }
 	];
 	const kinds = [
 		{ value: 'team', label: m.sso_mapping_team() },

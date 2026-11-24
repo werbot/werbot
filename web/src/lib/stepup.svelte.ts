@@ -4,7 +4,7 @@ import { AuthService } from '#lib/gen/werbot/v1/auth_pb.js';
 /** The exact PermissionDenied text of the fresh-MFA gate. */
 const MFA_REQUIRED = 'mfa required';
 
-/** StepUpDialog (mounted once in the app layout) shows while `open` is true. */
+/** The app layout mounts StepUpDialog while `open` is true. */
 export const stepUp = $state({ open: false });
 
 let waiting: Promise<boolean> | null = null;

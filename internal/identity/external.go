@@ -52,7 +52,7 @@ func (s *Service) LoginExternal(ctx context.Context, in ExternalLogin, userAgent
 			return err
 		}
 		err = st.UpsertIdPLink(ctx, dbq.UpsertIdPLinkParams{UserID: userID, IdpID: in.IdPID, OrgID: in.OrgID,
-			Subject: in.Subject, RefreshCiphertext: in.RefreshCiphertext, KeyID: optional(in.KeyID)})
+			Subject: in.Subject, RefreshCiphertext: in.RefreshCiphertext, KeyID: nullable(in.KeyID)})
 		if isUniqueViolation(err) { // the user is linked to another subject of this IdP
 			return ErrNoAccount
 		}
@@ -141,13 +141,6 @@ func syncExternal(ctx context.Context, st Store, in ExternalLogin, userID uuid.U
 		return nil, err
 	}
 	return data, nil
-}
-
-func optional(s string) *string {
-	if s == "" {
-		return nil
-	}
-	return &s
 }
 
 // SetSessionCookie sets the session cookie of token on w.

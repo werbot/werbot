@@ -36,7 +36,7 @@ test.describe.serial('mfa', () => {
 
 		// the confirmed passkey counts as a fresh factor: the second factor asks no step-up
 		await page.getByRole('button', { name: en.mfa_totp_add }).click();
-		await expect(page.getByRole('dialog', { name: en.mfa_stepup_title })).toHaveCount(0);
+		await expect(page.getByRole('dialog', { name: en.auth_mfa_title })).toHaveCount(0);
 		const totpDialog = page.getByRole('dialog', { name: en.mfa_totp_title });
 		await expect(totpDialog.getByRole('img', { name: en.mfa_totp_qr })).toBeVisible();
 		const secret = (await totpDialog.locator('code.secret').textContent())!.trim();
@@ -96,7 +96,7 @@ test.describe.serial('mfa', () => {
 		await drawer.getByLabel(en.resources_label_key).fill('env');
 		await drawer.getByLabel(en.resources_label_value).fill('prod');
 		await drawer.getByRole('button', { name: en.mfa_rules_create }).click();
-		await page.getByRole('dialog', { name: en.mfa_stepup_title }).getByRole('button', { name: en.auth_mfa_passkey }).click();
+		await page.getByRole('dialog', { name: en.auth_mfa_title }).getByRole('button', { name: en.auth_mfa_passkey }).click();
 		await expect(page.getByRole('button', { name: 'e2e-mfa-rule' })).toBeVisible();
 
 		const { rules } = await rpc(page, 'werbot.v1.PolicyService/ListMFARules', {});

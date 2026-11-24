@@ -11,33 +11,14 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/google/uuid"
-	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/require"
 	gossh "golang.org/x/crypto/ssh"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
-	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
 	"github.com/werbot/werbot/internal/connectcli"
-	"github.com/werbot/werbot/internal/gateway/sshtest"
 	"github.com/werbot/werbot/internal/identity/webauthntest"
-	"github.com/werbot/werbot/internal/platform/db/dbtest"
 )
-
-// mfaClients are the MFA clients of one browser session.
-type mfaClients struct {
-	hc    *http.Client
-	auth  werbotv1connect.AuthServiceClient
-	mfa   werbotv1connect.MFAServiceClient
-	chals werbotv1connect.MFAChallengeServiceClient
-}
-
-func newMFAClients(hc *http.Client, base string) mfaClients {
-	return mfaClients{hc: hc, auth: werbotv1connect.NewAuthServiceClient(hc, base),
-		mfa: werbotv1connect.NewMFAServiceClient(hc, base), chals: werbotv1connect.NewMFAChallengeServiceClient(hc, base)}
-}
 
 // mfaStack is a stack whose WERBOT_WEB_URL is http://localhost:<http port>:
 // passkeys need a domain name (Ruling C5). web is alice's set-up session.
@@ -47,58 +28,18 @@ type mfaStack struct {
 	web    mfaClients
 }
 
-// startMFAStack is startStack with webURL as WERBOT_WEB_URL.
+// startMFAStack is startStack with WERBOT_WEB_URL http://localhost:<http port>.
 func startMFAStack(t *testing.T) *mfaStack {
 	t.Helper()
-	pool, dbURL := dbtest.New(t)
-	httpAddr := freeAddr(t)
-	_, port, err := net.SplitHostPort(httpAddr)
-	require.NoError(t, err)
-	m := &mfaStack{webURL: "http://localhost:" + port}
-	r := startRun(t, []string{"server"}, env(map[string]string{
-		"WERBOT_DATABASE_URL": dbURL, "WERBOT_HTTP_ADDR": httpAddr, "WERBOT_PUBLIC_URL": "http://" + httpAddr,
-		"WERBOT_WEB_URL": m.webURL, "WERBOT_SECRET_KEY": testSecretKey, "WERBOT_GATEWAY_ADDR": freeAddr(t),
-		"WERBOT_DATA_DIR": t.TempDir(), "WERBOT_ENV": "development",
-	})).healthy(t)
-	s := &stack{pool: pool, url: r.api, target: sshtest.StartTarget(t, "target-secret", nil)}
-	m.stack = s
-	ctx := context.Background()
-
-	hc, _ := jarClient(t, http.DefaultTransport)
-	m.web = newMFAClients(hc, s.url)
-	setup := proto.CloneOf(ownerSetup)
-	setup.Login, setup.Email = "alice", "alice@example.com"
-	_, err = m.web.auth.Setup(ctx, connect.NewRequest(setup))
-	require.NoError(t, err)
-	me, err := m.web.auth.GetSession(ctx, connect.NewRequest(&werbotv1.GetSessionRequest{}))
-	require.NoError(t, err)
-	s.alice = me.Msg.GetUser().GetId()
-	s.api = apiClients{
-		keys: werbotv1connect.NewSSHKeyServiceClient(hc, s.url), res: werbotv1connect.NewResourceServiceClient(hc, s.url),
-		acc: werbotv1connect.NewAccessServiceClient(hc, s.url), pol: werbotv1connect.NewPolicyServiceClient(hc, s.url),
-		gws: werbotv1connect.NewGatewayServiceClient(hc, s.url),
-	}
-	s.key = m.addKey(t)
-	gw, err := s.api.gws.CreateGateway(ctx, connect.NewRequest(&werbotv1.CreateGatewayRequest{Name: "gw"}))
-	require.NoError(t, err)
-	s.gatewayID = uuid.MustParse(gw.Msg.GetGateway().GetId())
-	tok, err := s.api.gws.CreateJoinToken(ctx, connect.NewRequest(&werbotv1.CreateJoinTokenRequest{
-		GatewayId: s.gatewayID.String(), MaxUses: 2}))
-	require.NoError(t, err)
-	s.token = tok.Msg.GetToken()
-	s.gwSSH, s.gwData, err = s.startGateway(t, s.token)
-	require.NoError(t, err)
+	m := &mfaStack{}
+	s, hc := startStackEnv(t, func(httpAddr string) map[string]string {
+		_, port, err := net.SplitHostPort(httpAddr)
+		require.NoError(t, err)
+		m.webURL = "http://localhost:" + port
+		return map[string]string{"WERBOT_WEB_URL": m.webURL}
+	})
+	m.stack, m.web = s, newMFAClients(hc, s.url)
 	return m
-}
-
-// addKey registers a new SSH key of alice.
-func (m *mfaStack) addKey(t *testing.T) gossh.Signer {
-	t.Helper()
-	key := newSigner(t)
-	_, err := m.api.keys.AddSSHKey(context.Background(), connect.NewRequest(&werbotv1.AddSSHKeyRequest{
-		PublicKey: string(gossh.MarshalAuthorizedKey(key.PublicKey()))}))
-	require.NoError(t, err)
-	return key
 }
 
 // mfaSSH is an mfaStack with the resource srv, bound to alice, under an MFA
@@ -119,27 +60,6 @@ func mfaSSH(t *testing.T) *mfaStack {
 		return err != nil
 	}, settle, 100*time.Millisecond)
 	return m
-}
-
-// enrollTOTP gives the user of c a TOTP factor, confirmed with the code of
-// the previous step, and returns its secret.
-func enrollTOTP(t *testing.T, c mfaClients) string {
-	t.Helper()
-	ctx := context.Background()
-	enr, err := c.mfa.EnrollTOTP(ctx, connect.NewRequest(&werbotv1.EnrollTOTPRequest{}))
-	require.NoError(t, err)
-	_, err = c.mfa.ConfirmTOTP(ctx, connect.NewRequest(&werbotv1.ConfirmTOTPRequest{Code: totpAt(t, enr.Msg.GetSecret(), -30*time.Second)}))
-	require.NoError(t, err)
-	return enr.Msg.GetSecret()
-}
-
-// totpAt is the TOTP code of secret at now+d. Codes taken at increasing d
-// belong to increasing steps, so each is accepted once.
-func totpAt(t *testing.T, secret string, d time.Duration) string {
-	t.Helper()
-	code, err := totp.GenerateCode(secret, time.Now().Add(d))
-	require.NoError(t, err)
-	return code
 }
 
 // enrollPasskey registers a passkey of the user of c, signing for webURL.

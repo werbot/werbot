@@ -9,7 +9,6 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
-	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -89,21 +88,6 @@ func TestFreshMFAProcedures(t *testing.T) {
 	}
 }
 
-// enrollOwner gives the rig's owner a TOTP factor through the CLI token and
-// returns its secret: an enrollment from the CLI makes no credential fresh
-// (one in the browser would make that session fresh).
-func enrollOwner(t *testing.T, r *agentRig) string {
-	t.Helper()
-	mfa := werbotv1connect.NewMFAServiceClient(http.DefaultClient, r.base)
-	enr, err := mfa.EnrollTOTP(context.Background(), withBearer(&werbotv1.EnrollTOTPRequest{}, r.token))
-	require.NoError(t, err)
-	code, err := totp.GenerateCode(enr.Msg.GetSecret(), time.Now())
-	require.NoError(t, err)
-	_, err = mfa.ConfirmTOTP(context.Background(), withBearer(&werbotv1.ConfirmTOTPRequest{Code: code}, r.token))
-	require.NoError(t, err)
-	return enr.Msg.GetSecret()
-}
-
 func assertDenied(t *testing.T, err error, text, name string) {
 	t.Helper()
 	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err), name)
@@ -117,7 +101,8 @@ func TestFreshMFAAfterAgentRestriction(t *testing.T) {
 	r := startAgentRig(t)
 	ctx := context.Background()
 	run := r.runToken(t, "claude")
-	secret := enrollOwner(t, r)
+	// enrolled through the CLI token: an enrollment in the browser would make that session fresh
+	secret := enrollTOTP(t, newMFAClients(&http.Client{Transport: headerTransport{"Authorization", "Bearer " + r.token}}, r.base))
 	hc := http.DefaultClient
 	reqs := werbotv1connect.NewAccessRequestServiceClient(hc, r.base)
 	approve := func(token string) error {
@@ -131,10 +116,8 @@ func TestFreshMFAAfterAgentRestriction(t *testing.T) {
 		connect.NewRequest(&werbotv1.CreateLockRequest{TargetType: "all_agents", Reason: "incident"}))
 	assertDenied(t, err, "mfa required", "browser session")
 
-	code, err := totp.GenerateCode(secret, time.Now().Add(30*time.Second))
-	require.NoError(t, err)
 	_, err = werbotv1connect.NewAuthServiceClient(hc, r.base).CompleteStepUp(ctx,
-		withBearer(&werbotv1.CompleteStepUpRequest{Proof: &werbotv1.CompleteStepUpRequest_TotpCode{TotpCode: code}}, r.token))
+		withBearer(&werbotv1.CompleteStepUpRequest{Proof: &werbotv1.CompleteStepUpRequest_TotpCode{TotpCode: totpAt(t, secret, 30*time.Second)}}, r.token))
 	require.NoError(t, err)
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(approve(r.token)), "the gate passes after the step-up")
 	assertDenied(t, approve(run), "not allowed for agent tokens", "run token after the sponsor's step-up")

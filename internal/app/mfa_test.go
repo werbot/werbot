@@ -56,8 +56,7 @@ func TestTunnelMFA(t *testing.T) {
 
 	_, err = m.Status(ctx, f.OrgID, f.OtherInstanceID, id)
 	require.ErrorIs(t, err, apperr.ErrNotFound, "another instance's challenge")
-	now, err := totp.GenerateCode(secret, time.Now())
-	require.NoError(t, err)
+	now := totpAt(t, secret, 0)
 	ok, err := m.VerifyTOTP(ctx, f.OrgID, f.InstanceID, id, wrongTOTP(t, secret))
 	require.NoError(t, err)
 	assert.False(t, ok, "a wrong code is false, not an error")
@@ -86,9 +85,7 @@ func wrongTOTP(t *testing.T, secret string) string {
 	t.Helper()
 	var window []string
 	for _, d := range []time.Duration{-time.Minute, -30 * time.Second, 0, 30 * time.Second, time.Minute} {
-		c, err := totp.GenerateCode(secret, time.Now().Add(d))
-		require.NoError(t, err)
-		window = append(window, c)
+		window = append(window, totpAt(t, secret, d))
 	}
 	for i := 0; ; i++ {
 		if c := fmt.Sprintf("%06d", i); !slices.Contains(window, c) {
@@ -123,13 +120,7 @@ func TestMFANotifyReachesStream(t *testing.T) {
 		Name: "web", Type: "echo", GatewayId: gwID, Config: cfgAny}))
 	require.NoError(t, err)
 	// The factor comes after the admin set-up, which would otherwise need a step-up.
-	enr, err := werbotv1connect.NewMFAServiceClient(hc, api).EnrollTOTP(ctx, connect.NewRequest(&werbotv1.EnrollTOTPRequest{}))
-	require.NoError(t, err)
-	secret := enr.Msg.GetSecret()
-	confirm, err := totp.GenerateCode(secret, time.Now().Add(-30*time.Second))
-	require.NoError(t, err)
-	_, err = werbotv1connect.NewMFAServiceClient(hc, api).ConfirmTOTP(ctx, connect.NewRequest(&werbotv1.ConfirmTOTPRequest{Code: confirm}))
-	require.NoError(t, err)
+	secret := enrollTOTP(t, newMFAClients(hc, api))
 	var owner uuid.UUID
 	require.NoError(t, pool.QueryRow(ctx, "SELECT user_id FROM membership WHERE role = 'owner'").Scan(&owner))
 
@@ -162,9 +153,8 @@ func TestMFANotifyReachesStream(t *testing.T) {
 	assert.Equal(t, []string{ch.Msg.GetCode(), "gw", "198.51.100.4", "web", "any"},
 		[]string{got.Msg.GetCode(), got.Msg.GetHost(), got.Msg.GetClientIp(), got.Msg.GetResource(), got.Msg.GetStrength()})
 
-	code, err := totp.GenerateCode(secret, time.Now().Add(30*time.Second))
-	require.NoError(t, err)
-	v, err := gw.client.VerifyMFATOTP(ctx, connect.NewRequest(&gatewayv1.VerifyMFATOTPRequest{ChallengeId: id, Code: code}))
+	v, err := gw.client.VerifyMFATOTP(ctx, connect.NewRequest(&gatewayv1.VerifyMFATOTPRequest{ChallengeId: id,
+		Code: totpAt(t, secret, 30*time.Second)}))
 	require.NoError(t, err)
 	require.True(t, v.Msg.GetOk())
 	select {
@@ -176,4 +166,38 @@ func TestMFANotifyReachesStream(t *testing.T) {
 	s, err := gw.client.GetMFAChallenge(ctx, connect.NewRequest(&gatewayv1.GetMFAChallengeRequest{ChallengeId: id}))
 	require.NoError(t, err)
 	assert.Equal(t, "confirmed", s.Msg.GetStatus())
+}
+
+// mfaClients are the MFA clients of one browser session.
+type mfaClients struct {
+	hc    *http.Client
+	auth  werbotv1connect.AuthServiceClient
+	mfa   werbotv1connect.MFAServiceClient
+	chals werbotv1connect.MFAChallengeServiceClient
+}
+
+func newMFAClients(hc *http.Client, base string) mfaClients {
+	return mfaClients{hc: hc, auth: werbotv1connect.NewAuthServiceClient(hc, base),
+		mfa: werbotv1connect.NewMFAServiceClient(hc, base), chals: werbotv1connect.NewMFAChallengeServiceClient(hc, base)}
+}
+
+// enrollTOTP gives the user of c a TOTP factor, confirmed with the code of
+// the previous step, and returns its secret.
+func enrollTOTP(t *testing.T, c mfaClients) string {
+	t.Helper()
+	ctx := context.Background()
+	enr, err := c.mfa.EnrollTOTP(ctx, connect.NewRequest(&werbotv1.EnrollTOTPRequest{}))
+	require.NoError(t, err)
+	_, err = c.mfa.ConfirmTOTP(ctx, connect.NewRequest(&werbotv1.ConfirmTOTPRequest{Code: totpAt(t, enr.Msg.GetSecret(), -30*time.Second)}))
+	require.NoError(t, err)
+	return enr.Msg.GetSecret()
+}
+
+// totpAt is the TOTP code of secret at now+d. Codes taken at increasing d
+// belong to increasing steps, so each is accepted once.
+func totpAt(t *testing.T, secret string, d time.Duration) string {
+	t.Helper()
+	code, err := totp.GenerateCode(secret, time.Now().Add(d))
+	require.NoError(t, err)
+	return code
 }

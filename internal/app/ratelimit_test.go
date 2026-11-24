@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"testing"
 	"testing/fstest"
-	"time"
 
 	"connectrpc.com/connect"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -40,9 +39,7 @@ func TestLoginRateLimitAcrossReplicas(t *testing.T) {
 	_, err = replicas[0].Setup(ctx, connect.NewRequest(ownerSetup))
 	require.NoError(t, err)
 
-	if s := time.Now().Second(); s > 40 { // one fixed rate window for every attempt
-		time.Sleep(time.Duration(61-s) * time.Second)
-	}
+	dbtest.FreshRateWindow() // one fixed rate window for every attempt
 	wrong := &werbotv1.LoginRequest{Email: ownerSetup.GetEmail(), Password: "wrong horse battery"}
 	for i := range identity.LoginPerIPEmail {
 		_, err := replicas[i%2].Login(ctx, connect.NewRequest(wrong))

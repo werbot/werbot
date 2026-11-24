@@ -215,3 +215,11 @@ func (f Fixture) MFARule(t testing.TB, pool *pgxpool.Pool, name, subjects, selec
 		 VALUES ($1, $2, $3::jsonb, $4::jsonb, make_interval(secs => $5::float8), $6) RETURNING id`,
 		f.OrgID, name, subjects, selector, maxAge.Seconds(), strength)
 }
+
+// FreshRateWindow waits for the next minute when under 20 s of the current
+// one remain, so the calls of a test fall into one fixed rate window.
+func FreshRateWindow() {
+	if s := time.Now().Second(); s > 40 {
+		time.Sleep(time.Duration(61-s) * time.Second)
+	}
+}
