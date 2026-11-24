@@ -37,6 +37,7 @@ export function navSections(manager: boolean): NavSection[] {
 					{ href: '/policies/custom', label: m.nav_policies_custom, icon: 'editor/code' as const },
 					{ href: '/policies/paths', label: m.nav_policies_paths, icon: 'folder-open' as const },
 					{ href: '/policies/terminal', label: m.nav_policies_terminal, icon: 'keyboard' as const },
+					{ href: '/policies/mfa', label: m.nav_policies_mfa, icon: 'shield' as const },
 					{ href: '/locks', label: m.nav_locks, icon: 'lock' as const }
 				]
 			: [])
@@ -50,13 +51,15 @@ export function navSections(manager: boolean): NavSection[] {
 						{ href: '/members', label: m.nav_members, icon: 'people' },
 						{ href: '/teams', label: m.nav_teams, icon: 'workspace' },
 						{ href: '/audit', label: m.nav_audit, icon: 'report_detailed' },
-						{ href: '/settings', label: m.nav_settings, icon: 'gear' }
+						{ href: '/settings', label: m.nav_settings, icon: 'gear' },
+						{ href: '/settings/sso', label: m.nav_sso, icon: 'key' }
 					])
 				]
 			: []),
 		section('profile', m.nav_profile, 'person', [
 			{ href: '/profile', label: m.nav_profile, icon: 'person' },
 			{ href: '/profile/keys', label: m.nav_keys, icon: 'key' },
+			{ href: '/profile/mfa', label: m.nav_mfa, icon: 'lock' },
 			{ href: '/profile/cli-sessions', label: m.cli_sessions_title, icon: 'laptop' }
 		])
 	];

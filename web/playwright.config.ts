@@ -10,7 +10,7 @@ export default defineConfig({
 	testDir: 'e2e',
 	workers: 1,
 	retries: 0,
-	use: { baseURL: 'http://127.0.0.1:18080', trace: 'retain-on-failure' },
+	use: { baseURL: 'http://localhost:18080', trace: 'retain-on-failure' },
 	projects: [
 		{ name: 'identity', testMatch: 'identity.spec.ts', use: { ...devices['Desktop Chrome'] } },
 		{ name: 'chromium', testIgnore: 'identity.spec.ts', dependencies: ['identity'], use: { ...devices['Desktop Chrome'] } }
@@ -29,7 +29,7 @@ export default defineConfig({
 				WERBOT_INTERNAL_ADDR: '127.0.0.1:18444',
 				WERBOT_INTERNAL_URL: 'https://127.0.0.1:18444',
 				WERBOT_LOCAL_POOL_ALLOW_LOOPBACK: 'true', // the telnet target listens on loopback
-				WERBOT_PUBLIC_URL: 'http://127.0.0.1:18080',
+				WERBOT_PUBLIC_URL: 'http://localhost:18080', // a domain name: passkeys need one
 				WERBOT_DATABASE_URL: dbURL,
 				// the e2e database is recreated per run, so the embedded gateway needs a fresh identity
 				WERBOT_DATA_DIR: mkdtempSync(join(tmpdir(), 'werbot-e2e-')),

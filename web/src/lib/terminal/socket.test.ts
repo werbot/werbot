@@ -48,6 +48,7 @@ describe('resize framing', () => {
 describe('closeMessage', () => {
 	it('maps contract codes', () => {
 		expect(closeMessage(1000)).toBe(m.terminal_closed());
+		expect(closeMessage(4001)).toBe(m.terminal_mfa_required());
 		expect(closeMessage(4003)).toBe(m.terminal_denied());
 		expect(closeMessage(4004)).toBe(m.terminal_not_found());
 		expect(closeMessage(4008)).toBe(m.terminal_limit());
@@ -59,7 +60,6 @@ describe('closeMessage', () => {
 	});
 	it('falls back to a generic error', () => {
 		expect(closeMessage(1006)).toBe(m.terminal_error());
-		expect(closeMessage(4001)).toBe(m.terminal_error());
 	});
 });
 

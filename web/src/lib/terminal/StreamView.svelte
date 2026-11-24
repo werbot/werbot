@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
 	import { Banner, Button } from '#lib/ui/index.js';
+	import { requestStepUp } from '#lib/stepup.svelte.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import XTerm from './XTerm.svelte';
 	import { closeMessage, connect, wsURL, type Socket } from './socket.js';
@@ -29,6 +30,8 @@
 			onclose: (code, reason) => {
 				sock = undefined;
 				closed = { code, reason };
+				// 4001: the terminal needs a fresh second factor; once confirmed, connect again
+				if (interactive && code === 4001) void requestStepUp().then((ok) => ok && reconnect());
 			}
 		});
 	}

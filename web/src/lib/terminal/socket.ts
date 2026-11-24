@@ -34,6 +34,8 @@ export function closeMessage(code: number, reason = ''): string {
 	switch (code) {
 		case 1000:
 			return m.terminal_closed();
+		case 4001:
+			return m.terminal_mfa_required();
 		case 4003:
 			return m.terminal_denied();
 		case 4004:

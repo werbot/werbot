@@ -17,6 +17,7 @@ const messages: Partial<Record<Code, () => string>> = {
 	[Code.NotFound]: m.error_not_found,
 	[Code.AlreadyExists]: m.error_already_exists,
 	[Code.FailedPrecondition]: m.error_failed_precondition,
+	[Code.ResourceExhausted]: m.error_resource_exhausted,
 	[Code.Unavailable]: m.error_unavailable
 };
 

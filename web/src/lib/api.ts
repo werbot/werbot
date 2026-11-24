@@ -20,11 +20,15 @@ import { ApprovalPolicyService } from '#lib/gen/werbot/v1/approval_policy_pb.js'
 import { AgentService } from '#lib/gen/werbot/v1/agent_pb.js';
 import { AgentProfileService } from '#lib/gen/werbot/v1/agent_profile_pb.js';
 import { LockService } from '#lib/gen/werbot/v1/lock_pb.js';
+import { IdentityProviderService } from '#lib/gen/werbot/v1/identity_provider_pb.js';
+import { MFAChallengeService, MFAService } from '#lib/gen/werbot/v1/mfa_pb.js';
+import { stepUpInterceptor } from '#lib/stepup.svelte.js';
 
 // Same origin in all-in-one mode and behind `werbot web`.
 // Binary format keeps google.protobuf.Any connector configs opaque, so an
 // unknown resource type still decodes without a type registry.
-export const transport: Transport = createConnectTransport({ baseUrl: '/', useBinaryFormat: true });
+// An "mfa required" refusal opens the step-up dialog and repeats the request once.
+export const transport: Transport = createConnectTransport({ baseUrl: '/', useBinaryFormat: true, interceptors: [stepUpInterceptor()] });
 
 export const system: Client<typeof SystemService> = createClient(SystemService, transport);
 export const auth: Client<typeof AuthService> = createClient(AuthService, transport);
@@ -46,3 +50,6 @@ export const approvalPolicies: Client<typeof ApprovalPolicyService> = createClie
 export const locks: Client<typeof LockService> = createClient(LockService, transport);
 export const agents: Client<typeof AgentService> = createClient(AgentService, transport);
 export const agentProfiles: Client<typeof AgentProfileService> = createClient(AgentProfileService, transport);
+export const mfa: Client<typeof MFAService> = createClient(MFAService, transport);
+export const mfaChallenges: Client<typeof MFAChallengeService> = createClient(MFAChallengeService, transport);
+export const identityProviders: Client<typeof IdentityProviderService> = createClient(IdentityProviderService, transport);

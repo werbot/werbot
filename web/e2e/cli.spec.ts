@@ -75,7 +75,7 @@ test('werbot login --device, werbot ssh, then revoked in the profile', async ({ 
 	expect(after.code).not.toBe(0);
 	expect(after.stderr).toContain('session expired or revoked; run werbot login');
 	// OpenSSH still holds a certificate inside its hour; the gateway refuses its revoked session
-	const openssh = await run('ssh', ['-F', sshConfig, '-o', 'BatchMode=yes', 'e2e-cli.127.0.0.1', 'echo', 'werbot-probe']);
+	const openssh = await run('ssh', ['-F', sshConfig, '-o', 'BatchMode=yes', `e2e-cli.${new URL(baseURL!).hostname}`, 'echo', 'werbot-probe']);
 	expect(openssh.code).toBe(255);
 	expect(openssh.stderr).toContain('Permission denied');
 });

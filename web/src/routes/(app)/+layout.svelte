@@ -1,5 +1,5 @@
 <script lang="ts">
-		import { goto } from '$app/navigation';
+	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { Avatar, Toaster } from '#lib/ui/index.js';
 	import { auth } from '#lib/api.js';
@@ -7,6 +7,7 @@
 	import { itemFor, navSections, sectionFor } from '#lib/shell/nav.js';
 	import PrimaryMenu from '#lib/shell/PrimaryMenu.svelte';
 	import ContextColumn from '#lib/shell/ContextColumn.svelte';
+	import StepUpDialog from '#lib/StepUpDialog.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
@@ -43,6 +44,7 @@
 		<div class="work">{@render children()}</div>
 	</main>
 </div>
+<StepUpDialog />
 <Toaster />
 
 <style>

@@ -9,13 +9,13 @@ test('member sections', () => {
 	expect(s.map((x) => x.id)).toEqual(['dashboard', 'access', 'profile']);
 	expect(hrefs(s[1])).toEqual(['/sessions', '/requests', '/agents']);
 	expect(s.flatMap(hrefs)).not.toContain('/settings');
-	expect(hrefs(s[2])).toEqual(['/profile', '/profile/keys', '/profile/cli-sessions']);
+	expect(hrefs(s[2])).toEqual(['/profile', '/profile/keys', '/profile/mfa', '/profile/cli-sessions']);
 });
 
 test('manager sections', () => {
-	expect(hrefs(byId(true, 'access'))).toEqual(['/resources', '/sessions', '/requests', '/agents', '/gateways', '/policies/approvals', '/policies/commands', '/policies/custom', '/policies/paths', '/policies/terminal', '/locks']);
-	expect(hrefs(byId(true, 'organization'))).toEqual(['/members', '/teams', '/audit', '/settings']);
-	expect(hrefs(byId(true, 'profile'))).toEqual(['/profile', '/profile/keys', '/profile/cli-sessions']);
+	expect(hrefs(byId(true, 'access'))).toEqual(['/resources', '/sessions', '/requests', '/agents', '/gateways', '/policies/approvals', '/policies/commands', '/policies/custom', '/policies/paths', '/policies/terminal', '/policies/mfa', '/locks']);
+	expect(hrefs(byId(true, 'organization'))).toEqual(['/members', '/teams', '/audit', '/settings', '/settings/sso']);
+	expect(hrefs(byId(true, 'profile'))).toEqual(['/profile', '/profile/keys', '/profile/mfa', '/profile/cli-sessions']);
 });
 
 test('dashboard has no column', () => {
@@ -30,6 +30,8 @@ test('nested paths', () => {
 	expect(sectionFor(s, '/profile/delete/tok').id).toBe('profile');
 	const profile = byId(true, 'profile');
 	expect(itemFor(profile, '/profile/keys')?.href).toBe('/profile/keys');
+	expect(itemFor(profile, '/profile/mfa')?.href).toBe('/profile/mfa');
+	expect(itemFor(byId(true, 'organization'), '/settings/sso')?.href).toBe('/settings/sso');
 	expect(itemFor(profile, '/profile/delete/tok')?.href).toBe('/profile');
 });
 
