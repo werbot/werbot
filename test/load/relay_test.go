@@ -5,7 +5,6 @@ package load
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -21,18 +20,7 @@ const (
 	relayLine  = 5 * time.Second // every terminal writes one line this often
 	relaySteps = time.Minute     // the relay metrics reach the terminal count within this
 	relayPath  = "/api/terminal?resource=load-target&cols=80&rows=24"
-	dialWait   = 10 * time.Second // one terminal dial
 )
-
-// dialTerminal opens a web terminal of alice on api with the Origin of the UI.
-func dialTerminal(ctx context.Context, api cluster.API) (*websocket.Conn, error) {
-	ctx, cancel := context.WithTimeout(ctx, dialWait)
-	defer cancel()
-	c, _, err := websocket.Dial(ctx, api.BaseURL+relayPath, &websocket.DialOptions{ //nolint:bodyclose // Dial owns the handshake body
-		HTTPClient: api.HTTP, HTTPHeader: http.Header{"Origin": {"http://" + cluster.UIHost}},
-	})
-	return c, err
-}
 
 // l5Relays: with gw2 stopped, *relays terminals of server2 reach the host
 // target through the only gateway, so every terminal is a browser stream on
@@ -58,7 +46,7 @@ func l5Relays(t *testing.T) {
 		}
 	})
 	for range *relays {
-		c, err := dialTerminal(t.Context(), st.B)
+		c, err := cluster.DialWSConn(st.B, relayPath)
 		require.NoError(t, err, "terminal %d", len(conns)+1)
 		conns = append(conns, c)
 	}

@@ -17,8 +17,7 @@ import (
 // FuzzStreamFrame: a StreamRequest of any bytes never panics the first-frame
 // parse of Stream or streamPipe.Read; an open ticket parses exactly when it is
 // a UUID; Read returns data unchanged, a resize only inside the window, a
-// close as CloseError with its reason, and skips every other frame; Close
-// twice sends one close frame.
+// close as CloseError with its reason, and skips every other frame.
 func FuzzStreamFrame(f *testing.F) {
 	frames := []*gatewayv1.StreamFrame{
 		openFrame(uuid.NewString()), openFrame("not-a-uuid"), openFrame(""),
@@ -41,7 +40,6 @@ func FuzzStreamFrame(f *testing.F) {
 		}
 		checkOpen(t, &req)
 		checkRead(t, req.GetFrame())
-		checkCloseOnce(t)
 	})
 }
 
@@ -123,9 +121,8 @@ func wantClose(t *testing.T, reason string, data []byte, cols, rows int, err err
 	}
 }
 
-// checkCloseOnce: two Close calls send one close frame, then writes fail.
-func checkCloseOnce(t *testing.T) {
-	t.Helper()
+// TestStreamPipeCloseOnce: two Close calls send one close frame, then writes fail.
+func TestStreamPipeCloseOnce(t *testing.T) {
 	var sent []*gatewayv1.StreamResponse
 	p := &streamPipe{send: func(r *gatewayv1.StreamResponse) error { sent = append(sent, r); return nil }}
 	if err := p.Close("a"); err != nil {

@@ -28,13 +28,15 @@ const (
 // (WERBOT_WEB_URL). The connection closes with the test.
 func (s *Stand) DialWS(t testing.TB, api API, path string) *websocket.Conn {
 	t.Helper()
-	c, err := dialWS(api, path)
+	c, err := DialWSConn(api, path)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = c.Close(websocket.StatusNormalClosure, "") })
 	return c
 }
 
-func dialWS(api API, path string) (*websocket.Conn, error) {
+// DialWSConn opens the WebSocket path on api with the Origin of the UI; the
+// caller closes the connection. The dial gives up after 10 s.
+func DialWSConn(api API, path string) (*websocket.Conn, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	c, _, err := websocket.Dial(ctx, api.BaseURL+path, &websocket.DialOptions{ //nolint:bodyclose // Dial owns the handshake body
@@ -52,7 +54,7 @@ func (s *Stand) DialWSVia(t testing.TB, api API, path, gw string) *websocket.Con
 	for range wsPlacements {
 		before, err := s.openWebSessions(t.Context())
 		require.NoError(t, err)
-		c, err := dialWS(api, path)
+		c, err := DialWSConn(api, path)
 		require.NoError(t, err)
 		host := s.awaitWebSession(t, before)
 		if host == gw {
