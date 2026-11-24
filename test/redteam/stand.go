@@ -34,6 +34,7 @@ const (
 var (
 	st    *cluster.Stand // the stand of this process; tests never run in parallel
 	home  string         // alice's WERBOT_HOME: werbot login --device runs in the first begin
+	bob   cluster.API    // bob's API on Edge (admin): approver and second member
 	setup sync.Once
 	ready bool // setup finished
 )
@@ -45,7 +46,7 @@ func begin(t *testing.T) {
 	t.Helper()
 	st.Healthy(t)
 	setup.Do(func() {
-		st.AddMember(t, bobEmail, werbotv1.Role_ROLE_ADMIN)
+		bob = st.AddMember(t, bobEmail, werbotv1.Role_ROLE_ADMIN)
 		st.Login(t, st.Edge, home, st.Edge.BaseURL)
 		ready = true
 	})
