@@ -13,6 +13,7 @@ import (
 
 	"github.com/werbot/werbot/internal/identity/oidclogin/dbq"
 	"github.com/werbot/werbot/internal/platform/apperr"
+	"github.com/werbot/werbot/internal/platform/auditlog"
 	"github.com/werbot/werbot/internal/platform/dbx"
 	"github.com/werbot/werbot/internal/platform/secretbox"
 )
@@ -69,7 +70,7 @@ func (s *Store) SealRefresh(refresh string) ([]byte, string, error) {
 // StaleLinks returns up to limit links with a refresh token whose last check
 // is older than olderThan, oldest first, refresh tokens opened (dbx.ReasonMaintenance).
 func (s *Store) StaleLinks(ctx context.Context, olderThan time.Duration, limit int) ([]Link, error) {
-	var rows []dbq.StaleLinksRow
+	var rows []dbq.UserIdpLink
 	err := dbx.System(ctx, s.pool, dbx.ReasonMaintenance, func(tx pgx.Tx) (err error) {
 		rows, err = dbq.New(tx).StaleLinks(ctx, dbq.StaleLinksParams{OlderSecs: olderThan.Seconds(), Lim: int32(min(limit, 1000))}) //nolint:gosec // capped
 		return err
@@ -77,6 +78,24 @@ func (s *Store) StaleLinks(ctx context.Context, olderThan time.Duration, limit i
 	if err != nil {
 		return nil, err
 	}
+	return s.openLinks(rows)
+}
+
+// UserStaleLinks returns the links of userID in orgID with a refresh token
+// whose last check is older than olderThan, refresh tokens opened.
+func (s *Store) UserStaleLinks(ctx context.Context, orgID, userID uuid.UUID, olderThan time.Duration) ([]Link, error) {
+	var rows []dbq.UserIdpLink
+	err := dbx.InOrg(ctx, s.pool, orgID, userID, func(tx pgx.Tx) (err error) {
+		rows, err = dbq.New(tx).UserStaleLinks(ctx, dbq.UserStaleLinksParams{OrgID: orgID, UserID: userID, OlderSecs: olderThan.Seconds()})
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return s.openLinks(rows)
+}
+
+func (s *Store) openLinks(rows []dbq.UserIdpLink) ([]Link, error) {
 	out := make([]Link, 0, len(rows))
 	for _, r := range rows {
 		refresh, err := s.box.Open(r.RefreshCiphertext, deref(r.KeyID))
@@ -101,6 +120,19 @@ func (s *Store) UpdateLink(ctx context.Context, l Link, refresh *string, checked
 	}
 	return dbx.System(ctx, s.pool, dbx.ReasonMaintenance, func(tx pgx.Tx) error {
 		return dbq.New(tx).UpdateLink(ctx, arg)
+	})
+}
+
+// RevokeLink drops the refresh token of l, which its IdP refused, and audits
+// idp.recheck.revoke {idp_id, subject} by the system, in one transaction.
+func (s *Store) RevokeLink(ctx context.Context, l Link) error {
+	return dbx.InOrg(ctx, s.pool, l.OrgID, uuid.Nil, func(tx pgx.Tx) error {
+		err := dbq.New(tx).UpdateLink(ctx, dbq.UpdateLinkParams{CheckedAt: time.Now(), IdpID: l.IdPID, Subject: l.Subject, OrgID: l.OrgID})
+		if err != nil {
+			return err
+		}
+		return auditlog.Write(ctx, tx, auditlog.Event{OrgID: &l.OrgID, ActorKind: "system", Action: "idp.recheck.revoke",
+			TargetType: "user", TargetID: l.UserID.String(), Data: map[string]any{"idp_id": l.IdPID.String(), "subject": l.Subject}})
 	})
 }
 

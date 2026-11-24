@@ -3,6 +3,7 @@ package oauth
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -50,7 +51,8 @@ func (r *refreshRequest) GetAudience() []string {
 // token (not revoked, before expires_at, absolute_expires_at and created_at
 // + cli_session_max of the current settings). The previous token of a session
 // revokes it (refresh_reuse, audited as cli_session.revoke by the system).
-// Every error is invalid_grant.
+// Before the rotation the user's IdPs are asked (idpRecheck). Every error is
+// invalid_grant.
 func (s *storage) TokenRequestByRefreshToken(ctx context.Context, token string) (op.RefreshTokenRequest, error) {
 	hash := hashSecret(token)
 	var (
@@ -87,7 +89,19 @@ func (s *storage) TokenRequestByRefreshToken(ctx context.Context, token string) 
 	case reused:
 		return nil, errRefreshReuse
 	}
-	return req, nil
+	return req, s.idpRecheck(ctx, req)
+}
+
+// idpRecheck runs Config.IdPCheck for req's user; its error (the IdP refused
+// the user, whose sessions are revoked by then) refuses the renewal.
+func (s *storage) idpRecheck(ctx context.Context, req *refreshRequest) error {
+	if s.idpCheck == nil {
+		return nil
+	}
+	if err := s.idpCheck(ctx, req.OrgID, req.UserID); err != nil {
+		return fmt.Errorf("refresh refused by the identity provider: %w", err)
+	}
+	return nil
 }
 
 // rotate replaces the refresh token of req's session in one statement and

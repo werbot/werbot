@@ -26,6 +26,9 @@ const (
 type Config struct {
 	Issuer string // WERBOT_PUBLIC_URL: iss of every token; an http issuer is allowed (insecure, see docs/security.md)
 	WebURL string // WERBOT_WEB_URL: consent and device pages
+	// IdPCheck asks the IdPs of userID in orgID before a refresh token
+	// rotates; an error refuses the renewal with invalid_grant. nil: no check.
+	IdPCheck func(ctx context.Context, orgID, userID uuid.UUID) error //nolint:revive // name fixed by contract §3.1
 }
 
 // Users reports a user's role in an organization (*identity.Service).

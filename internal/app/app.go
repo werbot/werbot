@@ -108,7 +108,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger, pool *pg
 	ws := s.Relay.WebSocketHandler() // inside identity.Middleware and agentRoutes, like every route of mux
 	mux.Handle("GET /api/terminal", ws)
 	mux.Handle("GET /api/sessions/{id}/live", ws)
-	bearer, err := mountOAuth(mux, cfg, pool, o.OAuthKey, s.Identity, oauthAgents{s.Agents, logger}, opts)
+	bearer, err := mountOAuth(mux, cfg, pool, o.OAuthKey, s, oauthAgents{s.Agents, logger}, opts)
 	if err != nil {
 		return err
 	}

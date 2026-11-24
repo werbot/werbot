@@ -82,6 +82,15 @@ func (o *OP) SetUser(sub string, claims map[string]any) {
 	o.sub, o.claims[sub] = sub, claims
 }
 
+// Refresh is a new refresh token of sub, as if sub had signed in.
+func (o *OP) Refresh(sub string) string {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	t := random()
+	o.refreshes[t] = sub
+	return t
+}
+
 // Disable makes refreshes of sub fail with invalid_grant.
 func (o *OP) Disable(sub string) { o.mu.Lock(); o.disabled[sub] = true; o.mu.Unlock() }
 

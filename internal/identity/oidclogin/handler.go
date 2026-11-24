@@ -30,7 +30,6 @@ type handler struct {
 	store   IdPStore
 	cfg     Config
 	cookies *httphelper.CookieHandler
-	client  *http.Client
 }
 
 // Handler serves GET /api/oidc/{idp_id}/start?next= and GET /api/oidc/callback.
@@ -43,11 +42,7 @@ func Handler(s *identity.Service, store IdPStore, cfg Config) http.Handler {
 	if !cfg.SecureCookies {
 		opts = append(opts, httphelper.WithUnsecure())
 	}
-	h := &handler{svc: s, store: store, cfg: cfg, client: cfg.HTTPClient,
-		cookies: httphelper.NewCookieHandler(cfg.HashKey, cfg.BlockKey, opts...)}
-	if h.client == nil {
-		h.client = &http.Client{Timeout: 10 * time.Second}
-	}
+	h := &handler{svc: s, store: store, cfg: cfg, cookies: httphelper.NewCookieHandler(cfg.HashKey, cfg.BlockKey, opts...)}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/oidc/{idp_id}/start", h.start)
 	mux.HandleFunc("GET /api/oidc/callback", h.callback)
@@ -119,8 +114,17 @@ func (h *handler) callback(w http.ResponseWriter, r *http.Request) {
 
 // party runs discovery of idp (no cache: an unreachable IdP refuses the login).
 func (h *handler) party(ctx context.Context, idp IdP, opts ...rp.Option) (rp.RelyingParty, error) {
-	opts = append(opts, rp.WithPKCE(h.cookies), rp.WithHTTPClient(h.client))
-	return rp.NewRelyingPartyOIDC(ctx, idp.Issuer, idp.ClientID, idp.ClientSecret, h.cfg.redirectURI(), idp.Scopes, opts...)
+	return relyingParty(ctx, h.cfg, idp, append(opts, rp.WithPKCE(h.cookies))...)
+}
+
+// relyingParty runs discovery of idp over the client of cfg.
+func relyingParty(ctx context.Context, cfg Config, idp IdP, opts ...rp.Option) (rp.RelyingParty, error) {
+	client := cfg.HTTPClient
+	if client == nil {
+		client = &http.Client{Timeout: 10 * time.Second}
+	}
+	opts = append(opts, rp.WithHTTPClient(client))
+	return rp.NewRelyingPartyOIDC(ctx, idp.Issuer, idp.ClientID, idp.ClientSecret, cfg.redirectURI(), idp.Scopes, opts...)
 }
 
 // fail logs why the login of idp stopped (never a token or secret) and

@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	jose "github.com/go-jose/go-jose/v4"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/zitadel/oidc/v3/pkg/oidc"
 	"github.com/zitadel/oidc/v3/pkg/op"
@@ -15,12 +16,14 @@ var errNoFlow = errors.New("oauth: flow not supported")
 
 // storage is the op.Storage (and op.DeviceAuthorizationStorage,
 // op.TokenExchangeStorage) of the provider: keys, the werbot-cli client,
-// health and the agent runs of the token exchange (agents nil: not served).
+// health, the agent runs of the token exchange (agents nil: not served) and
+// the IdP check of a refresh (idpCheck nil: none).
 type storage struct {
-	pool   *pgxpool.Pool
-	key    *SigningKey
-	client cliClient
-	agents Agents
+	pool     *pgxpool.Pool
+	key      *SigningKey
+	client   cliClient
+	agents   Agents
+	idpCheck func(ctx context.Context, orgID, userID uuid.UUID) error
 }
 
 // The device grant is advertised only while storage implements this.

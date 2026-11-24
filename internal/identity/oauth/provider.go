@@ -49,7 +49,7 @@ func New(pool *pgxpool.Pool, key *SigningKey, users Users, agents Agents, cfg Co
 	if u, err := url.Parse(cfg.Issuer); err == nil && u.Scheme == "http" {
 		opts = append(opts, op.WithAllowInsecure())
 	}
-	o, err := op.NewProvider(c, &storage{pool: pool, key: key, client: cliClient{webURL: cfg.WebURL}, agents: agents}, op.StaticIssuer(cfg.Issuer), opts...)
+	o, err := op.NewProvider(c, &storage{pool: pool, key: key, client: cliClient{webURL: cfg.WebURL}, agents: agents, idpCheck: cfg.IdPCheck}, op.StaticIssuer(cfg.Issuer), opts...)
 	if err != nil {
 		return nil, err
 	}

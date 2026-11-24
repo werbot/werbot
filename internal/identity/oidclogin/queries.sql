@@ -30,10 +30,16 @@ DELETE FROM idp_oidc WHERE id = @id AND org_id = @org_id RETURNING name;
 
 -- name: StaleLinks :many
 -- Links with a refresh token not checked for older_secs, oldest first.
-SELECT idp_id, org_id, user_id, subject, refresh_ciphertext, key_id FROM user_idp_link
+SELECT * FROM user_idp_link
 WHERE refresh_ciphertext IS NOT NULL AND last_checked_at < now() - make_interval(secs => @older_secs::float8)
 ORDER BY last_checked_at
 LIMIT @lim;
+
+-- name: UserStaleLinks :many
+-- The links of a member with a refresh token not checked for older_secs.
+SELECT * FROM user_idp_link
+WHERE org_id = @org_id AND user_id = @user_id AND refresh_ciphertext IS NOT NULL
+    AND last_checked_at < now() - make_interval(secs => @older_secs::float8);
 
 -- name: UpdateLink :exec
 -- keep_refresh leaves the stored refresh token as it is.

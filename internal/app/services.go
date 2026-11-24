@@ -129,8 +129,7 @@ func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box
 		Recordings: session.NewRecordings(pool, store, kind, signer), Audit: audit.New(audit.NewPostgres(pool)), Logger: logger}
 	s.Access = access.New(pool, accessEmails{s}, accessSettings{s}, access.Config{WebURL: cfg.WebURL})
 	s.Agents = agentic.New(pool, accessEmails{s}, agentic.Config{WebURL: cfg.WebURL, RevokeProfiles: oauth.RevokeAgentProfiles})
-	// identity needs the River client, which needs the policy jobs: teams
-	// reads s.Identity, which is set below, before any request is served.
+	// teams reads s.Identity, which is set below, before any request is served.
 	s.Policy = policy.New(policy.Deps{Pool: pool, Resources: policyResources{s.Inventory}, Bindings: policyBindings{s.Access},
 		Teams: teamsFunc(func(ctx context.Context, orgID, userID uuid.UUID) ([]uuid.UUID, error) {
 			return s.Identity.UserTeams(ctx, orgID, userID)
@@ -155,14 +154,26 @@ func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box
 	periodic = append(periodic, relay.RegisterJobs(workers, s.Relay)...)
 	periodic = append(periodic, rate.RegisterJobs(workers, pool)...)
 	periodic = append(periodic, identity.RegisterMFAJobs(workers, pool)...)
-	if s.Jobs, err = jobs.NewClient(pool, workers, periodic, logger); err != nil {
-		return nil, err
-	}
-	s.Identity = identity.New(pool, notify.NewQueue(s.Jobs, box), identity.Config{
+	s.Identity = identity.New(pool, emailQueue{s, box}, identity.Config{
 		WebURL: cfg.WebURL, SecureCookies: cfg.Env != "development", Logger: logger, Box: box, Metrics: reg,
 	})
 	s.IdPs, s.OIDC = oidclogin.NewStore(pool, box), oidcConfig(cfg)
+	periodic = append(periodic, oidclogin.RegisterJobs(workers, s.IdPs, s.Identity, s.OIDC)...)
+	if s.Jobs, err = jobs.NewClient(pool, workers, periodic, logger); err != nil {
+		return nil, err
+	}
 	return s, nil
+}
+
+// emailQueue is notify's queue on s.Jobs for identity, which is built
+// before the River client: the client takes identity's idp.recheck worker.
+type emailQueue struct {
+	s   *services
+	box *secretbox.Box
+}
+
+func (q emailQueue) EnqueueTx(ctx context.Context, tx pgx.Tx, to, template string, data map[string]string) error {
+	return notify.NewQueue(q.s.Jobs, q.box).EnqueueTx(ctx, tx, to, template, data)
 }
 
 // oidcConfig is the OIDC login config; the cookie keys derive from WERBOT_SECRET_KEY.

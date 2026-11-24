@@ -32,3 +32,9 @@ func TestPolicyAdaptersHost(t *testing.T) {
 	}
 	assert.Equal(t, map[uuid.UUID]string{r.ID: "db.internal", f.ResourceID: ""}, hosts)
 }
+
+// newServices registers idp.recheck on the River client.
+func TestServicesRegisterIdPRecheck(t *testing.T) {
+	s := newStage4(t, slog.New(slog.DiscardHandler))
+	assert.True(t, s.d.Jobs.PeriodicJobs().RemoveByID("idp.recheck"))
+}

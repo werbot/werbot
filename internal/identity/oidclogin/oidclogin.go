@@ -62,6 +62,10 @@ type IdPStore interface { //nolint:revive // name fixed by contract
 	SealRefresh(refresh string) (ciphertext []byte, keyID string, err error)
 	// StaleLinks returns links with a refresh token not checked for olderThan, oldest first.
 	StaleLinks(ctx context.Context, olderThan time.Duration, limit int) ([]Link, error)
+	// UserStaleLinks returns the links of userID in orgID with a refresh token not checked for olderThan.
+	UserStaleLinks(ctx context.Context, orgID, userID uuid.UUID, olderThan time.Duration) ([]Link, error)
 	// UpdateLink records a check at checkedAt; refresh nil keeps the token, "" drops it.
 	UpdateLink(ctx context.Context, l Link, refresh *string, checkedAt time.Time) error
+	// RevokeLink drops the refresh token the IdP refused and audits idp.recheck.revoke.
+	RevokeLink(ctx context.Context, l Link) error
 }

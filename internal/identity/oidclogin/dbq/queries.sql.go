@@ -192,7 +192,7 @@ func (q *Queries) ListIdPs(ctx context.Context, orgID uuid.UUID) ([]IdpOidc, err
 }
 
 const staleLinks = `-- name: StaleLinks :many
-SELECT idp_id, org_id, user_id, subject, refresh_ciphertext, key_id FROM user_idp_link
+SELECT user_id, idp_id, org_id, subject, refresh_ciphertext, key_id, last_checked_at FROM user_idp_link
 WHERE refresh_ciphertext IS NOT NULL AND last_checked_at < now() - make_interval(secs => $1::float8)
 ORDER BY last_checked_at
 LIMIT $2
@@ -203,32 +203,24 @@ type StaleLinksParams struct {
 	Lim       int32
 }
 
-type StaleLinksRow struct {
-	IdpID             uuid.UUID
-	OrgID             uuid.UUID
-	UserID            uuid.UUID
-	Subject           string
-	RefreshCiphertext []byte
-	KeyID             *string
-}
-
 // Links with a refresh token not checked for older_secs, oldest first.
-func (q *Queries) StaleLinks(ctx context.Context, arg StaleLinksParams) ([]StaleLinksRow, error) {
+func (q *Queries) StaleLinks(ctx context.Context, arg StaleLinksParams) ([]UserIdpLink, error) {
 	rows, err := q.db.Query(ctx, staleLinks, arg.OlderSecs, arg.Lim)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []StaleLinksRow
+	var items []UserIdpLink
 	for rows.Next() {
-		var i StaleLinksRow
+		var i UserIdpLink
 		if err := rows.Scan(
+			&i.UserID,
 			&i.IdpID,
 			&i.OrgID,
-			&i.UserID,
 			&i.Subject,
 			&i.RefreshCiphertext,
 			&i.KeyID,
+			&i.LastCheckedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -326,4 +318,45 @@ func (q *Queries) UpdateLink(ctx context.Context, arg UpdateLinkParams) error {
 		arg.OrgID,
 	)
 	return err
+}
+
+const userStaleLinks = `-- name: UserStaleLinks :many
+SELECT user_id, idp_id, org_id, subject, refresh_ciphertext, key_id, last_checked_at FROM user_idp_link
+WHERE org_id = $1 AND user_id = $2 AND refresh_ciphertext IS NOT NULL
+    AND last_checked_at < now() - make_interval(secs => $3::float8)
+`
+
+type UserStaleLinksParams struct {
+	OrgID     uuid.UUID
+	UserID    uuid.UUID
+	OlderSecs float64
+}
+
+// The links of a member with a refresh token not checked for older_secs.
+func (q *Queries) UserStaleLinks(ctx context.Context, arg UserStaleLinksParams) ([]UserIdpLink, error) {
+	rows, err := q.db.Query(ctx, userStaleLinks, arg.OrgID, arg.UserID, arg.OlderSecs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []UserIdpLink
+	for rows.Next() {
+		var i UserIdpLink
+		if err := rows.Scan(
+			&i.UserID,
+			&i.IdpID,
+			&i.OrgID,
+			&i.Subject,
+			&i.RefreshCiphertext,
+			&i.KeyID,
+			&i.LastCheckedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
