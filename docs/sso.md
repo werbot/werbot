@@ -8,21 +8,21 @@ Owners and admins manage IdPs on **Settings, Single sign-on** (`/settings/sso`, 
 
 1. In the IdP, create a confidential OIDC client (authorization code flow with PKCE).
 2. Set the redirect URI to `<WERBOT_WEB_URL>/api/oidc/callback`, for example `https://werbot.example.com/api/oidc/callback`.
-3. In Werbot, add an IdP with a name (1 to 63 characters), the issuer URL, the client id and the client secret. The secret is stored encrypted and never shown again.
+3. In Werbot, add an IdP with a name (1 to 63 characters), the issuer URL, the client id and the client secret. The secret is stored encrypted and never shown again. A change of the issuer or the client id needs the client secret again; an update without it is refused.
 4. Enable it. The login page then shows a button with the name of the IdP.
 
 The issuer is the URL whose `/.well-known/openid-configuration` the IdP serves.
 
 | IdP | Issuer | Notes |
 | --- | --- | --- |
-| Keycloak | `https://<host>/realms/<realm>` | Client authentication on, standard flow on. Add a group membership mapper with the claim name `groups`; with the full group path off, groups read `ops`, with it on, `/ops`. |
-| Okta | `https://<org>.okta.com` (or a custom authorization server URL) | App type Web, authorization code. Add a `groups` claim to the ID token (filter by regex or prefix). |
-| Google Workspace | `https://accounts.google.com` | Google sends no group claim: use the `email` or `hd` claim in the mapping. Google sets `email_verified`. |
-| Microsoft Entra ID | `https://login.microsoftonline.com/<tenant>/v2.0` | Entra ID does not send `email_verified`: its users are never linked or created (see [Linking](#provisioning-and-linking)). Group claims carry object ids. |
+| Keycloak | `https://<host>/realms/<realm>` | Tested (Keycloak 26, e2e). Client authentication on, standard flow on. Groups come from a group membership mapper on the client with the claim name `groups` (full group path off: `ops`; on: `/ops`); Keycloak has no `groups` scope. For the [hourly check](#hourly-check-and-cli-renewal) set the scopes to `openid email profile offline_access`, add `offline_access` to the client's optional client scopes and give users the realm role `offline_access` (it is in the realm's default roles unless removed). |
+| Okta | `https://<org>.okta.com` (or a custom authorization server URL) | Not tested. App type Web, authorization code, refresh token grant on. Add a `groups` claim to the ID token (filter by regex or prefix). Okta knows the scopes `groups` and `offline_access`; add both for groups and the hourly check. |
+| Google Workspace | `https://accounts.google.com` | Not tested. Keep the default scopes: Google lists only `openid`, `email` and `profile` in its discovery document. Google sends no group claim: use the `email` or `hd` claim in the mapping. Google sets `email_verified`. Google issues a refresh token only for `access_type=offline`, which Werbot does not send: Google users are [never rechecked](#no-refresh-token-no-check). |
+| Microsoft Entra ID | `https://login.microsoftonline.com/<tenant>/v2.0` | Not tested. Entra ID does not send `email_verified`: its users are never linked or created (see [Linking](#provisioning-and-linking)). Group claims carry object ids and are set up in the app registration, not by a scope. Add `offline_access` for a refresh token. |
 
 ### Scopes
 
-Default scopes: `openid email profile groups`. A list you set replaces the default and must contain `openid`. Add `offline_access` when the IdP needs it for a long-lived refresh token (see [Hourly check](#hourly-check-and-cli-renewal)). An IdP that does not know a scope in the list may refuse the login: remove the scope there.
+Default scopes: `openid email profile`. A list you set replaces the default and must contain `openid`. An IdP may refuse a scope it does not know: Keycloak answers `invalid_scope` and the login fails. Add only scopes the IdP lists. Add `offline_access` when the IdP issues a long-lived refresh token for it (see [Hourly check](#hourly-check-and-cli-renewal)).
 
 ### The issuer is admin input
 
@@ -32,7 +32,7 @@ The IdP list on the login page is public: it shows the `id` and `name` of every 
 
 ## Claims mapping
 
-The mapping (`claims_mapping` in the API) is a list of rules stored with the IdP.
+The mapping (`claims_mapping` in the API) is a list of rules stored with the IdP. In the web UI, open it from the row menu of the IdP on **Settings, Single sign-on** (**Claim mapping**); the IdP drawer holds the connection fields only.
 
 A mapping rule reads one claim of the ID token (the userinfo claims are merged over it) and gives a team or a role.
 
@@ -91,15 +91,19 @@ A user created by an IdP has no password. `Login` answers as for a wrong passwor
 
 ## Hourly check and CLI renewal
 
-Werbot keeps the IdP refresh token of each linked user (sealed with `WERBOT_SECRET_KEY`). The job `idp.recheck` runs every 10 minutes and uses the refresh token of up to 100 links that were not checked for 50 minutes:
+Werbot keeps the IdP refresh token of each linked user (sealed with `WERBOT_SECRET_KEY`). The job `idp.recheck` runs every 10 minutes and takes up to 100 links with a refresh token that were not checked for 50 minutes. It marks each link as checked before it asks the IdP, so a link is asked by one caller at a time:
 
 - The IdP accepts the token: the check passes and a new refresh token, when issued, replaces the old one.
 - The IdP answers `invalid_grant` (user disabled or deleted, session ended, token revoked): Werbot ends all cookie sessions of the user, revokes the CLI sessions with the reason `idp`, drops the token and writes the audit event `idp.recheck.revoke`.
-- The IdP is unreachable (network error, timeout, 5xx): nothing changes. Sessions stay.
+- The IdP is unreachable (network error, timeout, 5xx): nothing changes. Sessions stay, and the link is asked again 50 minutes later. An unreachable IdP does not hold back the links of other IdPs.
 
 The same check runs when a CLI session renews its token ([cli.md](cli.md)) and refreshes only links not checked for 50 minutes. If the IdP refuses, the renewal fails and the sessions of the user are revoked. If the IdP is unreachable, the renewal goes on.
 
 Worst case: a user disabled at the IdP keeps access for up to about 1 hour (the 50 minutes of the check interval plus the 10 minutes between job runs), or until the next CLI renewal that finds the link stale. Short-lived CLI certificates (1 hour) end the rest. To cut access at once, lock the user ([jit.md](jit.md#locks)).
+
+### No refresh token, no check
+
+Werbot checks only links that have a refresh token. When the IdP sends none at login (Google without `access_type=offline`, an IdP without `offline_access` in the scopes or without the refresh token grant), the user is never rechecked. Disabling such a user at the IdP blocks new SSO logins only. The running sessions stay until they expire: a cookie session 7 days after its last use (each use extends it), a CLI session after `cli_session_ttl` idle or `cli_session_max` (default 30 days). To end access at once, lock the user ([jit.md](jit.md#locks)) or remove the member.
 
 ### The IdP must keep the refresh token alive
 
@@ -108,9 +112,9 @@ The check needs a refresh token that still works about an hour after the login. 
 - Request the scope `offline_access` (add it to the scopes of the IdP in Werbot, and allow it for the client at the IdP), or
 - set the IdP session idle time to at least 1 hour.
 
-Keycloak: the default SSO Session Idle is 30 minutes, shorter than the 50-minute check interval. Without `offline_access` the refresh token expires and sessions are revoked about an hour after login. Add `offline_access` to the scopes, or raise **SSO Session Idle** of the realm to 1 hour or more.
+Keycloak: the default SSO Session Idle is 30 minutes, shorter than the 50-minute check interval. Without `offline_access` the refresh token expires and sessions are revoked about an hour after login. Use the scopes `openid email profile offline_access` with the client and role setup of the [table above](#set-up-an-idp) (tested), or raise **SSO Session Idle** of the realm to 1 hour or more.
 
-Some IdPs issue a refresh token that can be used once. Then a check by the job and a CLI renewal can race, and the loser may see `invalid_grant`. Prefer IdPs with reusable refresh tokens, or accept re-login.
+Some IdPs issue a refresh token that can be used once. The job and a CLI renewal never ask with the same link at the same time, so they do not race for it.
 
 ## IdP unavailable
 

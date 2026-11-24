@@ -17,9 +17,9 @@ Users manage their factors on **Profile, MFA** (`/profile/mfa`).
 | --- | --- |
 | TOTP | A six-digit code from an authenticator app (30-second steps, one step of clock skew allowed). A code works once: the same code is refused a second time. |
 | Passkey (WebAuthn) | A passkey or a security key in the browser. Several may be enrolled. |
-| Recovery codes | Ten one-time codes, shown once when generated. They work for the web login only. They do not step up admin actions and never meet an SSH rule. |
+| Recovery codes | Ten one-time codes, shown once when generated. They work for the web login only. They do not step up admin actions and never meet an SSH rule. A login finished with a recovery code counts as a fresh factor for 5 minutes, so the user can replace a lost factor right after it ([Lost factors](#lost-factors)). |
 
-Adding, removing or regenerating factors needs a [fresh second factor](#fresh-mfa-for-admin-actions) once the user has one. The first enrollment does not.
+Adding, removing or regenerating factors needs a [fresh second factor](#fresh-mfa-for-admin-actions) once the user has one. The first enrollment does not. Confirming a new TOTP or passkey in the browser counts as a fresh factor for 5 minutes; in the CLI it does not.
 
 A password login of a user with a factor answers with a `mfa_token` instead of a session. The token lives 5 minutes and finishes with a passkey, a TOTP code or a recovery code. The IdP login of [SSO](sso.md) asks no Werbot factor.
 
@@ -41,7 +41,7 @@ The organization setting `require_mfa` (**Settings**, owners and admins) takes:
 | `admins` | Owners and admins. |
 | `all` | Every member. |
 
-A user who must have a factor and has none can reach only the sign-in, MFA, system and profile calls until they enroll one: other API calls answer `mfa enrollment required` (403), and the web UI leads to `/profile/mfa`. The first enrollment does not set a fresh MFA, so the first admin action right after it asks a step-up (a TOTP code from the same app must be a new one, which takes up to 30 seconds).
+A user who must have a factor and has none can reach only the sign-in, MFA, system and profile calls until they enroll one: other API calls answer `mfa enrollment required` (403), and the web UI leads to `/profile/mfa`. The enrollment itself counts as a fresh factor, so admin actions in the next 5 minutes ask no step-up.
 
 ## MFA rules
 
@@ -82,7 +82,8 @@ Another answer asks again. The wait ends after 60 seconds with `Permission denie
 - The gateway reads the challenge status every 2 seconds, and a confirmation also wakes it at once through the server stream ([failure-modes.md](failure-modes.md)).
 - The page `<WERBOT_WEB_URL>/mfa/<id>` shows the resource, the gateway, the client IP and the code; only the user of the challenge can confirm it. Another user's challenge answers `not found`.
 - With a menu login (`ssh user@gateway`) and with a shell the question is asked on the terminal. An exec command without a terminal prints the notice and waits for the browser confirmation only; it cannot read a TOTP code.
-- The factor counts for every channel of the same connection until it closes (a second shell, an exec or SFTP over one connection).
+- A factor passed at login (the second step before the session opens) counts for every channel of the same connection until it closes (a second shell, an exec or SFTP over one connection).
+- A factor asked on a channel (a menu login, or a rule that applied only after the login) is not kept for the connection. It is recorded for the key, so another channel passes while the rule's `max_age` holds and asks again after it.
 - A port forward (`ssh -L`) cannot ask: without a factor passed at login it is refused with `MFA required, reconnect to confirm`.
 - Agents are never asked ([agents.md](agents.md)).
 
@@ -131,7 +132,13 @@ Step-up in the web UI uses a passkey or a TOTP code. A recovery code does not st
 Open <url> (code <code>) or enter TOTP: 
 ```
 
-and the user confirms with a passkey in the browser and presses Enter, or types a TOTP code. A user with only TOTP gets `Enter TOTP: `. The page must be on the host of the server of the profile, or the CLI refuses it. The step-up is recorded for the CLI session and counts for 5 minutes. An agent token cannot step up.
+and the user confirms with a passkey in the browser and presses Enter, or types a TOTP code. A user with only TOTP gets `Enter TOTP: `. The CLI opens the page only when it is on the host of the server of the profile. With a separate web UI ([web.md](web.md)) and a profile on the API host, a user with TOTP gets `Enter TOTP: ` and the page is not opened; a user with only passkeys cannot step up from that profile (log in with `--server` set to the web UI address). The step-up is recorded for the CLI session and counts for 5 minutes. An agent token cannot step up.
+
+## Lost factors
+
+- A user who lost a passkey or the TOTP app signs in with a recovery code. That login counts as a fresh factor for 5 minutes: remove the lost factor and enroll a new one on **Profile, MFA** within that time. Then generate new recovery codes.
+- A lost passkey that someone else may hold can be refused at once with a [lock](#locking-a-passkey) by an owner or admin.
+- A user who lost every factor and every recovery code cannot sign in with a password. Werbot has no admin reset of factors, in the UI or the API. An operator with database access can delete the user's rows from `totp_secret`, `webauthn_credential` and `mfa_recovery_code`; this is not audited. Removing the member and inviting again does not help: factors belong to the user, not to the membership.
 
 ## Locking a passkey
 
