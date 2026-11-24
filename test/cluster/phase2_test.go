@@ -212,10 +212,14 @@ func TestScenario19AgentActionLimitAcrossReplicas(t *testing.T) {
 	st.Healthy(t)
 	ctx := context.Background()
 	home := cliHome(t, st.Edge, st.Edge.BaseURL)
-	_, err := st.Edge.Agents.CreateAgent(ctx, connect.NewRequest(&werbotv1.CreateAgentRequest{
+	created, err := st.Edge.Agents.CreateAgent(ctx, connect.NewRequest(&werbotv1.CreateAgentRequest{
 		Name: "limits", Limits: &werbotv1.AgentLimits{MaxActions: maxActions, MaxConcurrent: 32},
 	}))
 	require.NoError(t, err)
+	t.Cleanup(func() { // after the run ends: a rerun on a kept stand creates the agent again
+		_, err := st.Edge.Agents.DeleteAgent(context.Background(), connect.NewRequest(&werbotv1.DeleteAgentRequest{Id: created.Msg.GetAgent().GetId()}))
+		assert.NoError(t, err, "delete agent limits")
+	})
 	a := st.StartAgent(t, home, "limits", "cluster")
 
 	res := make([]execResult, 2*maxActions)

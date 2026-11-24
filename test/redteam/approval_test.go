@@ -108,8 +108,9 @@ func TestRedteamApprovalGrantedRunsCommand(t *testing.T) {
 	assert.Equal(t, 1, audits(t, "access.request.approve", id))
 }
 
-// TestRedteamApprovalDeniedByHuman: bob's denial refuses the command with the
-// rule's message and no session runs it.
+// TestRedteamApprovalDeniedByHuman: a decision notice while the approval is
+// still pending releases nothing; bob's denial refuses the command with the
+// rule's message, is audited, and no session runs it.
 func TestRedteamApprovalDeniedByHuman(t *testing.T) {
 	begin(t)
 	agentApprovals(t)
@@ -118,12 +119,16 @@ func TestRedteamApprovalDeniedByHuman(t *testing.T) {
 
 	done := execAsync(a)
 	id := pendingApproval(t, a.RunID)
+	notifyDecided(t, id)
+	requireWaiting(t, done, decisionWait)
+	assert.Zero(t, commandSessions(t, &a.RunID), "a pending approval runs nothing")
 	_, err := bob.AccessRequests.Deny(t.Context(), connect.NewRequest(&werbotv1.DenyRequest{Id: id.String(), Comment: "no"}))
 	require.NoError(t, err)
 	out := await(t, done, decisionWait)
 	assert.Equal(t, "denied", out.Status)
 	assert.Equal(t, "Command denied: "+approvalMessage, out.Message)
 	assert.Equal(t, "denied", approval(t, id).Status)
+	assert.Equal(t, 1, audits(t, "access.request.deny", id))
 	assert.Zero(t, commandSessions(t, &a.RunID), "a denied command opens no session")
 }
 
@@ -145,10 +150,7 @@ func TestRedteamApprovalDecidedAfterTimeout(t *testing.T) {
 
 	_, err = bob.AccessRequests.Approve(t.Context(), connect.NewRequest(&werbotv1.ApproveRequest{Id: id.String()}))
 	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err), "an expired approval cannot be decided")
-	got := approval(t, id)
-	require.NotNil(t, got.Instance)
-	_, err = st.DB.Exec(t.Context(), "SELECT pg_notify('werbot_approval_decided', $1)", got.Instance.String()+":"+id.String())
-	require.NoError(t, err)
+	notifyDecided(t, id)
 	ran := func() bool { // Never runs it in its own goroutine: no require inside
 		var n int
 		err := st.DB.QueryRow(context.Background(), "SELECT count(*) FROM session WHERE agent_run_id = $1 AND command = $2",
@@ -156,7 +158,7 @@ func TestRedteamApprovalDecidedAfterTimeout(t *testing.T) {
 		return err != nil || n > 0
 	}
 	assert.Never(t, ran, decisionWait, pollEvery, "a decision after the deadline runs nothing")
-	got = approval(t, id)
+	got := approval(t, id)
 	assert.Equal(t, "expired", got.Status)
 	assert.False(t, got.Decided, "the refused decision left no decider")
 	assert.Zero(t, audits(t, "access.request.approve", id), "the refused decision is not audited as an approval")

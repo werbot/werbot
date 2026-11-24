@@ -93,6 +93,16 @@ func await(t *testing.T, done <-chan execResult, within time.Duration) mcpserver
 	}
 }
 
+// requireWaiting requires the execAsync call done to still wait after d.
+func requireWaiting(t *testing.T, done <-chan execResult, d time.Duration) {
+	t.Helper()
+	select {
+	case r := <-done:
+		t.Fatalf("the call stopped waiting: status %q, error %v", r.out.Status, r.err)
+	case <-time.After(d):
+	}
+}
+
 // pendingApproval waits approvalWait for the pending command approval of run.
 func pendingApproval(t *testing.T, run uuid.UUID) uuid.UUID {
 	t.Helper()
@@ -132,6 +142,16 @@ func waitExpired(t *testing.T, id uuid.UUID) {
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		assert.Equal(c, "expired", approval(c, id).Status)
 	}, expireWithin, time.Second, "approval %s expired", id)
+}
+
+// notifyDecided sends the decision notice of approval id to the gateway
+// instance that waits for it, as a decision does (ruling C7).
+func notifyDecided(t *testing.T, id uuid.UUID) {
+	t.Helper()
+	got := approval(t, id)
+	require.NotNil(t, got.Instance, "approval %s has a gateway instance", id)
+	_, err := st.DB.Exec(t.Context(), "SELECT pg_notify('werbot_approval_decided', $1)", got.Instance.String()+":"+id.String())
+	require.NoError(t, err)
 }
 
 // commandSessions counts the sessions that ran writeCommand: of run, or of people when run is nil.

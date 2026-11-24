@@ -47,8 +47,6 @@ type API struct {
 	Members          werbotv1connect.MemberServiceClient
 	Settings         werbotv1connect.SettingsServiceClient
 	OAuthConsent     werbotv1connect.OAuthConsentServiceClient
-	Audit            werbotv1connect.AuditServiceClient
-	CLISessions      werbotv1connect.CLISessionServiceClient
 }
 
 // NewAPI builds clients for baseURL; a non-empty cookie is sent as the session.
@@ -87,8 +85,6 @@ func (*Stand) NewAPI(baseURL, cookie string) API {
 		Members:          werbotv1connect.NewMemberServiceClient(hc, baseURL),
 		Settings:         werbotv1connect.NewSettingsServiceClient(hc, baseURL),
 		OAuthConsent:     werbotv1connect.NewOAuthConsentServiceClient(hc, baseURL),
-		Audit:            werbotv1connect.NewAuditServiceClient(hc, baseURL),
-		CLISessions:      werbotv1connect.NewCLISessionServiceClient(hc, baseURL),
 	}
 }
 

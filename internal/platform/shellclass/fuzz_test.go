@@ -75,8 +75,8 @@ func fuzzRules(t *testing.T) []PathRule {
 }
 
 // FuzzAnalyze: no panic; classes as Classify at cwd "~"; at most MaxPaths
-// sorted, distinct, normalized refs; unresolved implies opaque; WithHome and
-// both path evaluations agree and do not panic.
+// sorted, distinct, normalized refs, before and after WithHome; unresolved
+// implies opaque; both path evaluations agree on both sets of refs.
 func FuzzAnalyze(f *testing.F) {
 	addAnalyzeSeeds(f)
 	c := mustNew(f)
@@ -88,28 +88,37 @@ func FuzzAnalyze(f *testing.F) {
 		if cwd == "~" && !slices.Equal(a.Classes, c.Classify(cmd, fuzzHost)) {
 			t.Fatalf("Analyze(%q).Classes = %v, Classify = %v", cmd, a.Classes, c.Classify(cmd, fuzzHost))
 		}
-		checkPaths(t, cmd, a)
-		_ = a.WithHome("/home/u")
-		rules := fuzzRules(t)
-		h1, o1 := CompilePaths(rules).Eval(a.Paths, a.Unresolved)
-		h2, o2 := EvalPaths(rules, a.Paths, a.Unresolved)
-		if !slices.Equal(h1, h2) || !slices.Equal(o1, o2) {
-			t.Fatalf("Eval(%q) = %v %v, EvalPaths = %v %v", cmd, h1, o1, h2, o2)
-		}
+		checkPaths(t, "Analyze", cmd, a)
+		home := a.WithHome("/home/u")
+		checkPaths(t, "WithHome", cmd, home)
+		checkEval(t, cmd, a)
+		checkEval(t, cmd, home)
 	})
 }
 
-func checkPaths(t *testing.T, cmd string, a Analysis) {
+// checkEval: the compiled and the one-shot path evaluation of a agree.
+func checkEval(t *testing.T, cmd string, a Analysis) {
+	t.Helper()
+	rules := fuzzRules(t)
+	h1, o1 := CompilePaths(rules).Eval(a.Paths, a.Unresolved)
+	h2, o2 := EvalPaths(rules, a.Paths, a.Unresolved)
+	if !slices.Equal(h1, h2) || !slices.Equal(o1, o2) {
+		t.Fatalf("Eval(%q) = %v %v, EvalPaths = %v %v", cmd, h1, o1, h2, o2)
+	}
+}
+
+// checkPaths checks the refs of a, the result of step (Analyze or WithHome) for cmd.
+func checkPaths(t *testing.T, step, cmd string, a Analysis) {
 	t.Helper()
 	if len(a.Paths) > MaxPaths {
-		t.Fatalf("Analyze(%q) has %d paths", cmd, len(a.Paths))
+		t.Fatalf("%s(%q) has %d paths", step, cmd, len(a.Paths))
 	}
 	if a.Unresolved && !slices.Contains(a.Classes, Opaque) {
-		t.Fatalf("Analyze(%q) is unresolved without opaque: %v", cmd, a.Classes)
+		t.Fatalf("%s(%q) is unresolved without opaque: %v", step, cmd, a.Classes)
 	}
 	for i, r := range a.Paths {
 		if !normalized(r.Path) || (i > 0 && comparePathRefs(a.Paths[i-1], r) >= 0) {
-			t.Fatalf("Analyze(%q).Paths = %v, want sorted distinct normalized refs", cmd, a.Paths)
+			t.Fatalf("%s(%q).Paths = %v, want sorted distinct normalized refs", step, cmd, a.Paths)
 		}
 	}
 }

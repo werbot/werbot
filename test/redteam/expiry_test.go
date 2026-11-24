@@ -100,8 +100,8 @@ func requireNoAccess(t *testing.T) {
 }
 
 // TestRedteamGrantExpiryBreaksSession (12 §12 item 3): a shell opened under a
-// grant ends with access_revoked within grantEndMax of the grant's expiry,
-// and the next connection is refused.
+// grant ends with access_revoked within grantEndMax of the grant's expiry, the
+// end is audited, and the next connection is refused.
 func TestRedteamGrantExpiryBreaksSession(t *testing.T) {
 	begin(t)
 	requireNoAccess(t)
@@ -115,6 +115,10 @@ func TestRedteamGrantExpiryBreaksSession(t *testing.T) {
 	lag := endLag(t, id, grant)
 	t.Logf("grant expiry broke session in %s", lag)
 	assert.LessOrEqual(t, lag, grantEndMax)
+	var ends int
+	require.NoError(t, st.DB.QueryRow(context.Background(), `SELECT count(*) FROM audit_event WHERE action = 'session.end'
+		AND data->>'session_id' = $1 AND data->>'reason' = 'access_revoked'`, id.String()).Scan(&ends))
+	assert.Equal(t, 1, ends, "session.end audit of the broken session")
 	requireNoAccess(t)
 }
 

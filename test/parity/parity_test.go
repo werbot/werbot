@@ -13,7 +13,7 @@ import (
 var (
 	testName = regexp.MustCompile(`Test[A-Za-z0-9_]+`)
 	tsFile   = regexp.MustCompile(`web/[\w./-]+\.(?:spec|redteam)\.ts`)
-	docLink  = regexp.MustCompile(`\]\(\.\./([\w-]+\.md)(?:#([\w-]+))?\)`)
+	mdLink   = regexp.MustCompile(`\]\(([^)\s]+)\)`)
 	nonSlug  = regexp.MustCompile(`[^a-z0-9 _-]`)
 )
 
@@ -76,11 +76,12 @@ func testSources(t *testing.T, r *os.Root) string {
 	return sb.String()
 }
 
+// slugs returns the heading anchors of the repository file page.
 func slugs(t *testing.T, r *os.Root, page string) map[string]bool {
 	t.Helper()
-	b, err := fs.ReadFile(r.FS(), path.Join("docs", page))
+	b, err := fs.ReadFile(r.FS(), page)
 	if err != nil {
-		t.Fatalf("linked page docs/%s: %v", page, err)
+		t.Fatalf("linked page %s: %v", page, err)
 	}
 	out := map[string]bool{}
 	for _, line := range strings.Split(string(b), "\n") {
@@ -140,9 +141,39 @@ func TestParityTableReferencesRealTests(t *testing.T) {
 			t.Errorf("file %s not found", f)
 		}
 	}
-	for _, m := range docLink.FindAllStringSubmatch(doc, -1) {
-		if m[2] != "" && !slugs(t, r, m[1])[m[2]] {
-			t.Errorf("anchor %s#%s not found", m[1], m[2])
+}
+
+// TestMaintainerDocsLinksResolve: every relative link of the maintainer pages
+// names a repository file and, with an anchor, one of its headings.
+func TestMaintainerDocsLinksResolve(t *testing.T) {
+	r := repo(t)
+	for _, page := range []string{"docs/maintainers/parity.md", "docs/maintainers/beta-release.md"} {
+		b, err := fs.ReadFile(r.FS(), page)
+		if err != nil {
+			t.Fatal(err)
 		}
+		for _, m := range mdLink.FindAllStringSubmatch(string(b), -1) {
+			checkLink(t, r, page, m[1])
+		}
+	}
+}
+
+// checkLink checks link of page; links with a scheme are not checked.
+func checkLink(t *testing.T, r *os.Root, page, link string) {
+	t.Helper()
+	target, anchor, _ := strings.Cut(link, "#")
+	if strings.Contains(target, "://") {
+		return
+	}
+	file := page
+	if target != "" {
+		file = path.Join(path.Dir(page), target)
+	}
+	if _, err := r.Stat(file); err != nil {
+		t.Errorf("%s: link %s: %v", page, link, err)
+		return
+	}
+	if anchor != "" && !slugs(t, r, file)[anchor] {
+		t.Errorf("%s: link %s: anchor not found", page, link)
 	}
 }
