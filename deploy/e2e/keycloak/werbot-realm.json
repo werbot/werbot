@@ -1,0 +1,97 @@
+{
+  "realm": "werbot",
+  "enabled": true,
+  "groups": [
+    {
+      "name": "ops",
+      "path": "/ops"
+    },
+    {
+      "name": "admins",
+      "path": "/admins"
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "werbot",
+      "name": "Werbot",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "werbot-test-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "*"
+      ],
+      "defaultClientScopes": [
+        "basic",
+        "profile",
+        "email",
+        "roles",
+        "web-origins",
+        "acr"
+      ],
+      "optionalClientScopes": [
+        "offline_access"
+      ],
+      "protocolMappers": [
+        {
+          "name": "groups",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "config": {
+            "claim.name": "groups",
+            "full.path": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "sso-alice",
+      "email": "sso-alice@example.com",
+      "emailVerified": true,
+      "firstName": "Alice",
+      "lastName": "SSO",
+      "enabled": true,
+      "realmRoles": [
+        "default-roles-werbot"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "sso-alice-password",
+          "temporary": false
+        }
+      ],
+      "groups": [
+        "/ops",
+        "/admins"
+      ]
+    },
+    {
+      "username": "sso-bob",
+      "email": "sso-bob@example.com",
+      "emailVerified": true,
+      "firstName": "Bob",
+      "lastName": "SSO",
+      "enabled": true,
+      "realmRoles": [
+        "default-roles-werbot"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "sso-bob-password",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}

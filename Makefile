@@ -1,4 +1,4 @@
-.PHONY: build test lint dev-db proto sqlc web e2e e2e-network e2e-cluster load release-check release-snapshot
+.PHONY: build test lint dev-db proto sqlc web e2e e2e-network e2e-sso e2e-cluster load release-check release-snapshot
 
 VERSION ?= dev
 GORELEASER ?= go run github.com/goreleaser/goreleaser/v2@v2.20.0
@@ -38,6 +38,15 @@ e2e-network:
 	CGO_ENABLED=0 GOOS=linux GOARCH=$$(docker version -f '{{.Server.Arch}}') go build -o deploy/e2e/.bin/echotarget ./internal/e2e/echotarget
 	$(E2E_NETWORK) up -d --build --wait postgres server target router echo dns || { $(E2E_NETWORK) down -v; exit 1; }
 	deploy/e2e/run.sh
+
+KEYCLOAK = docker compose -f deploy/e2e/keycloak.yaml
+
+# SSO tests against the Keycloak stand (needs make dev-db); the stand is
+# always removed at the end
+e2e-sso:
+	$(KEYCLOAK) up -d --wait || { $(KEYCLOAK) down -v; exit 1; }
+	go test -race -count=1 -run Keycloak -v ./internal/app/ -args -keycloak=http://127.0.0.1:18180; rc=$$?; \
+	$(KEYCLOAK) down -v; exit $$rc
 
 CLUSTER_PROJECT ?= werbot-cluster
 CLUSTER = docker compose -p $(CLUSTER_PROJECT) -f test/cluster/docker-compose.yaml

@@ -1,0 +1,24 @@
+# Keycloak test IdP for the SSO e2e tests (make e2e-sso, CI job e2e-sso):
+# realm "werbot" from keycloak/werbot-realm.json on 127.0.0.1:18180. Test only:
+# start-dev, admin/admin, a client with any redirect URI.
+name: werbot-keycloak
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.0@sha256:27b3230fbabb8c9ff3c66c864cf09dcd8a41aca82e5100679d109ef0eeb05741
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HEALTH_ENABLED: "true"
+    ports:
+      - "127.0.0.1:18180:8080"
+    volumes:
+      - ./keycloak/werbot-realm.json:/opt/keycloak/data/import/werbot-realm.json:ro
+    # the image has no curl: bash asks the management port for readiness
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '\"status\": \"UP\"' <&3"]
+      interval: 2s
+      timeout: 5s
+      retries: 90
+      start_period: 10s
