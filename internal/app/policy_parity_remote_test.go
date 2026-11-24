@@ -22,7 +22,8 @@ import (
 // TestBindingPermitsRemoteForward decides ssh.remote_forward on the server
 // (policy.PolicySet) and on the gateway (CompilePolicy of the snapshot the
 // tunnel builds) from one database: a binding permits it to a person, an
-// agent's pass denies it, a custom forbid on the action denies it; both
+// agent's pass denies it, even under a custom permit of everything for
+// agents (baseline forbid), a custom forbid on the action denies it; both
 // sides agree on Allow, Reasons, Obligations and Message.
 func TestBindingPermitsRemoteForward(t *testing.T) {
 	s := newStage4(t, slog.New(slog.DiscardHandler))
@@ -36,6 +37,7 @@ func TestBindingPermitsRemoteForward(t *testing.T) {
 	p.srv = srv.ID
 	binding := s.bind(ctx, t, &werbotv1.CreateBindingRequest{SubjectType: "team", SubjectId: team.String(), ResourceId: p.srv.String()})
 	custom := policy.SnapshotCustomPolicy{ID: uuid.New(), Cedar: `forbid (principal, action == Werbot::Action::"ssh.remote_forward", resource);`}
+	agentAll := policy.SnapshotCustomPolicy{ID: uuid.New(), Cedar: `permit (principal is Werbot::Agent, action, resource);`}
 	cases := []struct {
 		name   string
 		agent  bool
@@ -45,6 +47,8 @@ func TestBindingPermitsRemoteForward(t *testing.T) {
 	}{
 		{name: "binding", allow: true, reason: "binding:" + binding},
 		{name: "agent", agent: true},
+		{name: "agent custom permit", agent: true, reason: "agent:baseline:remote_forward",
+			edit: func(s *policy.Snapshot) { s.CustomPolicies = append(s.CustomPolicies, agentAll) }},
 		{name: "custom forbid", reason: "custom:" + custom.ID.String() + ":0",
 			edit: func(s *policy.Snapshot) { s.CustomPolicies = append(s.CustomPolicies, custom) }},
 	}

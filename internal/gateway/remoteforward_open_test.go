@@ -153,20 +153,35 @@ forbid (principal, action == Werbot::Action::"rfwd.remote_forward", resource) wh
 	require.ErrorIs(t, err, ErrDenied)
 }
 
-// An agent never gets a remote forward: its baseline permits only exec.
+// An agent never gets a remote forward: its baseline permits only exec, and
+// its remote_forward forbid holds under a custom permit of everything for
+// agents.
 func TestRemoteForwardAgentDenied(t *testing.T) {
-	e, _ := newAgentEnv(t)
-	e.m["rfwd"] = uuid.New()
-	s := testSnapshot(t, e.m, pipePolicies+agentBaseline(nil, "execy"), nil, res{"rfwd", "fwd", "rfwd"})
-	s.Resources[0].ConfigJson = []byte("true")
-	withAgents(t, s, e.m, testAgent{"a1", "u1", "active"})
-	p, err := CompilePolicy(s)
-	require.NoError(t, err)
-	e.f.setPolicy(p)
-	_, err = e.p.Open(t.Context(), e.fwdReq("fwd", "localhost", 8080))
-	require.ErrorIs(t, err, ErrDenied)
-	e.f.with(func(f *fakeControl) { require.Zero(t, f.startCalls) })
+	for name, policies := range map[string]string{
+		"baseline":      agentBaseline(nil, "execy"),
+		"custom permit": agentBaseline(nil, "execy") + agentRemoteForwardForbid + `permit (principal is Werbot::Agent, action, resource);`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			e, _ := newAgentEnv(t)
+			e.m["rfwd"] = uuid.New()
+			s := testSnapshot(t, e.m, pipePolicies+policies, nil, res{"rfwd", "fwd", "rfwd"})
+			s.Resources[0].ConfigJson = []byte("true")
+			withAgents(t, s, e.m, testAgent{"a1", "u1", "active"})
+			p, err := CompilePolicy(s)
+			require.NoError(t, err)
+			e.f.setPolicy(p)
+			_, err = e.p.Open(t.Context(), e.fwdReq("fwd", "localhost", 8080))
+			require.ErrorIs(t, err, ErrDenied)
+			e.f.with(func(f *fakeControl) { require.Zero(t, f.startCalls) })
+		})
+	}
 }
+
+// agentRemoteForwardForbid is the server's agent:baseline:remote_forward
+// policy for the rfwd type.
+const agentRemoteForwardForbid = `@id("agent:baseline:remote_forward")
+forbid (principal is Werbot::Agent, action in [Werbot::Action::"rfwd.remote_forward"], resource);
+`
 
 // The sweeper keeps a remote forward on a new snapshot that still permits it
 // and ends it once the flag is off or a forbid covers the action.

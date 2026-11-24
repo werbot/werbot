@@ -112,6 +112,7 @@ Every agent gets built-in policies (`agent:baseline:<name>` in the decision reas
 | `dangerous` | `destructive`, `secrets` and `egress` are denied, even under an `allow` rule. |
 | `terminal` | No shell, no PTY and no command console. |
 | `sftp` | No file transfer. |
+| `remote_forward` | No remote port forwarding (`ssh -R`), even under a custom `permit`. |
 | `frozen` | A frozen agent is denied everything. |
 | `blocked_runs` | A paused or locked run is denied everything. |
 

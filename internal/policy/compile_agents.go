@@ -26,12 +26,13 @@ func agentEntities(entities cedar.EntityMap, agents []SnapshotAgent) {
 
 // writeBaseline emits the built-in agent policies of types: connect for an
 // exec, commands of exactly the read class, never a dangerous class, a
-// terminal, an sftp action or a frozen agent, and no blocked run. Every
+// terminal, an sftp or remote_forward action or a frozen agent, and no
+// blocked run. Every
 // policy but blocked_runs is written even without agents, since an agent
 // may act before the snapshot lists it.
 func writeBaseline(b *strings.Builder, types []connector.Type, blockedRuns []uuid.UUID) {
 	ref := func(a string) string { return fmt.Sprintf("Werbot::Action::%q", a) }
-	var connect, exec, sftp []string
+	var connect, exec, sftp, rf []string
 	for _, t := range types {
 		if a, ok := t.ExecAction(); ok {
 			exec = append(exec, ref(a))
@@ -42,12 +43,16 @@ func writeBaseline(b *strings.Builder, types []connector.Type, blockedRuns []uui
 		if a := t.Name + ".sftp"; slices.Contains(t.Actions, a) {
 			sftp = append(sftp, ref(a))
 		}
+		if a := t.Name + ".remote_forward"; slices.Contains(t.Actions, a) {
+			rf = append(rf, ref(a))
+		}
 	}
 	baseline(b, "connect", "permit", "principal is Werbot::Agent, action in ["+strings.Join(connect, ", ")+"], resource", `context.kind == "exec"`, len(connect) > 0)
 	baseline(b, "read", "permit", "principal is Werbot::Agent, action in ["+strings.Join(exec, ", ")+"], resource", `["read"].containsAll(context.classes)`, len(exec) > 0)
 	baseline(b, "dangerous", "forbid", anyAgent, `context.classes.containsAny(["destructive", "secrets", "egress"])`, true)
 	baseline(b, "terminal", "forbid", anyAgent, `context.kind == "terminal"`, true)
 	baseline(b, "sftp", "forbid", "principal is Werbot::Agent, action in ["+strings.Join(sftp, ", ")+"], resource", "", len(sftp) > 0)
+	baseline(b, "remote_forward", "forbid", "principal is Werbot::Agent, action in ["+strings.Join(rf, ", ")+"], resource", "", len(rf) > 0)
 	baseline(b, "frozen", "forbid", anyAgent, `principal.status == "frozen"`, true)
 	baseline(b, "blocked_runs", "forbid", "principal, action, resource",
 		"["+strings.Join(cedarStrings(rpcid.Strings(blockedRuns)), ", ")+"].contains(context.run_id)", len(blockedRuns) > 0)

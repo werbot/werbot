@@ -10,13 +10,14 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 
 	"golang.org/x/crypto/ssh"
+
+	"github.com/werbot/werbot/internal/platform/wsurl"
 )
 
 const (
@@ -146,8 +147,7 @@ func LoadConfig(args []string, getenv func(string) string) (Config, error) {
 // port 2222 when it has none.
 func (c *Config) parseGateway() error {
 	if strings.Contains(c.Gateway, "://") {
-		u, err := url.Parse(c.Gateway)
-		if err != nil || u.Host == "" || u.User != nil || (u.Scheme != "ws" && u.Scheme != "wss") {
+		if !wsurl.Valid(c.Gateway) {
 			return errors.New("gateway: want ws://host[:port][/path] or wss://host[:port][/path]")
 		}
 		c.WSURL, c.Gateway = c.Gateway, ""

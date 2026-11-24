@@ -45,7 +45,7 @@ func TestUpdateGatewayWSURL(t *testing.T) {
 	assert.Empty(t, list().GetWsUrl(), "empty resets")
 
 	for _, bad := range []string{"http://x", "wss://", "wss://u:p@h", "wss://h/?a=1", "wss://h/?", "wss://h/#f", "wss://h/a%20b", "wss://h/a b",
-		"gw.example.com", "wss://h/" + strings.Repeat("a", 2048)} {
+		"gw.example.com", "WSS://h/v1/ssh", "Ws://h", "wss://h:70000", "wss://h:0", "wss://h/" + strings.Repeat("a", 2048)} {
 		err := update(e.admin, "", bad)
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), "%q", bad)
 	}

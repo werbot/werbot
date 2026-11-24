@@ -45,7 +45,8 @@ func TestAgentCustomPermitTCP(t *testing.T) {
 
 // Input class "custom permit of everything for agents": it never lifts a
 // baseline forbid: destructive, secrets and egress commands, a terminal, a
-// frozen agent and a blocked run stay denied with the baseline reason.
+// remote forward, a frozen agent and a blocked run stay denied with the
+// baseline reason.
 func TestAgentBaselineForbidNotLifted(t *testing.T) {
 	wide := []string{`permit (principal, action, resource);`, `permit (principal is Werbot::Agent, action, resource);`}
 	s, _ := agentTCPSnap(wide...)
@@ -61,6 +62,11 @@ func TestAgentBaselineForbidNotLifted(t *testing.T) {
 	d := authorize(t, s, terminal)
 	assert.False(t, d.Allow)
 	assert.Contains(t, d.Reasons, "agent:baseline:terminal")
+	remote := agentReq()
+	remote.Action, remote.Kind, remote.Port, remote.Classes = "ssh.remote_forward", "stream", 8080, nil
+	d = authorize(t, s, remote)
+	assert.False(t, d.Allow)
+	assert.Contains(t, d.Reasons, "agent:baseline:remote_forward")
 
 	frozen, _ := agentTCPSnap(wide...)
 	frozen.Agents[0].Status = "frozen"

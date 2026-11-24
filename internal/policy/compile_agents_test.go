@@ -114,7 +114,7 @@ func TestCompileAgentGolden(t *testing.T) {
 
 func TestCompileEmitsBaselineWithoutAgents(t *testing.T) {
 	text := compileText(t, snap())
-	for _, id := range []string{"connect", "read", "dangerous", "terminal", "sftp", "frozen"} {
+	for _, id := range []string{"connect", "read", "dangerous", "terminal", "sftp", "remote_forward", "frozen"} {
 		assert.Contains(t, text, `@id("agent:baseline:`+id+`")`, id)
 	}
 	assert.NotContains(t, text, "agent:baseline:blocked_runs")
@@ -156,8 +156,8 @@ func TestCompiledAgentPoliciesTypecheck(t *testing.T) {
 	list, err := cedar.NewPolicyListFromBytes("werbot.cedar", []byte(text))
 	require.NoError(t, err)
 	// two bindings, two command forbids, two agent permits, a path rule,
-	// four locks, blocklist, seven baseline policies
-	require.Len(t, list, 19)
+	// four locks, blocklist, eight baseline policies
+	require.Len(t, list, 20)
 	for i, p := range list {
 		assert.NoError(t, v.Policy(fmt.Sprint(i), (*xast.Policy)(p.AST())), i)
 	}

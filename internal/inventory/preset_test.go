@@ -7,6 +7,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -16,6 +17,7 @@ import (
 	_ "github.com/werbot/werbot/internal/connector/tcp" // base types of presets
 	_ "github.com/werbot/werbot/internal/connector/udp"
 	"github.com/werbot/werbot/internal/inventory"
+	"github.com/werbot/werbot/internal/platform/apperr"
 	"github.com/werbot/werbot/internal/platform/db/dbtest"
 	"github.com/werbot/werbot/internal/platform/principal"
 )
@@ -234,4 +236,12 @@ func TestDeletePresetInUse(t *testing.T) {
 	require.NoError(t, err)
 	_, err = e.ph.DeleteResourcePreset(e.ctx, del)
 	require.NoError(t, err)
+}
+
+// A preset deleted between its check and the insert of the resource
+// (resource_preset_fk) is an invalid argument, not a missing resource.
+func TestPresetForeignKeyIsInvalidArgument(t *testing.T) {
+	err := inventory.NotFound(&pgconn.PgError{Code: "23503", ConstraintName: "resource_preset_fk"})
+	assert.ErrorIs(t, err, apperr.ErrInvalidArgument)
+	assert.ErrorContains(t, err, "preset not found")
 }

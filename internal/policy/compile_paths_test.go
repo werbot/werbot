@@ -104,7 +104,7 @@ func TestCompiledPathPoliciesTypecheck(t *testing.T) {
 	require.NoError(t, err)
 	list, err := cedar.NewPolicyListFromBytes("werbot.cedar", []byte(text))
 	require.NoError(t, err)
-	require.Len(t, list, 14) // binding, three path rules, three terminal policies, blocklist, six agent baseline policies
+	require.Len(t, list, 15) // binding, three path rules, three terminal policies, blocklist, seven agent baseline policies
 	for i, p := range list {
 		assert.NoError(t, v.Policy(fmt.Sprint(i), (*xast.Policy)(p.AST())), i)
 	}

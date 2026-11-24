@@ -54,6 +54,9 @@ when { context.kind == "terminal" };
 @id("agent:baseline:sftp")
 forbid (principal is Werbot::Agent, action in [Werbot::Action::"sftpy.sftp"], resource);
 
+@id("agent:baseline:remote_forward")
+forbid (principal is Werbot::Agent, action in [Werbot::Action::"ssh.remote_forward"], resource);
+
 @id("agent:baseline:frozen")
 forbid (principal is Werbot::Agent, action, resource)
 when { principal.status == "frozen" };

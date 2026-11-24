@@ -40,9 +40,9 @@ func TestResolveProxyTarget(t *testing.T) {
 	}
 
 	noProfile := func(context.Context) ([]*werbotv1.AccessibleResource, error) { return nil, clientauth.ErrNotLoggedIn }
-	for _, u := range []string{ws, "ws://127.0.0.1:8088"} {
+	for _, u := range []string{ws, "ws://127.0.0.1:8088", "WSS://gw.example.com/v1/ssh", "Ws://127.0.0.1:8088"} {
 		got, err := resolveProxyTarget(t.Context(), u, noProfile)
-		require.NoError(t, err, "a URL needs no profile")
+		require.NoError(t, err, "a URL of any scheme case needs no profile: %s", u)
 		assert.Equal(t, connectcli.Endpoint{WSURL: u}, got)
 	}
 	_, err := resolveProxyTarget(t.Context(), "pg", noProfile)

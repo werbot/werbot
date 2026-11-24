@@ -111,7 +111,9 @@ Host pg.werbot.example.com
 
 - a resource name (the `HostName` above, `%h` in the `ProxyCommand`): the pool of that resource from the profile, SSH address first, then the WebSocket URL;
 - `ws://…` or `wss://…`: that WebSocket URL; no profile is needed;
-- anything else: `host[:port]` of the SSH port (port `2222` by default).
+- anything else: `host[:port]` of the SSH port (port `2222` by default). It is looked up as a resource name first, so this form needs a profile too.
+
+On Windows keep `werbot` in a directory whose path has no `%`: OpenSSH for Windows may run the `ProxyCommand` through `cmd.exe`, which expands `%NAME%`.
 
 `HostKeyAlias` is the name the gateway host key has in the profile's `known_hosts`. `werbot ssh` adds the same `ProxyCommand` (with the absolute path of `werbot`) and `HostKeyAlias` for such a pool, and `werbot agent run` writes `ProxyCommand <werbot path> proxy <ws_url>` into the run's `ssh_config`, so the agent never uses your profile. The MFA prompt of `werbot ssh` keeps working through the proxy.
 

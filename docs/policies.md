@@ -183,6 +183,7 @@ AI agents ([agents.md](agents.md)) go through the same rules, in two passes: the
 | `agent:baseline:dangerous` | `destructive`, `secrets` and `egress` are denied to agents, even under an `allow` rule. |
 | `agent:baseline:terminal` | Agents get no shell, PTY or console. |
 | `agent:baseline:sftp` | Agents get no file transfer. |
+| `agent:baseline:remote_forward` | Agents get no remote port forwarding (`ssh -R`), even under a custom `permit`. |
 | `agent:baseline:frozen` | The agent is frozen. |
 | `agent:baseline:blocked_runs` | The run is paused, ended or locked. |
 

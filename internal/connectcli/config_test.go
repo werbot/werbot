@@ -87,7 +87,7 @@ func TestLoadConfigGatewayURL(t *testing.T) {
 	c, err = load("ws:2222") // a host named ws
 	require.NoError(t, err)
 	assert.Equal(t, "ws:2222", c.Gateway)
-	for _, u := range []string{"ws://", "http://gw", "wss:///v1/ssh", "ftp://gw", "wss://user:secret@gw"} {
+	for _, u := range []string{"ws://", "http://gw", "wss:///v1/ssh", "ftp://gw", "wss://user:secret@gw", "wss://gw/?a=1", "wss://gw/#f", "wss://gw/a%20b", "wss://gw:70000", "wss://gw:0"} {
 		_, err := load(u)
 		assert.ErrorContains(t, err, "gateway: want ws://", u)
 		assert.NotContains(t, err.Error(), "secret", "the URL is not echoed")

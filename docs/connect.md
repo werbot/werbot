@@ -12,7 +12,7 @@ psql -h 127.0.0.1 -p 5432
 
 It opens a local port per resource on `127.0.0.1` and prints `<resource> → 127.0.0.1:<port> (tcp|udp)`.
 
-Variables and flags `WERBOT_CONNECT_GATEWAY` (`--gateway`, required, `host[:port]`, port defaults to `2222`, or a `ws://`/`wss://` URL: see [Through HTTPS only](#websocket)) and `WERBOT_CONNECT_LOGIN` (`--login`, required): see [configuration.md](configuration.md#client-werbot-connect-werbot-login).
+Variables and flags `WERBOT_CONNECT_GATEWAY` (`--gateway`, required, `host[:port]`, port defaults to `2222`, or a `ws://`/`wss://` URL: see [WebSocket](#websocket)) and `WERBOT_CONNECT_LOGIN` (`--login`, required): see [configuration.md](configuration.md#client-werbot-connect-werbot-login).
 
 Other flags: `-i <key>` (otherwise the ssh-agent at `SSH_AUTH_SOCK` when it answers, otherwise `~/.ssh/id_ed25519`; an encrypted key file fails with `key <path> is encrypted; load it into ssh-agent`; the agent is never forwarded) and `--known-hosts <path>` (default `~/.ssh/known_hosts`).
 
@@ -39,7 +39,7 @@ After [`werbot login`](cli.md) the login, the gateway, the key and `known_hosts`
 
 <a id="websocket"></a>
 
-## Through HTTPS only
+## WebSocket
 
 When the SSH port of the gateway is blocked (a corporate network, a balancer that passes only HTTPS), the client reaches the gateway's [WebSocket input](gateway.md#websocket-input) instead. SSH runs inside the WebSocket unchanged, with the same login, MFA, host key check and policy.
 
@@ -47,7 +47,7 @@ When the SSH port of the gateway is blocked (a corporate network, a balancer tha
 werbot connect --gateway wss://gw.example.com/v1/ssh --login alice pg
 ```
 
-- `--gateway wss://host[:port][/path]` (or `ws://`) uses only the WebSocket; the path defaults to `/v1/ssh`, the port to `443` (`wss`) or `80` (`ws`).
+- `--gateway wss://host[:port][/path]` (or `ws://`) uses only the WebSocket; the path defaults to `/v1/ssh` only when the URL has none (`wss://gw.example.com/` keeps `/`), the port to `443` (`wss`) or `80` (`ws`).
 - With `werbot login` the client takes the pool's `ssh_address` and `ws_url` from the profile. It dials the SSH address first (5 s), then the WebSocket URL (10 s). A pool with only a `ws_url` goes straight to the WebSocket. When both fail: `gateway unreachable: ssh <addr>: <err>; websocket <url>: <err>`. The choice is made again on every reconnect.
 - `HTTPS_PROXY` (and `HTTP_PROXY`, `NO_PROXY`) apply to the WebSocket: `wss://` goes through the proxy's `CONNECT`. A `ws://` URL through a plain HTTP proxy fails; use `wss://`.
 - The gateway host key is checked inside SSH as described in [Host keys](#host-keys): under the SSH address when the pool has one, else under the URL's `host:port` (`[gw.example.com]:443` in `known_hosts`). A balancer that terminates TLS cannot stand in for the gateway.

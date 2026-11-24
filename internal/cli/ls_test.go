@@ -17,6 +17,11 @@ func TestLs(t *testing.T) {
 	assert.Regexp(t, `NAME\s+TYPE\s+KINDS\s+GATEWAY\s+ACCESS\ndb\s+ssh\s+terminal,exec,stream\s+gw\.example\.com:2222\s+yes\n`, h.out.String())
 
 	h.out.Reset()
+	h.resources = append(h.resources, &werbotv1.AccessibleResource{Name: "pg", Type: "tcp", Kinds: []string{"stream"}, WsUrl: "wss://gw.example.com/v1/ssh"})
+	require.NoError(t, h.run("ls"))
+	assert.Regexp(t, `\npg\s+tcp\s+stream\s+wss://gw\.example\.com/v1/ssh\s+request\n`, h.out.String(), "a WebSocket-only pool shows its URL")
+
+	h.out.Reset()
 	h.resources = []*werbotv1.AccessibleResource{}
 	require.NoError(t, h.run("ls"))
 	assert.Equal(t, "No accessible resources\n", h.out.String())

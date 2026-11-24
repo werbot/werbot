@@ -1,8 +1,10 @@
 package wsfront
 
 import (
+	"bufio"
 	"io"
 	"net"
+	"net/http"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -127,4 +129,26 @@ func TestPeerGoneClosesConn(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("the connection of a silent peer is still open")
 	}
+}
+
+// A keep-alive connection that got an answer other than the upgrade is
+// closed after idleTimeout without a next request.
+func TestIdleKeepAliveClosed(t *testing.T) {
+	old := idleTimeout
+	idleTimeout = 100 * time.Millisecond
+	t.Cleanup(func() { idleTimeout = old })
+	c, err := net.Dial("tcp", listen(t).Addr().String())
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = c.Close() })
+	_, err = io.WriteString(c, "GET / HTTP/1.1\r\nHost: gw\r\n\r\n")
+	require.NoError(t, err)
+	br := bufio.NewReader(c)
+	resp, err := http.ReadResponse(br, nil)
+	require.NoError(t, err)
+	_, _ = io.Copy(io.Discard, resp.Body)
+	_ = resp.Body.Close()
+	require.Equal(t, http.StatusNotFound, resp.StatusCode)
+	require.NoError(t, c.SetReadDeadline(time.Now().Add(2*time.Second)))
+	_, err = br.ReadByte()
+	require.ErrorIs(t, err, io.EOF, "the server closes the idle connection")
 }

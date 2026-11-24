@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"slices"
@@ -57,7 +58,7 @@ func lsCommand(env Env) *cobra.Command {
 				if r.GetAllowed() {
 					access = "yes"
 				}
-				_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", r.GetName(), r.GetType(), strings.Join(r.GetKinds(), ","), r.GetSshAddress(), access)
+				_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", r.GetName(), r.GetType(), strings.Join(r.GetKinds(), ","), cmp.Or(r.GetSshAddress(), r.GetWsUrl()), access)
 			}
 			return w.Flush()
 		},

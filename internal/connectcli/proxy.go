@@ -27,13 +27,20 @@ func Proxy(ctx context.Context, ep Endpoint, in io.Reader, out io.Writer) error 
 	var ours atomic.Bool // the connection was closed here, not by the gateway
 	stop := context.AfterFunc(ctx, func() { ours.Store(true); _ = conn.Close() })
 	defer stop()
+	done := make(chan struct{})
+	defer close(done)
 	go func() {
 		_, _ = io.Copy(conn, in)
 		if cw, ok := conn.(interface{ CloseWrite() error }); ok {
 			_ = cw.CloseWrite()
 			return
 		}
-		time.AfterFunc(proxyDrain, func() { ours.Store(true); _ = conn.Close() })
+		select {
+		case <-time.After(proxyDrain):
+			ours.Store(true)
+			_ = conn.Close()
+		case <-done:
+		}
 	}()
 	_, err = io.Copy(out, conn)
 	if ours.Load() {

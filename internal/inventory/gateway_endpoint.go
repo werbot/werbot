@@ -4,10 +4,8 @@ import (
 	"context"
 	"errors"
 	"net"
-	"net/url"
 	"strconv"
 	"strings"
-	"unicode"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -16,6 +14,7 @@ import (
 	"github.com/werbot/werbot/internal/inventory/dbq"
 	"github.com/werbot/werbot/internal/platform/dbx"
 	"github.com/werbot/werbot/internal/platform/principal"
+	"github.com/werbot/werbot/internal/platform/wsurl"
 )
 
 // hostKeyLine opens the sealed private host key and returns its public half
@@ -68,20 +67,10 @@ func validAddress(addr string) error {
 	return nil
 }
 
-// badURLRune is a character ws_url never holds: query, fragment, escape, space or control.
-func badURLRune(r rune) bool {
-	return r == '?' || r == '#' || r == '%' || unicode.IsSpace(r) || unicode.IsControl(r)
-}
-
-// validateWSURL accepts "" (reset) or a ws:// or wss:// URL with a host and no
-// userinfo, query, fragment, '%' or whitespace, up to 2048 bytes.
+// validateWSURL accepts "" (reset) or a wsurl.Valid URL whose scheme is
+// lower-case, as clients match it.
 func validateWSURL(s string) error {
-	if s == "" {
-		return nil
-	}
-	u, err := url.Parse(s)
-	if err != nil || len(s) > 2048 || (u.Scheme != "ws" && u.Scheme != "wss") || u.Hostname() == "" || u.User != nil ||
-		strings.ContainsFunc(s, badURLRune) {
+	if s != "" && (!wsurl.Valid(s) || !strings.HasPrefix(s, "ws://") && !strings.HasPrefix(s, "wss://")) {
 		return invalid("ws_url must be a ws:// or wss:// URL with a host, without userinfo, query or fragment")
 	}
 	return nil

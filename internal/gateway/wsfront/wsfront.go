@@ -26,6 +26,10 @@ const Path = "/v1/ssh"
 // not answer within the same interval is closed. Tests shorten it.
 var pingInterval = 30 * time.Second
 
+// idleTimeout closes a keep-alive connection that sends no next request.
+// Tests shorten it.
+var idleTimeout = 60 * time.Second
+
 // Listener listens on addr and returns the connections upgraded on GET Path as
 // a net.Listener. With tlsCert and tlsKey (PEM files, both or neither) it
 // serves TLS 1.2 or later. X-Forwarded-For counts only from a peer inside
@@ -46,7 +50,7 @@ func Listener(addr, tlsCert, tlsKey string, trusted []netip.Prefix) (net.Listene
 	l := &listener{tcp: tcp, conns: make(chan net.Conn), done: make(chan struct{}), ping: pingInterval}
 	mux := http.NewServeMux()
 	mux.Handle("GET "+Path, clientip.Middleware(trusted)(http.HandlerFunc(l.upgrade)))
-	l.srv = &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second}
+	l.srv = &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second, IdleTimeout: idleTimeout}
 	ln := tcp
 	if tc != nil {
 		ln = tls.NewListener(tcp, tc) // HTTP/1.1 only: no h2 in NextProtos

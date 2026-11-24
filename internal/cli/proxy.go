@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"net/url"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -31,11 +32,12 @@ func newProxyCommand(env Env) *cobra.Command {
 	}
 }
 
-// resolveProxyTarget is the gateway of arg: a ws:// or wss:// URL as it is
-// (list, which needs the profile, is not called), the pool of the accessible
-// resource called arg, else arg as host[:port] (port 2222 by default).
+// resolveProxyTarget is the gateway of arg: a ws:// or wss:// URL, in any
+// scheme case, as it is (list, which needs the profile, is not called), the
+// pool of the accessible resource called arg, else arg as host[:port] (port
+// 2222 by default).
 func resolveProxyTarget(ctx context.Context, arg string, list func(context.Context) ([]*werbotv1.AccessibleResource, error)) (connectcli.Endpoint, error) {
-	if strings.HasPrefix(arg, "ws://") || strings.HasPrefix(arg, "wss://") {
+	if u, err := url.Parse(arg); err == nil && (u.Scheme == "ws" || u.Scheme == "wss") {
 		return connectcli.Endpoint{WSURL: arg}, nil
 	}
 	rs, err := list(ctx)
