@@ -2,8 +2,16 @@ import { expect, test, type Page } from '@playwright/test';
 import en from '../messages/en.json' with { type: 'json' };
 import { loginAsOwner } from './support/auth';
 import { openNew } from './support/resources';
+import { removeNamed } from './support/rpc';
+import { shot } from './support/screens';
 
 const presetRow = (page: Page) => page.getByRole('row', { name: /PostgreSQL/ });
+
+// a failed step leaves the resource and the preset behind: remove them, the resource first
+test.afterEach(async ({ page }) => {
+	await removeNamed(page, 'ResourceService', 'Resource', 'resources', 'pg');
+	await removeNamed(page, 'ResourcePresetService', 'ResourcePreset', 'presets', 'postgres');
+});
 
 test('preset becomes a type, its resource shows the launch hint, a used preset stays', async ({ page }) => {
 	await loginAsOwner(page);
@@ -17,11 +25,11 @@ test('preset becomes a type, its resource shows the launch hint, a used preset s
 	await drawer.getByLabel(en.presets_display_name_label).fill('PostgreSQL');
 	await drawer.getByLabel(en.presets_ports_label).fill('5432');
 	await drawer.getByLabel(en.presets_launch_hint_label).fill('psql -h {host} -p {port}');
-	await page.waitForTimeout(600); // drawer slide-in, for the screenshot only
-	await page.screenshot({ path: '../.superpowers/sdd/stage15-wave1/screens/t12-preset-drawer.png' });
+	await expect(drawer).toBeInViewport();
+	await shot(page, 'sdd/stage15-wave1/screens/t12-preset-drawer.png');
 	await drawer.getByRole('button', { name: en.resources_save, exact: true }).click();
 	await expect(presetRow(page)).toBeVisible();
-	await page.screenshot({ path: '../.superpowers/sdd/stage15-wave1/screens/t12-presets-list.png' });
+	await shot(page, 'sdd/stage15-wave1/screens/t12-presets-list.png');
 
 	await openNew(page, 'PostgreSQL', en.resources_category_databases);
 	await expect(page.getByLabel(en.resources_ports, { exact: true })).toHaveValue('5432');
@@ -31,7 +39,7 @@ test('preset becomes a type, its resource shows the launch hint, a used preset s
 	await expect(page).toHaveURL(/\/resources\/[0-9a-f-]{36}$/);
 	await expect(page.getByText('Preset: PostgreSQL')).toBeVisible();
 	await expect(page.locator('code', { hasText: 'psql -h 127.0.0.1 -p 5432' })).toBeVisible();
-	await page.screenshot({ path: '../.superpowers/sdd/stage15-wave1/screens/t12-resource-preset.png' });
+	await shot(page, 'sdd/stage15-wave1/screens/t12-resource-preset.png');
 	const resourceUrl = page.url();
 
 	await page.goto('/resources/presets');

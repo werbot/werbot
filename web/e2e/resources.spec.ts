@@ -2,8 +2,13 @@ import { expect, test, type Page, type Route } from '@playwright/test';
 import en from '../messages/en.json' with { type: 'json' };
 import { OWNER, loginAsOwner } from './support/auth';
 import { openNew } from './support/resources';
+import { removeNamed } from './support/rpc';
+import { shot } from './support/screens';
 
 const secret = 'e2e-secret-value';
+
+// a failed step leaves the remote forwarding resource behind
+test.afterEach(({ page }) => removeNamed(page, 'ResourceService', 'Resource', 'resources', 'e2e-ssh-r'));
 
 test('resource, credential, rule, binding and access check', async ({ page }) => {
 	await loginAsOwner(page);
@@ -78,7 +83,7 @@ test('ssh remote forwarding toggle is saved', async ({ page }) => {
 	await expect(page).toHaveURL(/\/resources\/[0-9a-f-]{36}$/);
 	await page.reload();
 	await expect(toggle).toBeChecked();
-	await page.screenshot({ path: '../.superpowers/sdd/stage15-wave1/screens/t12-resource-remote-forwarding.png' });
+	await shot(page, 'sdd/stage15-wave1/screens/t12-resource-remote-forwarding.png');
 	await page.getByRole('button', { name: en.resources_delete }).click();
 	await page.getByRole('dialog').getByRole('button', { name: en.resources_delete }).click();
 	await expect(page).toHaveURL(/\/resources$/);

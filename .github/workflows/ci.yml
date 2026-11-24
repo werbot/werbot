@@ -52,11 +52,12 @@ jobs:
       - run: go test -count=1 -run '^TestExecDecisionP99$' -v ./internal/gateway/
       - run: go test -race -tags load -short ./test/load/
       - name: Binary size
-        run: go build -o werbot ./cmd/werbot && test "$(stat -c %s werbot)" -le "$MAX_BINARY_BYTES"
+        run: CGO_ENABLED=0 go build -o werbot ./cmd/werbot && test "$(stat -c %s werbot)" -le "$MAX_BINARY_BYTES"
       # The privilege drop of --vnet needs root: a test binary built as the
       # runner user runs under sudo (never go itself under sudo).
       - name: vnet privilege drop as root
         run: |
+          set -o pipefail
           go test -c -o "$RUNNER_TEMP/vnet.test" ./internal/vnet
           sudo "$RUNNER_TEMP/vnet.test" -test.run DropPrivileges -test.v | tee "$RUNNER_TEMP/vnet.out"
           grep -q -- '--- PASS: TestDropPrivilegesKeepsOwnership' "$RUNNER_TEMP/vnet.out"

@@ -6,9 +6,13 @@ import { expect, test, type Page } from '@playwright/test';
 import en from '../messages/en.json' with { type: 'json' };
 import { loginAsOwner } from './support/auth';
 import { openNew } from './support/resources';
+import { removeNamed } from './support/rpc';
+import { shot } from './support/screens';
 
 const procs: ChildProcess[] = [];
 test.afterAll(() => procs.forEach((p) => p.kill()));
+// a failed step leaves the WebSocket pool behind
+test.afterEach(({ page }) => removeNamed(page, 'GatewayService', 'Gateway', 'gateways', 'e2e-ws-pool'));
 
 async function createPool(page: Page, name: string) {
 	await page.getByRole('button', { name: en.gateways_create }).click();
@@ -156,7 +160,7 @@ test('pool WebSocket URL is saved and a bad scheme is refused', async ({ page })
 	await field.fill('wss://gw.example.com/v1/ssh');
 	await drawer.getByRole('button', { name: en.gateways_ssh_address_save }).click();
 	await expect(page.getByText(en.common_saved).first()).toBeVisible();
-	await page.screenshot({ path: '../.superpowers/sdd/stage15-wave1/screens/t12-pool-ws-url.png' });
+	await shot(page, 'sdd/stage15-wave1/screens/t12-pool-ws-url.png');
 	await page.reload();
 	await page.getByRole('button', { name: 'e2e-ws-pool', exact: true }).click();
 	await expect(page.getByRole('dialog', { name: 'e2e-ws-pool', exact: true }).getByLabel(en.gateways_ws_url_label)).toHaveValue('wss://gw.example.com/v1/ssh');
