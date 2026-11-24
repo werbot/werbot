@@ -1,5 +1,6 @@
 // Command echotarget is the TCP and UDP echo target of the network e2e
-// (deploy/e2e): it sends every TCP stream and UDP datagram back unchanged.
+// (deploy/e2e): it sends every TCP stream and UDP datagram on port 7 back
+// unchanged and answers every HTTP request on port 80 with "werbot-probe".
 // It is not part of the werbot binary.
 package main
 
@@ -7,6 +8,8 @@ import (
 	"io"
 	"log"
 	"net"
+	"net/http"
+	"time"
 )
 
 func main() {
@@ -19,6 +22,7 @@ func main() {
 		log.Fatalf("echotarget: %v", err)
 	}
 	go echoUDP(pc)
+	go serveHTTP()
 	for {
 		c, err := ln.Accept()
 		if err != nil {
@@ -40,4 +44,15 @@ func echoUDP(pc net.PacketConn) {
 		}
 		_, _ = pc.WriteTo(buf[:n], from)
 	}
+}
+
+func serveHTTP() {
+	srv := &http.Server{
+		Addr:              ":80",
+		ReadHeaderTimeout: 10 * time.Second,
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			_, _ = io.WriteString(w, "werbot-probe")
+		}),
+	}
+	log.Fatalf("echotarget: %v", srv.ListenAndServe())
 }

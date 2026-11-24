@@ -13,7 +13,7 @@ login_done() { ! kill -0 "$login_pid"; }
 openssh_target() { ssh -F "$TMP/ssh_config" -o BatchMode=yes -o ConnectTimeout=5 target.localhost hostname </dev/null; }
 
 echo "== werbot login --device"
-rpc GatewayService/UpdateGateway "$(jq -nc --arg id "$gw" '{id: $id, sshAddress: "localhost:2222"}')" >/dev/null
+rpc GatewayService/UpdateGateway "$(jq -nc --arg id "$gw" '{id: $id, sshAddress: "localhost:2222", wsUrl: ""}')" >/dev/null
 cli login --device --server "$API" >"$TMP/login.log" 2>&1 &
 login_pid=$!
 wait_for 30 grep -q 'enter code ' "$TMP/login.log" || { cat "$TMP/login.log" >&2; exit 1; }

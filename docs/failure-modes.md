@@ -32,6 +32,9 @@ What happens to running and new sessions and to data when a part of Werbot fails
 | `mfa_confirmed lost` (NOTIFY or stream message missed) | Live. | The confirmation is only a hint; the 2-second poll of the status finds it, so the login opens at most 2 s later. | No loss. |
 | `rate_limit with the database down` | Live. | A login or an MFA attempt that must be counted is refused (fail-closed), never allowed; `POST /oauth/token` answers 500. | No loss. |
 | `Client clock skew` | Not affected. | A certificate is valid from 1 minute before the server time. A larger skew fails renewal with `clock skew <d> between this computer and <server>; sync the system clock`. | No loss. |
+| `WebSocket input behind an L7 balancer` (idle timeout, dropped connection) | The gateway pings every connection every 30 s, so the idle timeout of the balancer (nginx 60 s, Cloudflare 100 s, AWS ALB 60 s) does not close it ([gateway.md](gateway.md#websocket-input)). A dropped connection ends its sessions; `werbot connect` reconnects with backoff and prints `connection to the gateway lost; reconnecting`. | Work through the balancer. | No loss. |
+| `werbot connect --vnet killed` (`kill -9`, crash) | Connections through the virtual addresses break. | Need a new `werbot connect --vnet`. Linux: the interface `werbot0`, its route and DNS settings go with the process. macOS: remove the resolver file yourself, `sudo rm /etc/resolver/<org>.werbot` ([vnet.md](vnet.md#cleanup)). | No loss. |
+| `Remote forward revoked` (`ssh -R`: access revoked, `remote_forwarding` turned off, idle timeout, maximum duration, Terminate) | The gateway stops listening on the target and closes the client's SSH connection, so `ssh -R` learns that the forward is gone. | A new `ssh -R` is checked against the current policy. | No loss. |
 
 ## End reasons
 

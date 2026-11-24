@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Network e2e: SSH, telnet, TCP and UDP through a gateway pool to targets the
 # server cannot reach, directly and through `werbot connect`; then the werbot
-# login, ls, ssh and ssh-config commands (cli.sh).
+# login, ls, ssh and ssh-config commands (cli.sh), WebSocket input, ssh -R (ws.sh), presets, --vnet (vnet.sh).
 # Expects postgres, server, target, router, echo and dns already up (see
-# `make e2e-network`). Requires docker, curl, jq, ssh, ssh-keygen, go, nc, dig.
+# `make e2e-network`). Requires docker, curl, jq, ssh, ssh-keygen, go, nc, dig, openssl.
 set -euo pipefail
 
 cd "$(dirname "$0")/../.."
@@ -241,5 +241,7 @@ wait_for $((created + 180 - SECONDS)) health_settled || {
 
 # shellcheck source=deploy/e2e/cli.sh
 source deploy/e2e/cli.sh
+source deploy/e2e/ws.sh
+source deploy/e2e/vnet.sh
 
 echo "PASS"
