@@ -5,6 +5,7 @@ import "buf/validate/validate.proto";
 import "google/protobuf/any.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
+import "werbot/connector/v1/ports.proto";
 
 service ResourceService {
   rpc ListResourceTypes(ListResourceTypesRequest) returns (ListResourceTypesResponse);
@@ -27,6 +28,14 @@ message ResourceType {
   string level = 5;
   string config_type_url = 6; // "type.googleapis.com/<FullName>"
   repeated string kinds = 7;  // connector.Type.Kinds in registration order: "terminal" | "exec" | "stream"
+  // Preset entries only (empty for builtin types): name and category are the
+  // preset's, the rest comes from its base type.
+  string preset_id = 8;
+  string base_type = 9;
+  string display_name = 10;
+  string icon = 11;
+  repeated werbot.connector.v1.PortRange default_ports = 12;
+  string launch_hint = 13;
 }
 
 message HostKey {
@@ -64,6 +73,7 @@ message Resource {
   google.protobuf.Duration idle_timeout = 13; // unset: the gateway default
   google.protobuf.Duration max_duration = 14; // unset: the gateway default
   ResourceHealth health = 15;
+  string preset_id = 16; // empty unless created from a preset
 }
 
 message ListResourceTypesRequest {}
@@ -125,6 +135,8 @@ message CreateResourceRequest {
     gte: {seconds: 60}
     lte: {seconds: 604800}
   }];
+  // A preset of the organization; type must then equal its base_type.
+  string preset_id = 9 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
 }
 message CreateResourceResponse {
   Resource resource = 1;

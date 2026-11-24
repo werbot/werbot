@@ -457,6 +457,7 @@ type Resource struct {
 	UpdatedAt   time.Time
 	IdleTimeout pgtype.Interval
 	MaxDuration pgtype.Interval
+	PresetID    *uuid.UUID
 }
 
 type ResourceCountryRule struct {
@@ -498,6 +499,20 @@ type ResourceNetworkRule struct {
 	ResourceID uuid.UUID
 	Cidr       netip.Prefix
 	Effect     string
+}
+
+type ResourcePreset struct {
+	ID           uuid.UUID
+	OrgID        uuid.UUID
+	Name         string
+	BaseType     string
+	DisplayName  string
+	Icon         string
+	DefaultPorts []byte
+	Category     string
+	LaunchHint   string
+	CreatedBy    *uuid.UUID
+	CreatedAt    time.Time
 }
 
 type ResourceSchedule struct {

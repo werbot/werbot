@@ -8,6 +8,7 @@ package werbotv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+	v1 "github.com/werbot/werbot/gen/werbot/connector/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	anypb "google.golang.org/protobuf/types/known/anypb"
@@ -86,8 +87,16 @@ type ResourceType struct {
 	Level           string                 `protobuf:"bytes,5,opt,name=level,proto3" json:"level,omitempty"`
 	ConfigTypeUrl   string                 `protobuf:"bytes,6,opt,name=config_type_url,json=configTypeUrl,proto3" json:"config_type_url,omitempty"` // "type.googleapis.com/<FullName>"
 	Kinds           []string               `protobuf:"bytes,7,rep,name=kinds,proto3" json:"kinds,omitempty"`                                        // connector.Type.Kinds in registration order: "terminal" | "exec" | "stream"
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Preset entries only (empty for builtin types): name and category are the
+	// preset's, the rest comes from its base type.
+	PresetId      string          `protobuf:"bytes,8,opt,name=preset_id,json=presetId,proto3" json:"preset_id,omitempty"`
+	BaseType      string          `protobuf:"bytes,9,opt,name=base_type,json=baseType,proto3" json:"base_type,omitempty"`
+	DisplayName   string          `protobuf:"bytes,10,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	Icon          string          `protobuf:"bytes,11,opt,name=icon,proto3" json:"icon,omitempty"`
+	DefaultPorts  []*v1.PortRange `protobuf:"bytes,12,rep,name=default_ports,json=defaultPorts,proto3" json:"default_ports,omitempty"`
+	LaunchHint    string          `protobuf:"bytes,13,opt,name=launch_hint,json=launchHint,proto3" json:"launch_hint,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ResourceType) Reset() {
@@ -167,6 +176,48 @@ func (x *ResourceType) GetKinds() []string {
 		return x.Kinds
 	}
 	return nil
+}
+
+func (x *ResourceType) GetPresetId() string {
+	if x != nil {
+		return x.PresetId
+	}
+	return ""
+}
+
+func (x *ResourceType) GetBaseType() string {
+	if x != nil {
+		return x.BaseType
+	}
+	return ""
+}
+
+func (x *ResourceType) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *ResourceType) GetIcon() string {
+	if x != nil {
+		return x.Icon
+	}
+	return ""
+}
+
+func (x *ResourceType) GetDefaultPorts() []*v1.PortRange {
+	if x != nil {
+		return x.DefaultPorts
+	}
+	return nil
+}
+
+func (x *ResourceType) GetLaunchHint() string {
+	if x != nil {
+		return x.LaunchHint
+	}
+	return ""
 }
 
 type HostKey struct {
@@ -307,6 +358,7 @@ type Resource struct {
 	IdleTimeout    *durationpb.Duration   `protobuf:"bytes,13,opt,name=idle_timeout,json=idleTimeout,proto3" json:"idle_timeout,omitempty"` // unset: the gateway default
 	MaxDuration    *durationpb.Duration   `protobuf:"bytes,14,opt,name=max_duration,json=maxDuration,proto3" json:"max_duration,omitempty"` // unset: the gateway default
 	Health         *ResourceHealth        `protobuf:"bytes,15,opt,name=health,proto3" json:"health,omitempty"`
+	PresetId       string                 `protobuf:"bytes,16,opt,name=preset_id,json=presetId,proto3" json:"preset_id,omitempty"` // empty unless created from a preset
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -444,6 +496,13 @@ func (x *Resource) GetHealth() *ResourceHealth {
 		return x.Health
 	}
 	return nil
+}
+
+func (x *Resource) GetPresetId() string {
+	if x != nil {
+		return x.PresetId
+	}
+	return ""
 }
 
 type ListResourceTypesRequest struct {
@@ -927,8 +986,10 @@ type CreateResourceRequest struct {
 	ConfigJson string                 `protobuf:"bytes,5,opt,name=config_json,json=configJson,proto3" json:"config_json,omitempty"`
 	Labels     map[string]string      `protobuf:"bytes,6,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Unset: the gateway default.
-	IdleTimeout   *durationpb.Duration `protobuf:"bytes,7,opt,name=idle_timeout,json=idleTimeout,proto3" json:"idle_timeout,omitempty"`
-	MaxDuration   *durationpb.Duration `protobuf:"bytes,8,opt,name=max_duration,json=maxDuration,proto3" json:"max_duration,omitempty"`
+	IdleTimeout *durationpb.Duration `protobuf:"bytes,7,opt,name=idle_timeout,json=idleTimeout,proto3" json:"idle_timeout,omitempty"`
+	MaxDuration *durationpb.Duration `protobuf:"bytes,8,opt,name=max_duration,json=maxDuration,proto3" json:"max_duration,omitempty"`
+	// A preset of the organization; type must then equal its base_type.
+	PresetId      string `protobuf:"bytes,9,opt,name=preset_id,json=presetId,proto3" json:"preset_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1017,6 +1078,13 @@ func (x *CreateResourceRequest) GetMaxDuration() *durationpb.Duration {
 		return x.MaxDuration
 	}
 	return nil
+}
+
+func (x *CreateResourceRequest) GetPresetId() string {
+	if x != nil {
+		return x.PresetId
+	}
+	return ""
 }
 
 type CreateResourceResponse struct {
@@ -1549,7 +1617,7 @@ var File_werbot_v1_resource_proto protoreflect.FileDescriptor
 
 const file_werbot_v1_resource_proto_rawDesc = "" +
 	"\n" +
-	"\x18werbot/v1/resource.proto\x12\twerbot.v1\x1a\x1bbuf/validate/validate.proto\x1a\x19google/protobuf/any.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd7\x01\n" +
+	"\x18werbot/v1/resource.proto\x12\twerbot.v1\x1a\x1bbuf/validate/validate.proto\x1a\x19google/protobuf/any.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1fwerbot/connector/v1/ports.proto\"\xae\x03\n" +
 	"\fResourceType\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1a\n" +
 	"\bcategory\x18\x02 \x01(\tR\bcategory\x12)\n" +
@@ -1557,7 +1625,15 @@ const file_werbot_v1_resource_proto_rawDesc = "" +
 	"\aactions\x18\x04 \x03(\tR\aactions\x12\x14\n" +
 	"\x05level\x18\x05 \x01(\tR\x05level\x12&\n" +
 	"\x0fconfig_type_url\x18\x06 \x01(\tR\rconfigTypeUrl\x12\x14\n" +
-	"\x05kinds\x18\a \x03(\tR\x05kinds\"\x8e\x01\n" +
+	"\x05kinds\x18\a \x03(\tR\x05kinds\x12\x1b\n" +
+	"\tpreset_id\x18\b \x01(\tR\bpresetId\x12\x1b\n" +
+	"\tbase_type\x18\t \x01(\tR\bbaseType\x12!\n" +
+	"\fdisplay_name\x18\n" +
+	" \x01(\tR\vdisplayName\x12\x12\n" +
+	"\x04icon\x18\v \x01(\tR\x04icon\x12C\n" +
+	"\rdefault_ports\x18\f \x03(\v2\x1e.werbot.connector.v1.PortRangeR\fdefaultPorts\x12\x1f\n" +
+	"\vlaunch_hint\x18\r \x01(\tR\n" +
+	"launchHint\"\x8e\x01\n" +
 	"\aHostKey\x12\x19\n" +
 	"\bkey_type\x18\x01 \x01(\tR\akeyType\x12-\n" +
 	"\x12fingerprint_sha256\x18\x02 \x01(\tR\x11fingerprintSha256\x129\n" +
@@ -1572,7 +1648,7 @@ const file_werbot_v1_resource_proto_rawDesc = "" +
 	"\x11STATE_UNSPECIFIED\x10\x00\x12\x11\n" +
 	"\rSTATE_UNKNOWN\x10\x01\x12\x11\n" +
 	"\rSTATE_HEALTHY\x10\x02\x12\x13\n" +
-	"\x0fSTATE_UNHEALTHY\x10\x03\"\xbd\x05\n" +
+	"\x0fSTATE_UNHEALTHY\x10\x03\"\xda\x05\n" +
 	"\bResource\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
@@ -1593,7 +1669,8 @@ const file_werbot_v1_resource_proto_rawDesc = "" +
 	"updated_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12<\n" +
 	"\fidle_timeout\x18\r \x01(\v2\x19.google.protobuf.DurationR\vidleTimeout\x12<\n" +
 	"\fmax_duration\x18\x0e \x01(\v2\x19.google.protobuf.DurationR\vmaxDuration\x121\n" +
-	"\x06health\x18\x0f \x01(\v2\x19.werbot.v1.ResourceHealthR\x06health\x1a9\n" +
+	"\x06health\x18\x0f \x01(\v2\x19.werbot.v1.ResourceHealthR\x06health\x12\x1b\n" +
+	"\tpreset_id\x18\x10 \x01(\tR\bpresetId\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x1a\n" +
@@ -1631,7 +1708,7 @@ const file_werbot_v1_resource_proto_rawDesc = "" +
 	"\x12GetResourceRequest\x12\x18\n" +
 	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"F\n" +
 	"\x13GetResourceResponse\x12/\n" +
-	"\bresource\x18\x01 \x01(\v2\x13.werbot.v1.ResourceR\bresource\"\xfc\x03\n" +
+	"\bresource\x18\x01 \x01(\v2\x13.werbot.v1.ResourceR\bresource\"\xa6\x04\n" +
 	"\x15CreateResourceRequest\x12\x1d\n" +
 	"\x04name\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18?R\x04name\x12\x1d\n" +
 	"\x04type\x18\x02 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18 R\x04type\x12*\n" +
@@ -1644,7 +1721,8 @@ const file_werbot_v1_resource_proto_rawDesc = "" +
 	"\fidle_timeout\x18\a \x01(\v2\x19.google.protobuf.DurationB\x10\xbaH\r\xaa\x01\n" +
 	"\"\x04\b\x80\xa3\x052\x02\b<R\vidleTimeout\x12N\n" +
 	"\fmax_duration\x18\b \x01(\v2\x19.google.protobuf.DurationB\x10\xbaH\r\xaa\x01\n" +
-	"\"\x04\b\x80\xf5$2\x02\b<R\vmaxDuration\x1a9\n" +
+	"\"\x04\b\x80\xf5$2\x02\b<R\vmaxDuration\x12(\n" +
+	"\tpreset_id\x18\t \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\bpresetId\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"I\n" +
@@ -1745,63 +1823,65 @@ var file_werbot_v1_resource_proto_goTypes = []any{
 	nil,                                     // 28: werbot.v1.ListResourcesRequest.LabelFilterEntry
 	nil,                                     // 29: werbot.v1.CreateResourceRequest.LabelsEntry
 	nil,                                     // 30: werbot.v1.UpdateResourceRequest.LabelsEntry
-	(*timestamppb.Timestamp)(nil),           // 31: google.protobuf.Timestamp
-	(*anypb.Any)(nil),                       // 32: google.protobuf.Any
-	(*durationpb.Duration)(nil),             // 33: google.protobuf.Duration
+	(*v1.PortRange)(nil),                    // 31: werbot.connector.v1.PortRange
+	(*timestamppb.Timestamp)(nil),           // 32: google.protobuf.Timestamp
+	(*anypb.Any)(nil),                       // 33: google.protobuf.Any
+	(*durationpb.Duration)(nil),             // 34: google.protobuf.Duration
 }
 var file_werbot_v1_resource_proto_depIdxs = []int32{
-	31, // 0: werbot.v1.HostKey.created_at:type_name -> google.protobuf.Timestamp
-	0,  // 1: werbot.v1.ResourceHealth.state:type_name -> werbot.v1.ResourceHealth.State
-	31, // 2: werbot.v1.ResourceHealth.checked_at:type_name -> google.protobuf.Timestamp
-	32, // 3: werbot.v1.Resource.config:type_name -> google.protobuf.Any
-	26, // 4: werbot.v1.Resource.labels:type_name -> werbot.v1.Resource.LabelsEntry
-	2,  // 5: werbot.v1.Resource.host_key:type_name -> werbot.v1.HostKey
-	31, // 6: werbot.v1.Resource.created_at:type_name -> google.protobuf.Timestamp
-	31, // 7: werbot.v1.Resource.updated_at:type_name -> google.protobuf.Timestamp
-	33, // 8: werbot.v1.Resource.idle_timeout:type_name -> google.protobuf.Duration
-	33, // 9: werbot.v1.Resource.max_duration:type_name -> google.protobuf.Duration
-	3,  // 10: werbot.v1.Resource.health:type_name -> werbot.v1.ResourceHealth
-	1,  // 11: werbot.v1.ListResourceTypesResponse.types:type_name -> werbot.v1.ResourceType
-	27, // 12: werbot.v1.AccessibleResource.labels:type_name -> werbot.v1.AccessibleResource.LabelsEntry
-	7,  // 13: werbot.v1.ListAccessibleResourcesResponse.resources:type_name -> werbot.v1.AccessibleResource
-	28, // 14: werbot.v1.ListResourcesRequest.label_filter:type_name -> werbot.v1.ListResourcesRequest.LabelFilterEntry
-	4,  // 15: werbot.v1.ListResourcesResponse.resources:type_name -> werbot.v1.Resource
-	4,  // 16: werbot.v1.GetResourceResponse.resource:type_name -> werbot.v1.Resource
-	32, // 17: werbot.v1.CreateResourceRequest.config:type_name -> google.protobuf.Any
-	29, // 18: werbot.v1.CreateResourceRequest.labels:type_name -> werbot.v1.CreateResourceRequest.LabelsEntry
-	33, // 19: werbot.v1.CreateResourceRequest.idle_timeout:type_name -> google.protobuf.Duration
-	33, // 20: werbot.v1.CreateResourceRequest.max_duration:type_name -> google.protobuf.Duration
-	4,  // 21: werbot.v1.CreateResourceResponse.resource:type_name -> werbot.v1.Resource
-	32, // 22: werbot.v1.UpdateResourceRequest.config:type_name -> google.protobuf.Any
-	30, // 23: werbot.v1.UpdateResourceRequest.labels:type_name -> werbot.v1.UpdateResourceRequest.LabelsEntry
-	33, // 24: werbot.v1.UpdateResourceRequest.idle_timeout:type_name -> google.protobuf.Duration
-	33, // 25: werbot.v1.UpdateResourceRequest.max_duration:type_name -> google.protobuf.Duration
-	4,  // 26: werbot.v1.UpdateResourceResponse.resource:type_name -> werbot.v1.Resource
-	5,  // 27: werbot.v1.ResourceService.ListResourceTypes:input_type -> werbot.v1.ListResourceTypesRequest
-	10, // 28: werbot.v1.ResourceService.ListResources:input_type -> werbot.v1.ListResourcesRequest
-	8,  // 29: werbot.v1.ResourceService.ListAccessibleResources:input_type -> werbot.v1.ListAccessibleResourcesRequest
-	12, // 30: werbot.v1.ResourceService.GetResource:input_type -> werbot.v1.GetResourceRequest
-	14, // 31: werbot.v1.ResourceService.CreateResource:input_type -> werbot.v1.CreateResourceRequest
-	16, // 32: werbot.v1.ResourceService.UpdateResource:input_type -> werbot.v1.UpdateResourceRequest
-	18, // 33: werbot.v1.ResourceService.DeleteResource:input_type -> werbot.v1.DeleteResourceRequest
-	20, // 34: werbot.v1.ResourceService.SetCredential:input_type -> werbot.v1.SetCredentialRequest
-	22, // 35: werbot.v1.ResourceService.ClearCredential:input_type -> werbot.v1.ClearCredentialRequest
-	24, // 36: werbot.v1.ResourceService.ClearHostKey:input_type -> werbot.v1.ClearHostKeyRequest
-	6,  // 37: werbot.v1.ResourceService.ListResourceTypes:output_type -> werbot.v1.ListResourceTypesResponse
-	11, // 38: werbot.v1.ResourceService.ListResources:output_type -> werbot.v1.ListResourcesResponse
-	9,  // 39: werbot.v1.ResourceService.ListAccessibleResources:output_type -> werbot.v1.ListAccessibleResourcesResponse
-	13, // 40: werbot.v1.ResourceService.GetResource:output_type -> werbot.v1.GetResourceResponse
-	15, // 41: werbot.v1.ResourceService.CreateResource:output_type -> werbot.v1.CreateResourceResponse
-	17, // 42: werbot.v1.ResourceService.UpdateResource:output_type -> werbot.v1.UpdateResourceResponse
-	19, // 43: werbot.v1.ResourceService.DeleteResource:output_type -> werbot.v1.DeleteResourceResponse
-	21, // 44: werbot.v1.ResourceService.SetCredential:output_type -> werbot.v1.SetCredentialResponse
-	23, // 45: werbot.v1.ResourceService.ClearCredential:output_type -> werbot.v1.ClearCredentialResponse
-	25, // 46: werbot.v1.ResourceService.ClearHostKey:output_type -> werbot.v1.ClearHostKeyResponse
-	37, // [37:47] is the sub-list for method output_type
-	27, // [27:37] is the sub-list for method input_type
-	27, // [27:27] is the sub-list for extension type_name
-	27, // [27:27] is the sub-list for extension extendee
-	0,  // [0:27] is the sub-list for field type_name
+	31, // 0: werbot.v1.ResourceType.default_ports:type_name -> werbot.connector.v1.PortRange
+	32, // 1: werbot.v1.HostKey.created_at:type_name -> google.protobuf.Timestamp
+	0,  // 2: werbot.v1.ResourceHealth.state:type_name -> werbot.v1.ResourceHealth.State
+	32, // 3: werbot.v1.ResourceHealth.checked_at:type_name -> google.protobuf.Timestamp
+	33, // 4: werbot.v1.Resource.config:type_name -> google.protobuf.Any
+	26, // 5: werbot.v1.Resource.labels:type_name -> werbot.v1.Resource.LabelsEntry
+	2,  // 6: werbot.v1.Resource.host_key:type_name -> werbot.v1.HostKey
+	32, // 7: werbot.v1.Resource.created_at:type_name -> google.protobuf.Timestamp
+	32, // 8: werbot.v1.Resource.updated_at:type_name -> google.protobuf.Timestamp
+	34, // 9: werbot.v1.Resource.idle_timeout:type_name -> google.protobuf.Duration
+	34, // 10: werbot.v1.Resource.max_duration:type_name -> google.protobuf.Duration
+	3,  // 11: werbot.v1.Resource.health:type_name -> werbot.v1.ResourceHealth
+	1,  // 12: werbot.v1.ListResourceTypesResponse.types:type_name -> werbot.v1.ResourceType
+	27, // 13: werbot.v1.AccessibleResource.labels:type_name -> werbot.v1.AccessibleResource.LabelsEntry
+	7,  // 14: werbot.v1.ListAccessibleResourcesResponse.resources:type_name -> werbot.v1.AccessibleResource
+	28, // 15: werbot.v1.ListResourcesRequest.label_filter:type_name -> werbot.v1.ListResourcesRequest.LabelFilterEntry
+	4,  // 16: werbot.v1.ListResourcesResponse.resources:type_name -> werbot.v1.Resource
+	4,  // 17: werbot.v1.GetResourceResponse.resource:type_name -> werbot.v1.Resource
+	33, // 18: werbot.v1.CreateResourceRequest.config:type_name -> google.protobuf.Any
+	29, // 19: werbot.v1.CreateResourceRequest.labels:type_name -> werbot.v1.CreateResourceRequest.LabelsEntry
+	34, // 20: werbot.v1.CreateResourceRequest.idle_timeout:type_name -> google.protobuf.Duration
+	34, // 21: werbot.v1.CreateResourceRequest.max_duration:type_name -> google.protobuf.Duration
+	4,  // 22: werbot.v1.CreateResourceResponse.resource:type_name -> werbot.v1.Resource
+	33, // 23: werbot.v1.UpdateResourceRequest.config:type_name -> google.protobuf.Any
+	30, // 24: werbot.v1.UpdateResourceRequest.labels:type_name -> werbot.v1.UpdateResourceRequest.LabelsEntry
+	34, // 25: werbot.v1.UpdateResourceRequest.idle_timeout:type_name -> google.protobuf.Duration
+	34, // 26: werbot.v1.UpdateResourceRequest.max_duration:type_name -> google.protobuf.Duration
+	4,  // 27: werbot.v1.UpdateResourceResponse.resource:type_name -> werbot.v1.Resource
+	5,  // 28: werbot.v1.ResourceService.ListResourceTypes:input_type -> werbot.v1.ListResourceTypesRequest
+	10, // 29: werbot.v1.ResourceService.ListResources:input_type -> werbot.v1.ListResourcesRequest
+	8,  // 30: werbot.v1.ResourceService.ListAccessibleResources:input_type -> werbot.v1.ListAccessibleResourcesRequest
+	12, // 31: werbot.v1.ResourceService.GetResource:input_type -> werbot.v1.GetResourceRequest
+	14, // 32: werbot.v1.ResourceService.CreateResource:input_type -> werbot.v1.CreateResourceRequest
+	16, // 33: werbot.v1.ResourceService.UpdateResource:input_type -> werbot.v1.UpdateResourceRequest
+	18, // 34: werbot.v1.ResourceService.DeleteResource:input_type -> werbot.v1.DeleteResourceRequest
+	20, // 35: werbot.v1.ResourceService.SetCredential:input_type -> werbot.v1.SetCredentialRequest
+	22, // 36: werbot.v1.ResourceService.ClearCredential:input_type -> werbot.v1.ClearCredentialRequest
+	24, // 37: werbot.v1.ResourceService.ClearHostKey:input_type -> werbot.v1.ClearHostKeyRequest
+	6,  // 38: werbot.v1.ResourceService.ListResourceTypes:output_type -> werbot.v1.ListResourceTypesResponse
+	11, // 39: werbot.v1.ResourceService.ListResources:output_type -> werbot.v1.ListResourcesResponse
+	9,  // 40: werbot.v1.ResourceService.ListAccessibleResources:output_type -> werbot.v1.ListAccessibleResourcesResponse
+	13, // 41: werbot.v1.ResourceService.GetResource:output_type -> werbot.v1.GetResourceResponse
+	15, // 42: werbot.v1.ResourceService.CreateResource:output_type -> werbot.v1.CreateResourceResponse
+	17, // 43: werbot.v1.ResourceService.UpdateResource:output_type -> werbot.v1.UpdateResourceResponse
+	19, // 44: werbot.v1.ResourceService.DeleteResource:output_type -> werbot.v1.DeleteResourceResponse
+	21, // 45: werbot.v1.ResourceService.SetCredential:output_type -> werbot.v1.SetCredentialResponse
+	23, // 46: werbot.v1.ResourceService.ClearCredential:output_type -> werbot.v1.ClearCredentialResponse
+	25, // 47: werbot.v1.ResourceService.ClearHostKey:output_type -> werbot.v1.ClearHostKeyResponse
+	38, // [38:48] is the sub-list for method output_type
+	28, // [28:38] is the sub-list for method input_type
+	28, // [28:28] is the sub-list for extension type_name
+	28, // [28:28] is the sub-list for extension extendee
+	0,  // [0:28] is the sub-list for field type_name
 }
 
 func init() { file_werbot_v1_resource_proto_init() }

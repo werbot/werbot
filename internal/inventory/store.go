@@ -23,6 +23,12 @@ type Store interface {
 	DeleteHostKey(ctx context.Context, arg dbq.DeleteHostKeyParams) (int64, error)
 	NotifyHostKeyChanged(ctx context.Context, orgID uuid.UUID) error
 
+	ListResourcePresets(ctx context.Context, orgID uuid.UUID) ([]dbq.ResourcePreset, error)
+	GetResourcePreset(ctx context.Context, arg dbq.GetResourcePresetParams) (dbq.ResourcePreset, error)
+	CreateResourcePreset(ctx context.Context, arg dbq.CreateResourcePresetParams) (dbq.ResourcePreset, error)
+	UpdateResourcePreset(ctx context.Context, arg dbq.UpdateResourcePresetParams) (dbq.ResourcePreset, error)
+	DeleteResourcePreset(ctx context.Context, arg dbq.DeleteResourcePresetParams) (int64, error)
+
 	OrgGatewayIDs(ctx context.Context, orgID uuid.UUID) ([]uuid.UUID, error)
 	LockOrgPools(ctx context.Context, orgID uuid.UUID) error
 	LockOrgPoolsShared(ctx context.Context, orgID uuid.UUID) error

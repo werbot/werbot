@@ -185,12 +185,13 @@ func oidcConfig(cfg config.Config) oidclogin.Config {
 	return oidclogin.Config{WebURL: cfg.WebURL, SecureCookies: cfg.Env != "development", HashKey: hash, BlockKey: block}
 }
 
-// mount registers ResourceService, AccessService, ApprovalPolicyService, AccessRequestService, LockService,
+// mount registers ResourceService, ResourcePresetService, AccessService, ApprovalPolicyService, AccessRequestService, LockService,
 // PolicyService, SessionService, AuditService, AgentService, IdentityProviderService, the recording
 // replay route and the OIDC login routes on mux.
 func (s *services) mount(mux *http.ServeMux, opts ...connect.HandlerOption) {
 	mux.Handle(werbotv1connect.NewResourceServiceHandler(inventory.NewHandler(s.Inventory, s.Credential, accessibleResources{s.Policy},
 		s.Gateways, s.Access), opts...))
+	mux.Handle(werbotv1connect.NewResourcePresetServiceHandler(inventory.NewPresetHandler(s.Inventory), opts...))
 	mux.Handle(werbotv1connect.NewAccessServiceHandler(access.NewHandler(s.Access), opts...))
 	mux.Handle(werbotv1connect.NewApprovalPolicyServiceHandler(access.NewApprovalPolicyHandler(s.Access), opts...))
 	mux.Handle(werbotv1connect.NewAccessRequestServiceHandler(access.NewAccessRequestHandler(s.Access), opts...))

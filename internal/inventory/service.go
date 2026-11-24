@@ -125,7 +125,7 @@ func (s *Service) Create(ctx context.Context, orgID uuid.UUID, in CreateInput) (
 			return err
 		}
 		id, err := st.CreateResource(ctx, dbq.CreateResourceParams{
-			OrgID: orgID, Name: in.Name, Type: t.Name, Category: string(t.Category), GatewayID: gw, Config: cfg,
+			OrgID: orgID, Name: in.Name, Type: t.Name, Category: string(t.Category), GatewayID: gw, Config: cfg, PresetID: in.PresetID,
 			IdleSecs: idleSecs, MaxSecs: maxSecs})
 		if err != nil {
 			return err
