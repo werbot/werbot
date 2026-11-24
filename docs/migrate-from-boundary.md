@@ -13,7 +13,7 @@ This page maps the objects of Boundary Community Edition to Werbot. Werbot has n
 | Role and grant | Binding and approval policy | A binding is standing access. An approval policy lets people ask for time-limited access ([jit.md](jit.md)). |
 | User, group and managed group | User, team, claims mapping | An IdP group maps to a team or a role with [claims mapping](sso.md#claims-mapping). |
 | Auth method (password, OIDC) | Password, OIDC, MFA | See [sso.md](sso.md) and [mfa.md](mfa.md). |
-| Credential store and credential | Resource credential | Werbot encrypts the credential with `WERBOT_SECRET_KEY`. The user never sees it. |
+| Credential store and credential | Resource credential | Werbot encrypts the credential with `WERBOT_SECRET_KEY` and never shows it in the UI or the API. If a target prints it, output masking hides it from agents by default ([policies.md](policies.md#output-masking)). |
 | Worker | Gateway | A gateway joins a pool with a join token and holds one outbound mTLS connection ([gateway.md](gateway.md)). |
 | `boundary authenticate` | `werbot login` | [cli.md](cli.md#log-in). |
 | `boundary connect` | `werbot connect` | `werbot connect --vnet` gives each resource a name ([vnet.md](vnet.md)). |

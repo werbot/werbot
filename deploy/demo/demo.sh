@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Demo: an AI agent works on "production" with no key and no password.
 # Usage: demo.sh [--ci]   (--ci does not wait for Enter between steps)
-# Needs docker compose, curl, jq, ssh and a werbot CLI (WERBOT_BIN, default "werbot").
+# Needs docker compose, curl, jq, openssl, ssh and a werbot CLI (WERBOT_BIN, default "werbot").
 # Set WERBOT_VERSION to a published image tag (default v0.2.0).
 # The stack is throwaway: every secret is generated here, `down -v` runs on exit.
 set -euo pipefail

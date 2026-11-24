@@ -185,7 +185,7 @@ Check: `curl -fsS 'https://registry.modelcontextprotocol.io/v0.1/servers?search=
 
 ## 10. Deploy the docs site
 
-The site is deployed by hand (owner decision): no workflow. Build it with links that point at the tag, then upload `site/dist` to https://docs.werbot.com with your hosting tool.
+The site is deployed by hand (owner decision): no workflow. Build it with links that point at the tag, then upload `site/dist` to https://docs.werbot.com with your hosting tool. The README on `main` links to https://docs.werbot.com from the merge (step 4) on, so do this step on the same day as the tag.
 
 ```sh
 git switch main && git pull --ff-only

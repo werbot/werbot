@@ -215,6 +215,9 @@ jobs:
         with:
           bun-version: 1.3.x
       - run: make dev-db
+      # the browser's system libraries need root: install them here, as the
+      # e2e job does; make redteam-sso then finds Chromium installed
+      - run: cd web && bun install --frozen-lockfile && bunx playwright install --with-deps chromium
       - run: make redteam
       - if: failure()
         uses: actions/upload-artifact@v7

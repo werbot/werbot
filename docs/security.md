@@ -112,4 +112,4 @@ Agents act for a sponsor with a run token (1 hour) and an SSH key held in memory
 - A step-up or an SSH MFA confirmation takes a one-time code: a TOTP code works once, and a recovery code does not step up ([mfa.md](mfa.md)).
 - The confirmation page shows the resource, the gateway, the client IP and the code. Compare them with the prompt in your terminal before you confirm.
 - Only the user of a challenge can confirm it.
-- For an agent run, a pending or recent approval is reused only for the same requester, resource and command, matched by the SHA-256 of the command text. Another command needs its own approval.
+- For an agent run, a pending or recent approval is reused only within the same run, for the same requester, resource and command, matched by the SHA-256 of the command text. Another command needs its own approval.
