@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"maps"
 	"net"
 	"net/netip"
 	"slices"
@@ -191,15 +192,7 @@ func (ch *udpChan) detach() (io.Closer, []*udpFlow) {
 		delete(ch.e.udp, ch.key)
 	}
 	delete(ch.e.active, ch)
-	var rw io.Closer
-	if ch.rw != nil {
-		rw = ch.rw
-	}
-	flows := make([]*udpFlow, 0, len(ch.flows))
-	for _, f := range ch.flows {
-		flows = append(flows, f)
-	}
-	return rw, flows
+	return ch.rw, slices.Collect(maps.Values(ch.flows))
 }
 
 func closeAll(rw io.Closer, flows []*udpFlow) {

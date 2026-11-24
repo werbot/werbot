@@ -47,9 +47,9 @@ func newLink(c *ssh.Client, ep Endpoint, conf *ssh.ClientConfig, resource string
 	return &link{ep: ep, conf: conf, resource: resource, stderr: stderr, client: c, up: up}
 }
 
-// dial opens an SSH connection to ep, checking the host key for
+// DialSSH opens an SSH connection to ep, checking the host key for
 // HostKeyAddr(ep) on either transport; a cancel of ctx aborts it.
-func dial(ctx context.Context, ep Endpoint, conf *ssh.ClientConfig) (*ssh.Client, error) {
+func DialSSH(ctx context.Context, ep Endpoint, conf *ssh.ClientConfig) (*ssh.Client, error) {
 	conn, err := Dial(ctx, ep)
 	if err != nil {
 		return nil, err
@@ -139,7 +139,7 @@ func (l *link) run(ctx context.Context) error {
 func (l *link) redial(ctx context.Context) (*ssh.Client, error) {
 	wait, last := backoffFirst, ""
 	for {
-		c, err := dial(ctx, l.ep, l.conf)
+		c, err := DialSSH(ctx, l.ep, l.conf)
 		switch {
 		case err == nil:
 			return c, nil

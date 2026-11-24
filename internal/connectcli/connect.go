@@ -72,7 +72,7 @@ type binding struct {
 // open connects as <login>+<resource>, asks the gateway for the resource,
 // opens the local port and prints where it listens.
 func open(ctx context.Context, ep Endpoint, conf *ssh.ClientConfig, sp Spec, stdout, stderr io.Writer) (*binding, error) {
-	c, err := dial(ctx, ep, conf)
+	c, err := DialSSH(ctx, ep, conf)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", sp.Resource, err)
 	}

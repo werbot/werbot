@@ -20,8 +20,6 @@ import (
 	"github.com/werbot/werbot/internal/platform/version"
 )
 
-const handshakeTimeout = 30 * time.Second
-
 // keepaliveEvery is the keepalive interval of a dialed connection; three
 // unanswered in a row drop it. Tests shorten it.
 var keepaliveEvery = 30 * time.Second
@@ -177,21 +175,7 @@ func (d *gatewayDialer) dial(r Resource) (*ssh.Client, error) {
 		HostKeyCallback: ssh.FixedHostKey(hk),
 		ClientVersion:   "SSH-2.0-Werbot_vnet_" + strings.ReplaceAll(version.Version, "-", "_"),
 	}
-	ep := connectcli.Endpoint{SSHAddress: r.SSHAddress, WSURL: r.WSURL}
-	conn, err := connectcli.Dial(d.ctx, ep)
-	if err != nil {
-		return nil, err
-	}
-	stop := context.AfterFunc(d.ctx, func() { _ = conn.Close() })
-	defer stop()
-	_ = conn.SetDeadline(time.Now().Add(handshakeTimeout))
-	c, chans, reqs, err := ssh.NewClientConn(conn, connectcli.HostKeyAddr(ep), conf)
-	if err != nil {
-		_ = conn.Close()
-		return nil, err
-	}
-	_ = conn.SetDeadline(time.Time{})
-	return ssh.NewClient(c, chans, reqs), nil
+	return connectcli.DialSSH(d.ctx, connectcli.Endpoint{SSHAddress: r.SSHAddress, WSURL: r.WSURL}, conf)
 }
 
 // Close closes every connection and stops dials in progress.

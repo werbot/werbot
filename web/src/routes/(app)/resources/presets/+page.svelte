@@ -53,8 +53,6 @@
 		}
 	}
 
-	const iconOf = (p: ResourcePreset) => resourceTypeIcon(p);
-
 	onMount(load);
 </script>
 
@@ -88,7 +86,7 @@
 			{#each list as p (p.id)}
 				<tr>
 					<td>
-						<CellLead icon={iconOf(p)}>
+						<CellLead icon={resourceTypeIcon(p)}>
 							<button class="row-name" onclick={() => openDrawer(p)}>{p.displayName}</button>
 							{#snippet sub()}{p.name}{/snippet}
 						</CellLead>

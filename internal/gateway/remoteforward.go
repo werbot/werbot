@@ -25,6 +25,11 @@ type RemoteForward struct {
 	Ready func() // the connector calls it once the target listens
 }
 
+// Addr is the address the target listens on; an empty host is localhost.
+func (rf RemoteForward) Addr() string {
+	return net.JoinHostPort(cmp.Or(rf.BindHost, "localhost"), strconv.FormatUint(uint64(rf.BindPort), 10))
+}
+
 // Global requests of a remote forward (RFC 4254 §7.1).
 const (
 	tcpipForward       = "tcpip-forward"
@@ -150,7 +155,7 @@ func (h *sshHandler) remoteForward(ctx ssh.Context, _ *ssh.Server, req *gossh.Re
 	if !ok || fs.running(b.String()) {
 		return false, nil
 	}
-	r := h.request(ctx, resource, KindStream, Window{}, net.JoinHostPort(cmp.Or(b.Host, "localhost"), strconv.FormatUint(uint64(b.Port), 10)))
+	r := h.request(ctx, resource, KindStream, Window{}, RemoteForward{BindHost: b.Host, BindPort: b.Port}.Addr())
 	r.RemoteForward = true
 	sess, err := h.p.Open(ctx, r)
 	if err != nil {

@@ -1,11 +1,9 @@
 package sshconnector
 
 import (
-	"cmp"
 	"context"
 	"fmt"
 	"net"
-	"strconv"
 
 	gossh "golang.org/x/crypto/ssh"
 
@@ -19,7 +17,7 @@ import (
 // (cancel-tcpip-forward) and the open connections and is not an error; a
 // listener lost with the target connection is. Streams are not recorded.
 func serveRemoteForward(ctx context.Context, client *gossh.Client, rf *gateway.RemoteForward, secret gateway.Secret) error {
-	addr := net.JoinHostPort(cmp.Or(rf.BindHost, "localhost"), strconv.FormatUint(uint64(rf.BindPort), 10))
+	addr := rf.Addr()
 	ln, err := client.Listen("tcp", addr)
 	if err != nil {
 		return fmt.Errorf("ssh: remote forward %s at the target: %w", addr, err)

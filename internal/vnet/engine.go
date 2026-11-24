@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"maps"
 	"net/netip"
 	"slices"
 	"strings"
@@ -238,10 +239,7 @@ func (e *engine) stop() error {
 		return nil
 	}
 	e.closed = true
-	gone := make([]io.Closer, 0, len(e.active))
-	for c := range e.active {
-		gone = append(gone, c)
-	}
+	gone := slices.Collect(maps.Keys(e.active))
 	clear(e.active)
 	e.mu.Unlock()
 	e.cancel()

@@ -1,6 +1,7 @@
 package vnet
 
 import (
+	"regexp"
 	"strings"
 
 	"github.com/google/uuid"
@@ -8,23 +9,13 @@ import (
 
 const maxLabel = 63
 
+// nonLabel is a run of characters a DNS label of OrgLabel never holds.
+var nonLabel = regexp.MustCompile("[^a-z0-9]+")
+
 // OrgLabel turns an organization name into a DNS label. A name with no usable
 // characters falls back to the first 8 hex digits of the organization id.
 func OrgLabel(name string, orgID uuid.UUID) string {
-	var b strings.Builder
-	dash := false
-	for _, r := range strings.ToLower(name) {
-		if r >= 'a' && r <= 'z' || r >= '0' && r <= '9' {
-			if dash && b.Len() > 0 {
-				b.WriteByte('-')
-			}
-			dash = false
-			b.WriteRune(r)
-		} else {
-			dash = true
-		}
-	}
-	label := b.String()
+	label := strings.Trim(nonLabel.ReplaceAllString(strings.ToLower(name), "-"), "-")
 	if len(label) > maxLabel {
 		label = strings.TrimRight(label[:maxLabel], "-")
 	}
