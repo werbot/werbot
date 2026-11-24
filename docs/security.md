@@ -92,3 +92,24 @@ Folder rules and the command console read the command text, so they do not repla
 ## AI agents
 
 Agents act for a sponsor with a run token (1 hour) and an SSH key held in memory; their access is the sponsor's access cut down to a read-only baseline ([agents.md](agents.md)). In the shared profile mode `werbot mcp` and `werbot agent run` run the agent as the sponsor's OS user, so the agent can read the sponsor's `WERBOT_HOME` (refresh token, key, certificate) and act as the sponsor; a different `HOME` under the same OS user does not prevent it. Run untrusted agents as another OS user or in a container with an agent profile (`werbot agents profile create <agent> --dir <path>`, then `WERBOT_HOME=<path> werbot mcp`): its credential only starts runs of that one agent, so a leaked profile gives agent access, never the sponsor's, and revoking it stops its runs at the next request.
+
+### Agents and runtime authorization
+
+- **Attribution.** The CA signs each agent certificate with the extensions `werbot-agent@werbot.com` and `werbot-run@werbot.com` (agent id and run id, both or neither). The gateway reads them from the certificate, so a client cannot claim to be another agent or run.
+- **Rights.** An agent has the sponsor's rights cut down to the agent's own rights, on top of the read-only baseline ([agents.md](agents.md#what-an-agent-may-do)).
+- **Fail closed.** A command that needs an approval and gets no answer before `command_approval_ttl` is denied with `Approval timed out`. A timeout is never an approval.
+- **Masking.** Output masking hides secrets from an agent and from the screen. It is no defence against a malicious insider: the recording keeps the original ([policies.md](policies.md#output-masking)).
+- **Kill switch.** A lock stops an agent, a run, all agents of a user or all agents of the organization ([agents.md](agents.md#kill-switch)).
+
+### Stream relay
+
+- The internal listener (`WERBOT_INTERNAL_ADDR`) accepts mTLS only, with client certificates of the internal CA.
+- Each server replica has the certificate common name `server:<instance_id>`. The listener refuses any other name.
+- Do not publish the listener outside the private network ([scaling.md](scaling.md#internal-listener)).
+
+### Approvals and phishing
+
+- A step-up or an SSH MFA confirmation takes a one-time code: a TOTP code works once, and a recovery code does not step up ([mfa.md](mfa.md)).
+- The confirmation page shows the resource, the gateway, the client IP and the code. Compare them with the prompt in your terminal before you confirm.
+- Only the user of a challenge can confirm it.
+- For an agent run, a pending or recent approval is reused only for the same requester, resource and command, matched by the SHA-256 of the command text. Another command needs its own approval.

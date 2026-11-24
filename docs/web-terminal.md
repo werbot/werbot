@@ -63,6 +63,8 @@ Before the upgrade the server answers plain HTTP: `403` when `Origin` is not the
 ## Limits
 
 - 1000 streams per server replica, counting browser connections and bridges to other replicas. The limit is per replica, not per user: one member can fill it.
+- The gauge `werbot_relay_streams` shows the streams a replica holds now; `werbot_relay_rejected_total{reason}` counts refused ones ([scaling.md](scaling.md#metrics)).
+- Replicas reach each other on `WERBOT_INTERNAL_ADDR` (mTLS, default `:8444`). Each replica publishes `WERBOT_INTERNAL_URL` for the others to dial. The network between replicas must allow it ([scaling.md](scaling.md#internal-listener)).
 - A ticket is single use, valid for 30 seconds, and tied to the organization and the gateway instance.
 - The browser connection is pinged every 30 seconds; the load balancer must keep idle WebSockets longer ([scaling.md](scaling.md#websocket-streams)).
 - One UI origin: `Origin` must equal `WERBOT_WEB_URL` ([web.md](web.md#websocket)).
