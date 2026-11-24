@@ -12,6 +12,10 @@ permissions:
 jobs:
   go:
     runs-on: ubuntu-latest
+    env:
+      # ./cmd/werbot for linux/amd64 without the web build: 87 695 590 bytes
+      # after --vnet linked gVisor (+4.9 MB), plus 2 MiB of headroom
+      MAX_BINARY_BYTES: 89792742
     services:
       postgres:
         image: postgres:18-alpine
@@ -47,6 +51,15 @@ jobs:
       - run: go test -count=1 -skip '^TestExecDecisionP99$' ./...
       - run: go test -count=1 -run '^TestExecDecisionP99$' -v ./internal/gateway/
       - run: go test -race -tags load -short ./test/load/
+      - name: Binary size
+        run: go build -o werbot ./cmd/werbot && test "$(stat -c %s werbot)" -le "$MAX_BINARY_BYTES"
+      # The privilege drop of --vnet needs root: a test binary built as the
+      # runner user runs under sudo (never go itself under sudo).
+      - name: vnet privilege drop as root
+        run: |
+          go test -c -o "$RUNNER_TEMP/vnet.test" ./internal/vnet
+          sudo "$RUNNER_TEMP/vnet.test" -test.run DropPrivileges -test.v | tee "$RUNNER_TEMP/vnet.out"
+          grep -q -- '--- PASS: TestDropPrivilegesKeepsOwnership' "$RUNNER_TEMP/vnet.out"
       - uses: golangci/golangci-lint-action@v9
         with:
           version: v2.15.0
@@ -59,7 +72,7 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-      - run: go test -count=1 ./internal/connectcli/... ./internal/clientauth/... ./internal/cli/... ./internal/mcpserver/...
+      - run: go test -count=1 ./internal/connectcli/... ./internal/clientauth/... ./internal/cli/... ./internal/mcpserver/... ./internal/vnet/...
       - run: go build -o werbot.exe ./cmd/werbot
       - run: ./werbot.exe login --help
 

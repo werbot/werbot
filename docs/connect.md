@@ -53,6 +53,10 @@ werbot connect --gateway wss://gw.example.com/v1/ssh --login alice pg
 - The gateway host key is checked inside SSH as described in [Host keys](#host-keys): under the SSH address when the pool has one, else under the URL's `host:port` (`[gw.example.com]:443` in `known_hosts`). A balancer that terminates TLS cannot stand in for the gateway.
 - OpenSSH and `werbot ssh` reach a WebSocket-only pool through [`werbot proxy`](cli.md#openssh-config).
 
+## Virtual network
+
+`sudo werbot connect --vnet` gives every resource an address and a name `<resource>.<org>.werbot` instead of local ports, for TCP and UDP, on Linux and macOS: see [vnet.md](vnet.md).
+
 ## Without the client
 
 TCP and Telnet need no client: `ssh -L <port>:<resource>:<port> <login>+<resource>@<gateway> -p 2222`, then connect to `127.0.0.1:<port>` (for Telnet, `telnet 127.0.0.1 2323` after `-L 2323:<resource>:23`). The resource must be a `tcp` or `telnet` type, or an `ssh` resource with `port_forwarding`. UDP works only through `werbot connect`.
@@ -71,4 +75,4 @@ A `keepalive@openssh.com` goes every 30 s; three unanswered in a row count as a 
 
 ## Windows
 
-Releases ship `werbot` for Windows as a `.zip` archive. On Windows the client commands (`login`, `ls`, `ssh`, `ssh-config`, `connect`, `proxy`, `status`, `logout`) are supported; the server, gateway and web roles are not.
+Releases ship `werbot` for Windows as a `.zip` archive. On Windows the client commands (`login`, `ls`, `ssh`, `ssh-config`, `connect`, `proxy`, `status`, `logout`) are supported; `connect --vnet` and the server, gateway and web roles are not.

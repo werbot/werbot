@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"io"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"testing"
@@ -12,6 +13,7 @@ import (
 
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
 	"github.com/werbot/werbot/internal/connectcli"
+	"github.com/werbot/werbot/internal/vnet"
 )
 
 // captureConnect replaces runConnect and returns what it was given.
@@ -81,4 +83,43 @@ func TestConnectUsesPoolWSURL(t *testing.T) {
 	raw, err := os.ReadFile(got.KnownHosts)
 	require.NoError(t, err)
 	assert.Contains(t, string(raw), "[gw.example.com]:443 ssh-ed25519 ")
+}
+
+// captureVNet replaces runVNet and returns the options it was given.
+func captureVNet(t *testing.T) *vnet.Options {
+	t.Helper()
+	var got vnet.Options
+	old := runVNet
+	runVNet = func(_ context.Context, opts vnet.Options) error { got = opts; return nil }
+	t.Cleanup(func() { runVNet = old })
+	return &got
+}
+
+func TestConnectVNetFlags(t *testing.T) {
+	h := newHarness(t)
+	got := captureVNet(t)
+
+	require.NoError(t, h.run("connect", "--vnet"))
+	assert.Equal(t, netip.MustParsePrefix("100.64.0.0/10"), got.Prefix)
+	assert.Equal(t, h.home, got.Home)
+	require.NotNil(t, got.Profile)
+	assert.Equal(t, "alice", got.Profile.Login)
+
+	require.NoError(t, h.run("connect", "--vnet-prefix=10.10.0.0/16", "--vnet"))
+	assert.Equal(t, netip.MustParsePrefix("10.10.0.0/16"), got.Prefix)
+	require.NoError(t, h.run("connect", "--vnet", "-vnet-prefix", "10.20.0.0/16"))
+	assert.Equal(t, netip.MustParsePrefix("10.20.0.0/16"), got.Prefix)
+
+	assert.EqualError(t, h.run("connect", "--vnet", "db"), "--vnet does not take resources")
+	assert.EqualError(t, h.run("connect", "--vnet", "--gateway", "gw:22"), "--vnet does not take resources")
+	assert.ErrorContains(t, h.run("connect", "--vnet", "--vnet-prefix", "bad"), "--vnet-prefix")
+	assert.ErrorContains(t, h.run("connect", "--vnet", "--vnet-prefix"), "--vnet-prefix")
+	assert.EqualError(t, h.run("connect", "--vnet-prefix", "10.0.0.0/8", "db"), "--vnet-prefix needs --vnet")
+
+	conn := captureConnect(t)
+	*got = vnet.Options{}
+	require.NoError(t, h.run("connect", "--gateway", "gw.example.com", "vnet"), "a resource named vnet is not the flag")
+	assert.Equal(t, "vnet", conn.Specs[0].Resource)
+	assert.ErrorContains(t, h.run("connect", "--vnet=true"), "flag provided but not defined: -vnet")
+	assert.Nil(t, got.Profile, "connect --vnet never ran")
 }
