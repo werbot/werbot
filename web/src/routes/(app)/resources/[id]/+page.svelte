@@ -106,19 +106,22 @@
 				{#if presetHint}<div>{m.resources_launch_hint()}: <code>{presetHint}</code></div>{/if}
 			</InfoBlock>
 		{/if}
-		<div class="card">
-			{#if tab === 'settings'}
-				<SettingsTab bind:resource {types} />
-			{:else if tab === 'credentials'}
-				<CredentialsTab bind:resource type={types.find((t) => t.name === resource?.type)} />
-			{:else if tab === 'rules'}
-				<RulesTab resourceId={resource.id} />
-			{:else if tab === 'access'}
-				<AccessTab {resource} />
-			{:else}
-				<HostKeyTab bind:resource />
-			{/if}
-		</div>
+		{#if tab === 'rules'}
+			<!-- the rules tab is its own set of cards -->
+			<RulesTab resourceId={resource.id} />
+		{:else}
+			<div class="card">
+				{#if tab === 'settings'}
+					<SettingsTab bind:resource {types} />
+				{:else if tab === 'credentials'}
+					<CredentialsTab bind:resource type={types.find((t) => t.name === resource?.type)} />
+				{:else if tab === 'access'}
+					<AccessTab {resource} />
+				{:else}
+					<HostKeyTab bind:resource />
+				{/if}
+			</div>
+		{/if}
 	{/if}
 </PageBody>
 
