@@ -30,6 +30,8 @@ WERBOT_VERSION=v0.2.0 ./demo.sh --ci   # no pauses
 
 The cast is recorded by the maintainer at release time on the published image, and committed as `deploy/demo/demo.cast`.
 
+The current cast shows `v0.2.0` (110×32, about 1 minute). Play it with `asciinema play deploy/demo/demo.cast`.
+
 ```sh
 asciinema rec --idle-time-limit 2 --command "WERBOT_VERSION=v<release> ./demo.sh" demo.cast
 ```
