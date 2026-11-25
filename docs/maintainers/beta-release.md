@@ -173,26 +173,50 @@ Check: play it with `asciinema play demo.cast`. It shows no data from your machi
 
 Only after step 7: the registry needs the image to exist. `server.json` names `ghcr.io/werbot/werbot:v0.2.0` and version `0.2.0`.
 
+The namespace `io.github.werbot` belongs to the `werbot` organization. Publish as an Owner of the organization. The interactive `mcp-publisher login github` cannot read organization roles and gets `403 You do not have permission to publish this server`. Log in with a classic personal access token instead:
+
+1. Create a classic token at https://github.com/settings/tokens/new: scope `read:org` only, expiration 7 days.
+2. Run the commands in the repo root (the directory of `server.json`). `read -s` keeps the token out of the shell history.
+
 ```sh
-mcp-publisher login github
+read -rs GH_PAT && mcp-publisher login github --token "$GH_PAT"; unset GH_PAT
 mcp-publisher validate
 mcp-publisher publish
+mcp-publisher logout
 ```
 
-Run the commands in the directory of `server.json` (the repo root). The namespace `io.github.werbot` is confirmed by the GitHub login: log in as a member of the `werbot` organization. Run `mcp-publisher --help` if your version has other subcommand names.
+3. Delete the token at https://github.com/settings/tokens.
+
+A published version cannot be changed or deleted. A fix needs a new version in `server.json`.
 
 Check: `curl -fsS 'https://registry.modelcontextprotocol.io/v0.1/servers?search=werbot'` lists `io.github.werbot/werbot` version `0.2.0`.
 
 ## 10. Deploy the docs site
 
-The site is deployed by hand (owner decision): no workflow. Build it with links that point at the tag, then upload `site/dist` to https://docs.werbot.com with your hosting tool. The README on `main` links to https://docs.werbot.com from the merge (step 4) on, so do this step on the same day as the tag.
+The site is deployed by hand (owner decision): no workflow. GitHub Pages of `werbot/werbot` serves the branch `gh-pages` at https://docs.werbot.com. The README on `main` links to the site from the merge (step 4) on, so do this step on the same day as the tag.
+
+One-time setup, done for `v0.2.0`:
+
+- DNS of `werbot.com` (Cloudflare): `CNAME docs → werbot.github.io`, proxy off (DNS only), or GitHub cannot issue the certificate. `TXT _github-pages-challenge-werbot` with the code from the organization settings.
+- Organization settings → Pages: `werbot.com` is a verified domain.
+- Repository settings → Pages: source `gh-pages` `/`, custom domain `docs.werbot.com`, Enforce HTTPS on.
+
+Build the site with links that point at the tag, then replace the content of `gh-pages` with it. `CNAME` keeps the custom domain, `.nojekyll` keeps the `_astro` directory.
 
 ```sh
 git switch main && git pull --ff-only
 make site SITE_REF=v0.2.0
+git fetch origin gh-pages
+git worktree add -B gh-pages /tmp/werbot-pages origin/gh-pages
+rsync -a --delete --exclude .git site/dist/ /tmp/werbot-pages/
+echo docs.werbot.com > /tmp/werbot-pages/CNAME && touch /tmp/werbot-pages/.nojekyll
+git -C /tmp/werbot-pages add -A
+git -C /tmp/werbot-pages commit -s -m "📚 docs(site): publish v0.2.0"
+git -C /tmp/werbot-pages push origin gh-pages
+git worktree remove /tmp/werbot-pages
 ```
 
-Check: `site/dist/index.html` exists. After the upload, `curl -fsSI https://docs.werbot.com/` returns `200` and the page of `agents` and `security` open.
+Check: `gh api repos/werbot/werbot/pages --jq .status` prints `built`. `curl -fsSI https://docs.werbot.com/` returns `200`, and the pages `agents` and `security` open.
 
 ## 11. Release notes
 
