@@ -23,7 +23,7 @@ cosign verify \
   ghcr.io/werbot/werbot:v0.1.1
 ```
 
-Expected output: `Verified OK`, `<archive>: OK` and `The cosign claims were validated`. To pin one release exactly, replace the regexp by `--certificate-identity https://github.com/werbot/werbot/.github/workflows/release.yml@refs/tags/v0.1.1`.
+Expected output: `Verified OK`, `<archive>: OK` and `The cosign claims were validated`. Use cosign 3.x: the image signature is stored in the new bundle format, and cosign 2.x prints `no signatures found` for it. To pin one release exactly, replace the regexp by `--certificate-identity https://github.com/werbot/werbot/.github/workflows/release.yml@refs/tags/v0.1.1`.
 
 ## SBOM
 
