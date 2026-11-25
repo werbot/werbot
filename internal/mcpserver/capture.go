@@ -21,6 +21,7 @@ var approvedLine = []byte("Approved\r\n")
 // capture keeps stdout and stderr of one exec within MaxOutput together, in
 // the order they arrive; the rest is read and dropped.
 type capture struct {
+	resource       string // the called resource: the gateway names it in its refusals
 	mu             sync.Mutex
 	left           int
 	stdout, stderr bytes.Buffer
@@ -32,7 +33,9 @@ type capture struct {
 	notice         chan struct{} // closed when the approval notice arrives
 }
 
-func newCapture() *capture { return &capture{left: MaxOutput, notice: make(chan struct{})} }
+func newCapture(resource string) *capture {
+	return &capture{resource: resource, left: MaxOutput, notice: make(chan struct{})}
+}
 
 // sink is one stream of a capture.
 type sink struct {
@@ -127,7 +130,7 @@ func (c *capture) result(err error) ExecOutput {
 		return out
 	}
 	out.ExitCode = &code
-	out.Status, out.Message = gatewayStatus(out.Stdout+out.Stderr[c.noticeEnd:], code)
+	out.Status, out.Message = gatewayStatus(out.Stdout+out.Stderr[c.noticeEnd:], code, c.resource)
 	return out
 }
 

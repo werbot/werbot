@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -105,7 +106,7 @@ func (s *server) exec(ctx context.Context, c call, r *werbotv1.AccessibleResourc
 	if err := sess.Setenv(sshca.EnvToolCall, c.id); err != nil {
 		return ExecOutput{}, err
 	}
-	out := newCapture()
+	out := newCapture(r.GetName())
 	sess.Stdout, sess.Stderr = sink{out, &out.stdout}, sink{out, &out.stderr}
 	if err := sess.Start(command); err != nil {
 		return ExecOutput{}, err
@@ -155,19 +156,26 @@ func timedOut(timeout time.Duration) ExecOutput {
 }
 
 // gatewayRefusals are the gateway's fixed texts for an exec it refused
-// (gateway.CommandErrorText, agentRunText) and the status each one means.
+// (gateway.CommandErrorText, agentRunText, openText) and the status each one means.
 var gatewayRefusals = map[string]string{
 	"Access denied":                         "denied",
 	"Approval timed out":                    "denied",
 	"Agent limit exceeded":                  "error",
 	"Agent run is not active":               "error",
 	"Gateway is not ready, try again later": "error",
+	"Gateway is busy, try again later":      "error",
 }
 
-// gatewayStatus reads an exec that ended with code: the gateway refuses with
-// exit 1 and one CRLF line of fixed text as all output; anything else is the
-// command's own outcome ("ok").
-func gatewayStatus(output string, code int) (status, message string) {
+// connectFailures are the gateway's texts for a connector that could not
+// reach resource (gateway.runText): the command never ran.
+func connectFailures(resource string) []string {
+	return []string{"Connection to " + resource + " failed", "Login to " + resource + " failed", "SSH host key mismatch for " + resource}
+}
+
+// gatewayStatus reads an exec of resource that ended with code: the gateway
+// refuses with exit 1 and one CRLF line of fixed text as all output; anything
+// else is the command's own outcome ("ok").
+func gatewayStatus(output string, code int, resource string) (status, message string) {
 	line, ok := strings.CutSuffix(output, "\r\n")
 	if code != 1 || !ok || strings.Contains(line, "\n") {
 		return "ok", ""
@@ -177,6 +185,9 @@ func gatewayStatus(output string, code int) (status, message string) {
 	}
 	if status := gatewayRefusals[line]; status != "" {
 		return status, line
+	}
+	if slices.Contains(connectFailures(resource), line) {
+		return "error", line
 	}
 	return "ok", ""
 }

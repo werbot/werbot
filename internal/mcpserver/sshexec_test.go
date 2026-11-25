@@ -100,6 +100,19 @@ func TestSSHExecDenied(t *testing.T) {
 	assert.Equal(t, "denied", finishes(a)[0].status)
 }
 
+// A gateway that could not reach the target answers an error, not the
+// outcome of a command that never ran.
+func TestSSHExecConnectFailure(t *testing.T) {
+	a, _, cs := execSetup(t, func(_ *fakeGateway, s gliderssh.Session) {
+		_, _ = io.WriteString(s, "Connection to srv failed\r\n")
+		_ = s.Exit(1)
+	})
+	out := decode[ExecOutput](t, callTool(t, cs, "ssh_exec", map[string]any{"resource": "srv", "command": "echo load"}))
+	assert.Equal(t, "error", out.Status)
+	assert.Equal(t, "Connection to srv failed", out.Message)
+	assert.Equal(t, "error", finishes(a)[0].status)
+}
+
 func TestSSHExecPendingApproval(t *testing.T) {
 	prev := pendingAfter
 	pendingAfter = 100 * time.Millisecond
@@ -201,12 +214,17 @@ func TestGatewayStatus(t *testing.T) {
 		{"Agent limit exceeded\r\n", 1, "error", "Agent limit exceeded"},
 		{"Agent run is not active\r\n", 1, "error", "Agent run is not active"},
 		{"Gateway is not ready, try again later\r\n", 1, "error", "Gateway is not ready, try again later"},
-		{"Access denied\n", 1, "ok", ""},           // a command's own output ends lines with LF
-		{"Access denied\r\n", 2, "ok", ""},         // the gateway exits 1
-		{"Access denied\r\nmore\r\n", 1, "ok", ""}, // only the refusal line
+		{"Gateway is busy, try again later\r\n", 1, "error", "Gateway is busy, try again later"},
+		{"Connection to srv failed\r\n", 1, "error", "Connection to srv failed"},
+		{"Login to srv failed\r\n", 1, "error", "Login to srv failed"},
+		{"SSH host key mismatch for srv\r\n", 1, "error", "SSH host key mismatch for srv"},
+		{"Connection to other failed\r\n", 1, "ok", ""}, // the texts name the called resource
+		{"Access denied\n", 1, "ok", ""},                // a command's own output ends lines with LF
+		{"Access denied\r\n", 2, "ok", ""},              // the gateway exits 1
+		{"Access denied\r\nmore\r\n", 1, "ok", ""},      // only the refusal line
 		{"", 0, "ok", ""},
 	} {
-		status, text := gatewayStatus(tc.output, tc.code)
+		status, text := gatewayStatus(tc.output, tc.code, "srv")
 		assert.Equal(t, tc.status, status, "%q %d", tc.output, tc.code)
 		assert.Equal(t, tc.text, text, "%q %d", tc.output, tc.code)
 	}
