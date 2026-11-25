@@ -130,7 +130,7 @@
 						<td><ClassChips classes={rule.classes} /></td>
 						<ScopeCells subjects={rule.subjects} selector={rule.resourceSelector} names={scope.names} />
 						<td class="more">
-							<RowMenu label={m.policies_commands_delete()} onselect={() => (removing = rule)} bind:open={() => menuOpen === rule.id, (v) => (menuOpen = v ? rule.id : '')} />
+							<RowMenu label={m.policies_commands_delete()} onselect={() => (removing = rule)} onedit={() => edit(rule)} bind:open={() => menuOpen === rule.id, (v) => (menuOpen = v ? rule.id : '')} />
 						</td>
 					</tr>
 				{/each}

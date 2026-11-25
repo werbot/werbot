@@ -78,6 +78,12 @@ test('pool with two instances, join token and revocation', async ({ page, baseUR
 	// resource form with two pools: pool select, connect hint, pool change persists
 	await page.keyboard.press('Escape');
 	await expect(pool).toHaveCount(0);
+	// the "…" menu has an Edit item that opens the same drawer
+	await poolRow(page, 'e2e-pool').getByRole('button', { name: en.common_more }).click();
+	await page.getByRole('menuitem', { name: en.common_edit }).click();
+	await expect(pool).toBeVisible();
+	await page.keyboard.press('Escape');
+	await expect(pool).toHaveCount(0);
 	await createPool(page, 'e2e-pool-2');
 	await expect(poolRow(page, 'e2e-pool-2')).toBeVisible();
 

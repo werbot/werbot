@@ -118,6 +118,7 @@
 					<td class="more">
 						<RowMenu bind:open={() => menuOpen === p.id, (v) => (menuOpen = v ? p.id : '')}>
 							{#snippet items(close)}
+								<MenuItem icon="edit" onclick={() => (close(), edit(p))}>{m.common_edit()}</MenuItem>
 								<MenuItem icon="people" onclick={() => (close(), (mapping = p))}>{m.sso_mapping()}</MenuItem>
 								<MenuItem icon="trash" danger onclick={() => (close(), (removing = p))}>{m.sso_delete()}</MenuItem>
 							{/snippet}

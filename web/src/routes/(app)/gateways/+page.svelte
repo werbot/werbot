@@ -93,7 +93,7 @@
 </script>
 
 {#snippet moreMenu(pool: Gateway, slot: string)}
-	<RowMenu label={m.gateways_delete()} onselect={() => askDeletePool(pool)} bind:open={() => menuOpen === slot + pool.id, (v) => (menuOpen = v ? slot + pool.id : '')} />
+	<RowMenu label={m.gateways_delete()} onselect={() => askDeletePool(pool)} onedit={slot === 'row' ? () => (open = pool.id) : undefined} bind:open={() => menuOpen === slot + pool.id, (v) => (menuOpen = v ? slot + pool.id : '')} />
 {/snippet}
 
 <PageHeader title={m.gateways_title()} count={loaded ? list.length : undefined}>

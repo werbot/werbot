@@ -97,7 +97,7 @@
 					<td class="more">
 						<RowMenu bind:open={() => menuOpen === p.id, (v) => (menuOpen = v ? p.id : '')}>
 							{#snippet items(close)}
-								<MenuItem onclick={() => { close(); openDrawer(p); }}>{m.presets_edit()}</MenuItem>
+								<MenuItem icon="edit" onclick={() => { close(); openDrawer(p); }}>{m.presets_edit()}</MenuItem>
 								<MenuItem icon="trash" danger onclick={() => { close(); removing = p; }}>{m.presets_delete()}</MenuItem>
 							{/snippet}
 						</RowMenu>

@@ -106,7 +106,7 @@
 					</td>
 					<td><AvatarStack people={team.memberUserIds.map((id) => ({ name: loginOf(id) }))} /></td>
 					<td class="more">
-						<RowMenu label={m.teams_delete()} onselect={() => (removing = team)} bind:open={() => menuOpen === team.id, (v) => (menuOpen = v ? team.id : '')} />
+						<RowMenu label={m.teams_delete()} onselect={() => (removing = team)} onedit={() => (selected = team.id)} bind:open={() => menuOpen === team.id, (v) => (menuOpen = v ? team.id : '')} />
 					</td>
 				</tr>
 			{/each}

@@ -8,12 +8,14 @@
 		label?: string;
 		disabled?: boolean;
 		onselect?: () => void;
+		/** adds an "Edit" item above the danger one */
+		onedit?: () => void;
 		/** other items instead of the danger one; close shuts the menu */
 		items?: Snippet<[close: () => void]>;
 		open?: boolean;
 	}
 
-	let { label, disabled = false, onselect, items, open = $bindable(false) }: Props = $props();
+	let { label, disabled = false, onselect, onedit, items, open = $bindable(false) }: Props = $props();
 </script>
 
 <Dropdown placement="bottom-end" bind:open>
@@ -27,6 +29,17 @@
 			{#if items}
 				{@render items(close)}
 			{:else}
+				{#if onedit}
+					<MenuItem
+						icon="edit"
+						onclick={() => {
+							close();
+							onedit();
+						}}
+					>
+						{m.common_edit()}
+					</MenuItem>
+				{/if}
 				<MenuItem
 					icon="trash"
 					danger

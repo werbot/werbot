@@ -134,7 +134,7 @@
 					<td><Label variant="soft">{policy.mode === 'auto' ? m.approvals_mode_auto() : m.approvals_mode_manual()}</Label></td>
 					<td class="muted">{formatDuration(policy.maxDuration)}</td>
 					<td class="more">
-						<RowMenu label={m.approvals_delete()} onselect={() => (removing = policy)} bind:open={() => menuOpen === policy.id, (v) => (menuOpen = v ? policy.id : '')} />
+						<RowMenu label={m.approvals_delete()} onselect={() => (removing = policy)} onedit={() => edit(policy)} bind:open={() => menuOpen === policy.id, (v) => (menuOpen = v ? policy.id : '')} />
 					</td>
 				</tr>
 			{/each}

@@ -117,7 +117,7 @@
 					<td><Label variant="soft">{rule.strength === 'webauthn' ? m.mfa_rules_strength_webauthn() : m.mfa_rules_strength_any()}</Label></td>
 					<ScopeCells subjects={rule.subjects} selector={rule.resourceSelector} names={scope.names} />
 					<td class="more">
-						<RowMenu label={m.mfa_rules_delete()} onselect={() => (removing = rule)} bind:open={() => menuOpen === rule.id, (v) => (menuOpen = v ? rule.id : '')} />
+						<RowMenu label={m.mfa_rules_delete()} onselect={() => (removing = rule)} onedit={() => edit(rule)} bind:open={() => menuOpen === rule.id, (v) => (menuOpen = v ? rule.id : '')} />
 					</td>
 				</tr>
 			{/each}
