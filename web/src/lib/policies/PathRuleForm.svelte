@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Button, FilledField, Segmented, type SelectOption } from '#lib/ui/index.js';
+	import ToneSegmented, { type ToneOption } from '#lib/ToneSegmented.svelte';
 	import FormField from '#lib/FormField.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import SubjectsTarget from './SubjectsTarget.svelte';
@@ -23,6 +24,8 @@
 		read_logs: m.policies_paths_template_read_logs
 	};
 	const options = (labels: Record<string, () => string>) => Object.entries(labels).map(([value, label]) => ({ value, label: label() }));
+	// "only these paths" allows, "deny" denies; approval stays neutral
+	const effectTone: Record<string, ToneOption['tone']> = { only: 'allow', deny: 'deny' };
 
 	const hasHome = $derived(parsePaths(draft.paths).some((p) => p.startsWith('~')));
 </script>
@@ -57,7 +60,7 @@
 
 	<fieldset>
 		<legend>{m.policies_paths_effect()}</legend>
-		<div><Segmented size={32} options={options(EFFECT_LABELS)} bind:value={draft.effect} /></div>
+		<div><ToneSegmented size={32} options={options(EFFECT_LABELS).map((o) => ({ ...o, tone: effectTone[o.value] }))} bind:value={draft.effect} /></div>
 		{#if draft.effect === 'only'}<p class="hint">{m.policies_paths_only_hint()}</p>{/if}
 		<FormField label={m.policies_paths_message()} bind:value={draft.message} maxlength={256} />
 	</fieldset>

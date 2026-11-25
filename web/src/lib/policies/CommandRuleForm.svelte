@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { FilledField, Segmented, type SelectOption } from '#lib/ui/index.js';
+	import { FilledField, type SelectOption } from '#lib/ui/index.js';
+	import ToneSegmented from '#lib/ToneSegmented.svelte';
 	import FormField from '#lib/FormField.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import ClassPicker from './ClassPicker.svelte';
@@ -41,11 +42,11 @@
 	<fieldset>
 		<legend>{m.policies_commands_effect()}</legend>
 		<div>
-			<Segmented
+			<ToneSegmented
 				size={32}
 				options={[
-					{ value: 'allow', label: m.policies_commands_effect_allow() },
-					{ value: 'deny', label: m.policies_commands_effect_deny() },
+					{ value: 'allow', label: m.policies_commands_effect_allow(), tone: 'allow' },
+					{ value: 'deny', label: m.policies_commands_effect_deny(), tone: 'deny' },
 					{ value: 'approval', label: m.policies_commands_effect_approval() }
 				]}
 				bind:value={draft.effect}

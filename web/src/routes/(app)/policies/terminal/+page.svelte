@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Badge, Button, Drawer, EmptyState, Modal, Segmented, Skeleton, Table, toast, type BadgeTone } from '#lib/ui/index.js';
+	import { Badge, Button, Drawer, EmptyState, Modal, Skeleton, Table, toast, type BadgeTone } from '#lib/ui/index.js';
+	import ToneSegmented from '#lib/ToneSegmented.svelte';
 	import { policy } from '#lib/api.js';
 	import { failToast } from '#lib/errors.js';
 	import type { TerminalRule } from '#lib/gen/werbot/v1/policy_paths_pb.js';
@@ -145,11 +146,11 @@
 			<fieldset>
 				<legend>{m.policies_terminal_mode()}</legend>
 				<div>
-					<Segmented
+					<ToneSegmented
 						size={32}
 						options={[
-							{ value: 'console', label: m.policies_terminal_mode_console() },
-							{ value: 'deny', label: m.policies_terminal_mode_deny() }
+							{ value: 'console', label: m.policies_terminal_mode_console(), tone: 'allow' },
+							{ value: 'deny', label: m.policies_terminal_mode_deny(), tone: 'deny' }
 						]}
 						bind:value={draft.mode}
 					/>
