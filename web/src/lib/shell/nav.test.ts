@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { itemFor, navSections, sectionFor } from './nav';
+import { groupHeading, itemFor, navSections, sectionFor } from './nav';
 
 const hrefs = (s: { items: { href: string }[] }) => s.items.map((i) => i.href);
 const byId = (manager: boolean, id: string) => navSections(manager).find((s) => s.id === id)!;
@@ -13,9 +13,18 @@ test('member sections', () => {
 });
 
 test('manager sections', () => {
-	expect(hrefs(byId(true, 'access'))).toEqual(['/resources', '/resources/presets', '/sessions', '/requests', '/agents', '/gateways', '/policies/approvals', '/policies/commands', '/policies/custom', '/policies/paths', '/policies/terminal', '/policies/mfa', '/locks']);
-	expect(hrefs(byId(true, 'organization'))).toEqual(['/members', '/teams', '/audit', '/settings', '/settings/sso']);
+	expect(hrefs(byId(true, 'access'))).toEqual(['/resources', '/resources/presets', '/gateways', '/sessions', '/requests', '/agents', '/locks', '/policies/approvals', '/policies/commands', '/policies/paths', '/policies/terminal', '/policies/mfa', '/policies/custom']);
+	expect(hrefs(byId(true, 'organization'))).toEqual(['/members', '/teams', '/settings/sso', '/audit', '/settings']);
 	expect(hrefs(byId(true, 'profile'))).toEqual(['/profile', '/profile/keys', '/profile/mfa', '/profile/cli-sessions']);
+});
+
+test('group headings', () => {
+	const headings = (items: Parameters<typeof groupHeading>[0]) => items.map((_, i) => groupHeading(items, i)).filter(Boolean);
+	expect(headings(byId(true, 'access').items)).toEqual(['Infrastructure', 'Activity', 'Policies']);
+	expect(headings(byId(true, 'organization').items)).toEqual(['People', 'Security', 'General']);
+	// one group alone gets no heading
+	expect(headings(byId(false, 'access').items)).toEqual([]);
+	expect(headings(byId(true, 'profile').items)).toEqual([]);
 });
 
 test('dashboard has no column', () => {
