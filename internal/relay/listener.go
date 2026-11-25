@@ -34,8 +34,10 @@ func (r *Relay) server() (*http.Server, error) {
 		TLSConfig:         tlsCfg,
 		Protocols:         &protos,
 		ReadHeaderTimeout: 10 * time.Second,
+		// MaxReadFrameSize: a bridging client sizes each stream's write buffer
+		// by it (512 KB at the 1 MB default, 16 KB here)
 		HTTP2: &http.HTTP2Config{SendPingTimeout: 5 * time.Second, PingTimeout: 5 * time.Second,
-			MaxReceiveBufferPerStream: 64 << 10, MaxConcurrentStreams: 1000},
+			MaxReceiveBufferPerStream: 64 << 10, MaxConcurrentStreams: 1000, MaxReadFrameSize: 16 << 10},
 		ErrorLog: slog.NewLogLogger(r.log.Handler(), slog.LevelDebug), // failed handshakes
 	}, nil
 }
