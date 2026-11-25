@@ -57,8 +57,10 @@ test('pool SSH address persists; the host key is shown', async ({ page }) => {
 	let drawer = await open();
 	await expect(drawer.locator('code.host-key')).toHaveText(/^ssh-ed25519 /);
 	await drawer.getByLabel(en.gateways_ssh_address_label).fill('127.0.0.1:2222');
+	// the "Saved" toast of the new pool may still show: wait for the update call itself
+	const updated = page.waitForResponse((r) => r.url().endsWith('/werbot.v1.GatewayService/UpdateGateway'));
 	await drawer.getByRole('button', { name: en.gateways_ssh_address_save }).click();
-	await expect(page.getByText(en.common_saved)).toBeVisible();
+	expect((await updated).ok()).toBe(true);
 
 	await page.reload();
 	drawer = await open();
