@@ -44,7 +44,6 @@
 		opacity: 0.6;
 	}
 
-	.filled :global(select),
 	.filled :global(input) {
 		width: 100%;
 		border: 0;

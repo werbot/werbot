@@ -1,5 +1,6 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 import en from '../messages/en.json' with { type: 'json' };
+import { choose } from './support/select';
 import { OWNER, loginAsOwner } from './support/auth';
 import { openNew } from './support/resources';
 import { removeNamed } from './support/rpc';
@@ -39,11 +40,11 @@ test('resource, credential, rule, binding and access check', async ({ page }) =>
 	await expect(page.getByText(en.common_saved)).toBeVisible();
 
 	await page.getByRole('tab', { name: en.resources_tab_access }).click();
-	await page.getByLabel(en.access_subject, { exact: true }).selectOption({ label: `${OWNER.name} (${OWNER.login})` });
+	await choose(page.getByLabel(en.access_subject, { exact: true }), `${OWNER.name} (${OWNER.login})`);
 	await page.getByRole('button', { name: en.access_add }).click();
 	await expect(page.getByRole('cell', { name: en.access_this_resource })).toBeVisible();
 
-	await page.getByLabel(en.access_user, { exact: true }).selectOption({ label: `${OWNER.name} (${OWNER.login})` });
+	await choose(page.getByLabel(en.access_user, { exact: true }), `${OWNER.name} (${OWNER.login})`);
 	await page.getByLabel(en.access_check_ip).fill('10.1.2.3');
 	await page.getByRole('button', { name: en.access_check_run }).click();
 	await expect(page.getByText(en.access_allowed, { exact: true })).toBeVisible();
@@ -104,7 +105,7 @@ test('tcp resource with ports, port binding, hints and health', async ({ page })
 	await expect(page.getByText(/^werbot connect --gateway /)).toBeVisible();
 
 	await page.getByRole('tab', { name: en.resources_tab_access }).click();
-	await page.getByLabel(en.access_subject, { exact: true }).selectOption({ label: `${OWNER.name} (${OWNER.login})` });
+	await choose(page.getByLabel(en.access_subject, { exact: true }), `${OWNER.name} (${OWNER.login})`);
 	await page.getByLabel(en.access_ports).fill('22');
 	await page.getByRole('button', { name: en.access_add }).click();
 	await expect(page.getByRole('cell', { name: '22', exact: true })).toBeVisible();

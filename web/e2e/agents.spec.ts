@@ -3,6 +3,7 @@ import { timestampFromDate } from '@bufbuild/protobuf/wkt';
 import { expect, test } from '@playwright/test';
 import { GetRunResponseSchema } from '../src/lib/gen/werbot/v1/agent_pb';
 import en from '../messages/en.json' with { type: 'json' };
+import { choose } from './support/select';
 import { loginAsOwner } from './support/auth';
 import { rpc } from './support/rpc';
 
@@ -102,7 +103,7 @@ test('run timeline filters events', async ({ page }) => {
 	await expect(page.getByText('exec_command')).toBeVisible();
 	await expect(page.getByText(en.agents_timeline_client_reported)).toBeVisible();
 	await expect(page.getByText(en.agents_baseline_dangerous)).toBeVisible();
-	await page.getByLabel(en.common_filter).selectOption({ label: en.agents_timeline_filter_denials });
+	await choose(page.getByLabel(en.common_filter), en.agents_timeline_filter_denials);
 	await expect(page.getByText('exec_command')).toHaveCount(0);
 	await expect(page.getByText('cat /etc/shadow')).toBeVisible();
 });

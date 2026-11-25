@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 import en from '../messages/en.json' with { type: 'json' };
+import { choose } from './support/select';
 import { loginAsOwner } from './support/auth';
 import { openNew } from './support/resources';
 import { removeNamed } from './support/rpc';
@@ -81,7 +82,7 @@ test('pool with two instances, join token and revocation', async ({ page, baseUR
 
 	const poolSelect = page.getByLabel(en.resources_gateway_label);
 	const pickPool = async (name: string) => {
-		await poolSelect.selectOption({ label: name });
+		await choose(poolSelect, name);
 	};
 	await openNew(page);
 	await expect(poolSelect).toBeVisible();
@@ -99,7 +100,7 @@ test('pool with two instances, join token and revocation', async ({ page, baseUR
 	await page.getByRole('button', { name: en.resources_save, exact: true }).click();
 	expect((await updated).ok()).toBe(true);
 	await page.reload();
-	await expect(poolSelect.locator('option:checked')).toHaveText('e2e-pool-2');
+	await expect(poolSelect).toHaveText('e2e-pool-2');
 
 	await page.getByRole('button', { name: en.resources_delete }).click();
 	await page.getByRole('dialog').getByRole('button', { name: en.resources_delete }).click();

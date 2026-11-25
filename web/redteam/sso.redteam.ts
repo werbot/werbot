@@ -1,5 +1,6 @@
 import { expect, test, type Cookie, type Page } from '@playwright/test';
 import en from '../messages/en.json' with { type: 'json' };
+import { choose } from '../e2e/support/select';
 import { OWNER } from '../e2e/support/auth';
 import { rpc } from '../e2e/support/rpc';
 import { shot } from '../e2e/support/screens';
@@ -75,7 +76,7 @@ test('keycloak oidc login, passkey and step-up MFA on an admin action', async ({
 		await page.goto('/locks');
 		await page.getByRole('button', { name: en.locks_new }).first().click();
 		const form = page.getByRole('dialog', { name: en.locks_new });
-		await form.getByLabel(en.locks_target_type).selectOption({ label: en.locks_type_all_agents });
+		await choose(form.getByLabel(en.locks_target_type), en.locks_type_all_agents);
 		await form.getByLabel(en.locks_reason).fill('redteam-sso');
 		await form.getByRole('button', { name: en.locks_new }).click();
 		const stepUp = page.getByRole('dialog', { name: en.auth_mfa_title });

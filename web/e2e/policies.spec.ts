@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import en from '../messages/en.json' with { type: 'json' };
+import { choose } from './support/select';
 import { loginAsOwner } from './support/auth';
 import { rpc } from './support/rpc';
 
@@ -29,7 +30,7 @@ test('command rule, override, test box, custom policy and output masking', async
 		const drawer = page.getByRole('dialog', { name: en.policies_commands_new });
 		await drawer.getByLabel(en.policies_commands_name).fill('no-destructive');
 		await drawer.getByText(en.policies_commands_all_users, { exact: true }).click();
-		await drawer.getByLabel(en.approvals_add_resource).selectOption({ label: 'e2e-cmd' });
+		await choose(drawer.getByLabel(en.approvals_add_resource), 'e2e-cmd');
 		await drawer.getByText(en.class_destructive, { exact: true }).click();
 		await drawer.getByLabel(en.policies_commands_message).fill('Destructive commands are blocked');
 		await drawer.getByRole('button', { name: en.policies_commands_create }).click();
@@ -45,8 +46,8 @@ test('command rule, override, test box, custom policy and output masking', async
 
 		// the test box
 		const probe = page.locator('section').filter({ has: page.getByRole('heading', { name: en.policies_test_title }) });
-		await probe.getByLabel(en.policies_test_user).selectOption({ label: 'Owner (owner)' });
-		await probe.getByLabel(en.policies_test_resource).selectOption({ label: 'e2e-cmd' });
+		await choose(probe.getByLabel(en.policies_test_user), 'Owner (owner)');
+		await choose(probe.getByLabel(en.policies_test_resource), 'e2e-cmd');
 		await probe.getByLabel(en.policies_test_command).fill('rm -rf /');
 		await probe.getByRole('button', { name: en.policies_test_run }).click();
 		const result = probe.getByTestId('test-result');
@@ -78,11 +79,11 @@ test('command rule, override, test box, custom policy and output masking', async
 
 		// output masking persists
 		await page.goto('/settings');
-		await page.getByLabel(en.settings_mask_output).selectOption('all');
+		await choose(page.getByLabel(en.settings_mask_output), en.settings_mask_output_all);
 		await page.getByRole('button', { name: en.settings_save }).last().click();
 		await expect(page.getByText(en.settings_saved)).toBeVisible();
 		await page.reload();
-		await expect(page.getByLabel(en.settings_mask_output)).toHaveValue('all');
+		await expect(page.getByLabel(en.settings_mask_output)).toHaveText(en.settings_mask_output_all);
 	} finally {
 		await rpc(page, 'werbot.v1.SettingsService/UpdateSettings', { settings: { maskOutput: 'agents' }, updateMask: 'maskOutput' });
 		for (const p of (await rpc(page, svc + 'ListCustomPolicies', {})).policies ?? []) await rpc(page, svc + 'DeleteCustomPolicy', { id: p.id });

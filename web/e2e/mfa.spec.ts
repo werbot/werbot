@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
 import en from '../messages/en.json' with { type: 'json' };
+import { choose } from './support/select';
 import { BOB, loginAsOwner, loginWithNext } from './support/auth';
 import { rpc } from './support/rpc';
 import { totp } from './support/totp';
@@ -136,7 +137,7 @@ test.describe.serial('mfa', () => {
 		await mapping.getByRole('button', { name: en.sso_mapping_add }).click();
 		await mapping.getByLabel(en.sso_mapping_regex).fill('^/admins$');
 		await mapping.getByRole('tab', { name: en.sso_mapping_role }).click();
-		await mapping.getByLabel(en.sso_mapping_role, { exact: true }).selectOption('admin');
+		await choose(mapping.getByLabel(en.sso_mapping_role, { exact: true }), en.role_admin);
 		await mapping.getByRole('button', { name: en.settings_save }).click();
 		await expect(mapping).toBeHidden();
 		const { identityProviders: stored } = await rpc(page, 'werbot.v1.IdentityProviderService/ListIdentityProviders', {});

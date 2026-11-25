@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import en from '../messages/en.json' with { type: 'json' };
+import { choose } from './support/select';
 import { BOB, loginAsOwner, loginWithNext } from './support/auth';
 import { rpc } from './support/rpc';
 
@@ -25,7 +26,7 @@ test('member requests access, owner approves, lock is created and removed', asyn
 		await page.getByRole('button', { name: en.approvals_new }).click();
 		const policy = page.getByRole('dialog', { name: en.approvals_new });
 		await policy.getByLabel(en.approvals_name).fill('prod');
-		await policy.getByLabel(en.approvals_add_resource).selectOption({ label: 'e2e-jit' });
+		await choose(policy.getByLabel(en.approvals_add_resource), 'e2e-jit');
 		await policy.getByText(en.approvals_all_users).click();
 		await policy.getByRole('button', { name: en.approvals_create }).click();
 		await expect(policy).toHaveCount(0);
@@ -40,7 +41,7 @@ test('member requests access, owner approves, lock is created and removed', asyn
 		await bob.goto('/requests');
 		await bob.getByRole('button', { name: en.requests_new }).click();
 		const form = bob.getByRole('dialog', { name: en.requests_new });
-		await form.getByLabel(en.requests_resource).selectOption({ label: 'e2e-jit' });
+		await choose(form.getByLabel(en.requests_resource), 'e2e-jit');
 		await form.getByLabel(en.requests_duration).fill('2h');
 		await form.getByLabel(en.requests_reason).fill('deploy');
 		await form.getByRole('button', { name: en.requests_submit }).click();
@@ -77,7 +78,7 @@ test('member requests access, owner approves, lock is created and removed', asyn
 		await page.goto('/locks');
 		await page.getByRole('button', { name: en.locks_new }).click();
 		const lock = page.getByRole('dialog', { name: en.locks_new });
-		await lock.getByLabel(en.locks_target, { exact: true }).selectOption({ label: `${BOB.name} (${BOB.login})` });
+		await choose(lock.getByLabel(en.locks_target, { exact: true }), `${BOB.name} (${BOB.login})`);
 		await lock.getByLabel(en.locks_reason).fill('incident');
 		await lock.getByRole('button', { name: en.locks_new }).click();
 		const row = page.getByRole('row').filter({ hasText: 'incident' });

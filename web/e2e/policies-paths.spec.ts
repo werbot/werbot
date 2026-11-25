@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import en from '../messages/en.json' with { type: 'json' };
+import { choose } from './support/select';
 import { loginAsOwner } from './support/auth';
 import { rpc } from './support/rpc';
 
@@ -32,7 +33,7 @@ test('path rule template, test box paths, terminal rule, allowlist preset', asyn
 		await expect(drawer.getByText(en.policies_paths_home_hint)).toBeVisible();
 		await drawer.getByLabel(en.policies_paths_name).fill('work');
 		await drawer.getByText(en.policies_commands_all_users, { exact: true }).click();
-		await drawer.getByLabel(en.approvals_add_resource).selectOption({ label: 'e2e-paths' });
+		await choose(drawer.getByLabel(en.approvals_add_resource), 'e2e-paths');
 		await drawer.getByRole('button', { name: en.policies_paths_create }).click();
 		await expect(drawer).toHaveCount(0);
 		const row = page.getByRole('row').filter({ has: page.getByRole('button', { name: 'work', exact: true }) });
@@ -42,8 +43,8 @@ test('path rule template, test box paths, terminal rule, allowlist preset', asyn
 		// the test box shows the paths and the path rule outcome
 		await page.goto('/policies/commands');
 		const probe = page.locator('section').filter({ has: page.getByRole('heading', { name: en.policies_test_title }) });
-		await probe.getByLabel(en.policies_test_user).selectOption({ label: 'Owner (owner)' });
-		await probe.getByLabel(en.policies_test_resource).selectOption({ label: 'e2e-paths' });
+		await choose(probe.getByLabel(en.policies_test_user), 'Owner (owner)');
+		await choose(probe.getByLabel(en.policies_test_resource), 'e2e-paths');
 		await probe.getByLabel(en.policies_test_command).fill('cat /etc/hosts');
 		await probe.getByRole('button', { name: en.policies_test_run }).click();
 		const result = probe.getByTestId('test-result');
@@ -62,7 +63,7 @@ test('path rule template, test box paths, terminal rule, allowlist preset', asyn
 		const bad = page.getByRole('dialog', { name: en.policies_paths_new });
 		await bad.getByLabel(en.policies_paths_name).fill('bad');
 		await bad.getByText(en.policies_commands_all_users, { exact: true }).click();
-		await bad.getByLabel(en.approvals_add_resource).selectOption({ label: 'e2e-paths' });
+		await choose(bad.getByLabel(en.approvals_add_resource), 'e2e-paths');
 		await bad.getByLabel(en.policies_paths_paths, { exact: true }).fill('app/**');
 		await bad.getByRole('button', { name: en.policies_paths_create }).click();
 		await expect(page.getByText(/invalid path glob/)).toBeVisible();
@@ -74,7 +75,7 @@ test('path rule template, test box paths, terminal rule, allowlist preset', asyn
 		const term = page.getByRole('dialog', { name: en.policies_terminal_new });
 		await term.getByLabel(en.policies_terminal_name).fill('console-only');
 		await term.getByText(en.policies_commands_all_users, { exact: true }).click();
-		await term.getByLabel(en.approvals_add_resource).selectOption({ label: 'e2e-paths' });
+		await choose(term.getByLabel(en.approvals_add_resource), 'e2e-paths');
 		await term.getByRole('button', { name: en.policies_terminal_create }).click();
 		await expect(term).toHaveCount(0);
 		const trow = page.getByRole('row').filter({ hasText: 'console-only' });
