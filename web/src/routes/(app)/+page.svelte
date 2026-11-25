@@ -79,8 +79,6 @@
 	});
 </script>
 
-<div class="topbar"><span class="topbar__org">{m.nav_dashboard()}</span></div>
-
 <div class="scroll">
 <header class="head">
 	<p class="date">{date}</p>
@@ -103,19 +101,8 @@
 </div>
 
 <style>
-	.topbar {
-		display: flex;
-		align-items: center;
-		box-sizing: content-box;
-		height: 40px;
-		padding: 12px 32px;
-	}
-	.topbar__org {
-		font: var(--miso-font-ui-22-semi);
-		color: var(--miso-txt-accent);
-	}
 	.scroll {
-		padding: 0 32px 48px;
+		padding: 32px 32px 48px;
 	}
 	.head {
 		display: flex;
