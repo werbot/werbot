@@ -31,7 +31,8 @@ test('pool with two instances, join token and revocation', async ({ page, baseUR
 	await page.getByRole('link', { name: en.nav_access }).click();
 	await page.getByRole('link', { name: en.nav_gateways }).click();
 	await createPool(page, 'e2e-pool');
-	await page.getByRole('button', { name: 'e2e-pool', exact: true }).click();
+	// a click anywhere on the row, not only on the name, opens the pool
+	await poolRow(page, 'e2e-pool').getByRole('cell').nth(1).click();
 	const pool = page.getByRole('dialog', { name: 'e2e-pool', exact: true });
 
 	await page.getByRole('button', { name: en.gateways_token_create }).click();
@@ -116,6 +117,8 @@ test('pool with two instances, join token and revocation', async ({ page, baseUR
 
 async function deletePoolFromRow(page: Page, name: string) {
 	await poolRow(page, name).getByRole('button', { name: en.common_more }).click();
+	// the "…" menu opens without the pool drawer
+	await expect(page.getByRole('dialog', { name, exact: true })).toHaveCount(0);
 	await page.getByRole('menuitem', { name: en.gateways_delete }).click();
 	await page.getByRole('dialog', { name: en.gateways_delete, exact: true }).getByRole('button', { name: en.gateways_delete }).click();
 }
