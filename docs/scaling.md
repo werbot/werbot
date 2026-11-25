@@ -26,8 +26,29 @@ Redis and NATS are not needed. The default all-in-one mode (`werbot server`, one
 | `WERBOT_WEB_ADDR` (UI and API through `werbot web`, when the UI is separate) | L7, any `werbot web` replica | Terminate TLS on the balancer. Health check `GET /readyz` of web (it does not depend on the server). Put the balancer address in `WERBOT_TRUSTED_PROXIES` of web and the web subnet in `WERBOT_TRUSTED_PROXIES` of the server. |
 | `WERBOT_GATEWAY_ADDR` (gateway tunnel) | L4 TCP passthrough only | No TLS termination (mTLS ends on the replica) and no PROXY protocol. The external port must equal the port of `WERBOT_GATEWAY_ADDR`, because a gateway dials `https://<host of WERBOT_PUBLIC_URL>:<port of WERBOT_GATEWAY_ADDR>`. Long streams rebalance by themselves: a replica closes a stream after 30 minutes ±20% and the gateway reconnects at once without dropping SSH sessions. |
 | `WERBOT_GATEWAY_SSH_ADDR` (SSH to a pool) | L4 with PROXY protocol v2 | HAProxy `send-proxy-v2`, nginx `proxy_protocol on` or AWS NLB proxy protocol v2, plus `WERBOT_GATEWAY_PROXY_PROTOCOL=true` on the instances. Expose the port to the balancer only. Health check `GET /readyz` on `WERBOT_GATEWAY_HTTP_ADDR`. Without a balancer use DNS round-robin: all instances of a pool serve one host key. |
+| `WERBOT_GATEWAY_WS_ADDR` (SSH over WebSocket, optional) | L7, any instance of the pool | TLS on the balancer or on the gateway (`WERBOT_GATEWAY_WS_TLS_CERT`, `WERBOT_GATEWAY_WS_TLS_KEY`). Pass `Upgrade` and `Connection` and set `X-Forwarded-For`; put the balancer address in `WERBOT_GATEWAY_TRUSTED_PROXIES`. Health check `GET /readyz` on `WERBOT_GATEWAY_HTTP_ADDR`. See [gateway.md](gateway.md#websocket-input). |
 
 The L4 idle timeout of the balancer must be longer than `WERBOT_GATEWAY_IDLE_TIMEOUT` (default `5m`). The gateway ends idle sessions by itself; a shorter balancer timeout cuts them first and without the `idle_timeout` reason. It must also exceed the `idle_timeout` of a resource, which can be set up to 24 h. The example `nginx.cluster.conf` uses `proxy_timeout 1h`, which covers only resources with `idle_timeout` of 1 h or less; for longer ones raise `proxy_timeout` in the `stream` block (for example `25h`) and reload nginx.
+
+### WebSocket streams
+
+The web terminal and the live view use WebSockets on `/api/terminal` and `/api/sessions/<id>/live` ([web-terminal.md](web-terminal.md)). The L7 balancer in front of the server (or of `werbot web`) must:
+
+- pass `Upgrade` and `Connection` (nginx: `proxy_http_version 1.1;`, `proxy_set_header Upgrade $http_upgrade;`, `proxy_set_header Connection $connection_upgrade;` with `map $http_upgrade $connection_upgrade { default upgrade; '' close; }`);
+- keep an idle connection at least 60 seconds: the server pings every browser connection every 30 seconds (nginx: `proxy_read_timeout 1h;`, as in the example `nginx.cluster.conf`);
+- pass `Origin` and the session cookie unchanged. `Origin` must equal the origin of `WERBOT_WEB_URL`.
+
+Any replica may take the WebSocket; no sticky sessions are needed.
+
+### Internal listener
+
+When a browser lands on replica A and the gateway holds its tunnel on replica C, A bridges the stream to C over the internal listener.
+
+- `WERBOT_INTERNAL_ADDR` (default `:8444`) is an mTLS-only listener (TLS 1.3, HTTP/2). It accepts only client certificates that the internal CA issued to a registered replica. Keep it on the private network; it needs no balancer.
+- `WERBOT_INTERNAL_URL` is the address the other replicas dial. Its host is in the certificate of the listener, and it must resolve and be reachable from every replica. The default is `https://<os hostname>:<port>`. Replicas started by compose `deploy.replicas` report the container id as hostname; it resolves on a user-defined network, so the example works as is. Set the variable explicitly when the hostname does not resolve from the other replicas, and always on Kubernetes: use the pod IP, for example `https://$(POD_IP):8444`.
+- With one replica nothing crosses the network, and no replica-to-replica connectivity is needed.
+- Each replica holds at most 1000 streams (browser WebSockets plus bridges for other replicas). A browser whose own replica is full gets close code `4008`; when only the replica bridging the stream is full, the browser waits and gets `1011` (`error`) after 10 s.
+- PostgreSQL connections do not change: the signals use the existing `LISTEN` connection.
 
 The balancer also needs enough file descriptors for the sessions it relays (the example sets `worker_rlimit_nofile 65536` and `ulimits: { nofile: 65536 }`). Werbot v0.1.x has no per-IP limit for unauthenticated SSH connections: limit connections per source IP on the balancer or firewall ([security.md](security.md)).
 
@@ -70,6 +91,7 @@ A pool is a name in the UI and the `gateway_id` of a resource; its processes are
 - `GOMEMLIMIT` = 90% of the container memory limit (a 1 GiB limit gives `GOMEMLIMIT=920MiB`).
 - Open files: `ulimit -n` at least 4 × `WERBOT_GATEWAY_MAX_SESSIONS` (default 10000, so 40000) plus 32 × the expected UDP sessions (up to 32 sockets per UDP session). Go raises the soft limit to the hard limit, so the hard limit matters: compose `ulimits: { nofile: 65536 }`, systemd `LimitNOFILE=65536`.
 - Budgets checked by the load test: gateway instance RSS ≤ 200 MB + 256 KB × active sessions; server replica RSS ≤ 300 MB + 64 KB × tunnel streams; PostgreSQL connections per replica ≤ `pool_max_conns` + 2.
+- Known limit: the exec decision of a command (classifier, path rules, policy) costs time in proportion to the bindings. The p99 stays under 5 ms at 1 000 bindings (tested on every run of the gateway tests). At 10 000 bindings and 200 command rules it measures 8–11 ms p99 and 3–4 ms p50 (person and agent, development machine). Splitting the policies per resource is planned for phase 3; until then keep an organization under about 1 000 bindings if every command must decide in 5 ms.
 - The stand, method and results are in [test/load/README.md](../test/load/README.md) (Linux only, manual).
 
 ## Metrics
@@ -83,11 +105,15 @@ Prometheus text format, no histograms. The listeners are not published outside:
 | Metric | Process | Meaning |
 | --- | --- | --- |
 | `werbot_tunnel_streams` | server | Open gateway tunnel streams on this replica (gauge). |
+| `werbot_relay_streams` | server | Browser streams and bridges for other replicas held by this replica (gauge; limit 1000). |
+| `werbot_relay_rejected_total{reason}` | server | Browser streams refused by this replica; `reason` is `origin`, `limit`, `timeout`, `ticket` or `unavailable`. |
 | `werbot_snapshot_pushes_total` | server | Policy snapshots sent to gateways. |
 | `werbot_db_pool_acquired_conns` | server | Database pool connections in use (gauge). |
 | `werbot_db_pool_total_conns` | server | Database pool connections open (gauge). |
+| `werbot_user_certs_issued_total` | server | SSH user certificates issued to `werbot` CLI sessions. |
 | `werbot_gateway_sessions_active` | gateway | Sessions holding a `WERBOT_GATEWAY_MAX_SESSIONS` slot (gauge). |
 | `werbot_gateway_sessions_rejected_total{reason}` | gateway | Refused new sessions; `reason` is `busy`, `spool_full` or `not_ready`. |
+| `werbot_gateway_observer_drops_total` | gateway | Live view events an observer lost because it fell behind. |
 | `werbot_gateway_panics_total` | gateway | Connector panics recovered by the pipeline. |
 | `werbot_gateway_spool_bytes` | gateway | Unsent recording bytes in the spool (gauge). |
 | `werbot_gateway_tunnel_connected` | gateway | 1 while the tunnel stream is open and its latest snapshot compiled, else 0. |

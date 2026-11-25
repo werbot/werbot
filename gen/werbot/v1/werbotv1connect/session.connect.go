@@ -42,6 +42,9 @@ const (
 	// SessionServiceVerifyRecordingProcedure is the fully-qualified name of the SessionService's
 	// VerifyRecording RPC.
 	SessionServiceVerifyRecordingProcedure = "/werbot.v1.SessionService/VerifyRecording"
+	// SessionServiceTerminateSessionProcedure is the fully-qualified name of the SessionService's
+	// TerminateSession RPC.
+	SessionServiceTerminateSessionProcedure = "/werbot.v1.SessionService/TerminateSession"
 )
 
 // SessionServiceClient is a client for the werbot.v1.SessionService service.
@@ -50,6 +53,8 @@ type SessionServiceClient interface {
 	// GetSessionRequest/Response belong to AuthService, hence the service prefix.
 	GetSession(context.Context, *connect.Request[v1.SessionServiceGetSessionRequest]) (*connect.Response[v1.SessionServiceGetSessionResponse], error)
 	VerifyRecording(context.Context, *connect.Request[v1.VerifyRecordingRequest]) (*connect.Response[v1.VerifyRecordingResponse], error)
+	// Owner and admin terminate any session of the organization, a member only their own.
+	TerminateSession(context.Context, *connect.Request[v1.TerminateSessionRequest]) (*connect.Response[v1.TerminateSessionResponse], error)
 }
 
 // NewSessionServiceClient constructs a client for the werbot.v1.SessionService service. By default,
@@ -81,14 +86,21 @@ func NewSessionServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(sessionServiceMethods.ByName("VerifyRecording")),
 			connect.WithClientOptions(opts...),
 		),
+		terminateSession: connect.NewClient[v1.TerminateSessionRequest, v1.TerminateSessionResponse](
+			httpClient,
+			baseURL+SessionServiceTerminateSessionProcedure,
+			connect.WithSchema(sessionServiceMethods.ByName("TerminateSession")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // sessionServiceClient implements SessionServiceClient.
 type sessionServiceClient struct {
-	listSessions    *connect.Client[v1.ListSessionsRequest, v1.ListSessionsResponse]
-	getSession      *connect.Client[v1.SessionServiceGetSessionRequest, v1.SessionServiceGetSessionResponse]
-	verifyRecording *connect.Client[v1.VerifyRecordingRequest, v1.VerifyRecordingResponse]
+	listSessions     *connect.Client[v1.ListSessionsRequest, v1.ListSessionsResponse]
+	getSession       *connect.Client[v1.SessionServiceGetSessionRequest, v1.SessionServiceGetSessionResponse]
+	verifyRecording  *connect.Client[v1.VerifyRecordingRequest, v1.VerifyRecordingResponse]
+	terminateSession *connect.Client[v1.TerminateSessionRequest, v1.TerminateSessionResponse]
 }
 
 // ListSessions calls werbot.v1.SessionService.ListSessions.
@@ -106,12 +118,19 @@ func (c *sessionServiceClient) VerifyRecording(ctx context.Context, req *connect
 	return c.verifyRecording.CallUnary(ctx, req)
 }
 
+// TerminateSession calls werbot.v1.SessionService.TerminateSession.
+func (c *sessionServiceClient) TerminateSession(ctx context.Context, req *connect.Request[v1.TerminateSessionRequest]) (*connect.Response[v1.TerminateSessionResponse], error) {
+	return c.terminateSession.CallUnary(ctx, req)
+}
+
 // SessionServiceHandler is an implementation of the werbot.v1.SessionService service.
 type SessionServiceHandler interface {
 	ListSessions(context.Context, *connect.Request[v1.ListSessionsRequest]) (*connect.Response[v1.ListSessionsResponse], error)
 	// GetSessionRequest/Response belong to AuthService, hence the service prefix.
 	GetSession(context.Context, *connect.Request[v1.SessionServiceGetSessionRequest]) (*connect.Response[v1.SessionServiceGetSessionResponse], error)
 	VerifyRecording(context.Context, *connect.Request[v1.VerifyRecordingRequest]) (*connect.Response[v1.VerifyRecordingResponse], error)
+	// Owner and admin terminate any session of the organization, a member only their own.
+	TerminateSession(context.Context, *connect.Request[v1.TerminateSessionRequest]) (*connect.Response[v1.TerminateSessionResponse], error)
 }
 
 // NewSessionServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -139,6 +158,12 @@ func NewSessionServiceHandler(svc SessionServiceHandler, opts ...connect.Handler
 		connect.WithSchema(sessionServiceMethods.ByName("VerifyRecording")),
 		connect.WithHandlerOptions(opts...),
 	)
+	sessionServiceTerminateSessionHandler := connect.NewUnaryHandler(
+		SessionServiceTerminateSessionProcedure,
+		svc.TerminateSession,
+		connect.WithSchema(sessionServiceMethods.ByName("TerminateSession")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/werbot.v1.SessionService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case SessionServiceListSessionsProcedure:
@@ -147,6 +172,8 @@ func NewSessionServiceHandler(svc SessionServiceHandler, opts ...connect.Handler
 			sessionServiceGetSessionHandler.ServeHTTP(w, r)
 		case SessionServiceVerifyRecordingProcedure:
 			sessionServiceVerifyRecordingHandler.ServeHTTP(w, r)
+		case SessionServiceTerminateSessionProcedure:
+			sessionServiceTerminateSessionHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -166,4 +193,8 @@ func (UnimplementedSessionServiceHandler) GetSession(context.Context, *connect.R
 
 func (UnimplementedSessionServiceHandler) VerifyRecording(context.Context, *connect.Request[v1.VerifyRecordingRequest]) (*connect.Response[v1.VerifyRecordingResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.SessionService.VerifyRecording is not implemented"))
+}
+
+func (UnimplementedSessionServiceHandler) TerminateSession(context.Context, *connect.Request[v1.TerminateSessionRequest]) (*connect.Response[v1.TerminateSessionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.SessionService.TerminateSession is not implemented"))
 }

@@ -1,6 +1,7 @@
 package connectcli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -16,6 +17,20 @@ import (
 
 // errHostKeyMismatch is a gateway host key unlike the one in known_hosts.
 var errHostKeyMismatch = errors.New("host key mismatch")
+
+// auth is cfg.Signer when set, else authMethod of cfg.Identity.
+func (c Config) auth(ctx context.Context) (ssh.AuthMethod, func(), error) {
+	if c.Signer == nil {
+		return authMethod(c.Identity)
+	}
+	return ssh.PublicKeysCallback(func() ([]ssh.Signer, error) {
+		s, err := c.Signer(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return []ssh.Signer{s}, nil
+	}), func() {}, nil
+}
 
 // authMethod is the key in identity, else the ssh-agent at SSH_AUTH_SOCK if it
 // answers, else ~/.ssh/id_ed25519. The agent is only signed with, never forwarded. The closer

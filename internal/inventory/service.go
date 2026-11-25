@@ -41,11 +41,13 @@ func audit(ctx context.Context, tx pgx.Tx, orgID uuid.UUID, action string, id uu
 }
 
 // notFound maps no rows and a foreign-key miss (resource of another org) to ErrNotFound,
-// a duplicate name to ErrAlreadyExists, a pool outside the org to ErrInvalidArgument.
+// a duplicate name to ErrAlreadyExists, a pool or preset outside the org to ErrInvalidArgument.
 func notFound(err error) error {
 	switch {
 	case isConstraintViolation(err, "resource_gateway_fk"):
 		return invalid("gateway not found")
+	case isConstraintViolation(err, "resource_preset_fk"):
+		return invalid("preset not found")
 	case errors.Is(err, pgx.ErrNoRows), isForeignKeyViolation(err):
 		return fmt.Errorf("resource not found: %w", apperr.ErrNotFound)
 	case isUniqueViolation(err):
@@ -125,7 +127,7 @@ func (s *Service) Create(ctx context.Context, orgID uuid.UUID, in CreateInput) (
 			return err
 		}
 		id, err := st.CreateResource(ctx, dbq.CreateResourceParams{
-			OrgID: orgID, Name: in.Name, Type: t.Name, Category: string(t.Category), GatewayID: gw, Config: cfg,
+			OrgID: orgID, Name: in.Name, Type: t.Name, Category: string(t.Category), GatewayID: gw, Config: cfg, PresetID: in.PresetID,
 			IdleSecs: idleSecs, MaxSecs: maxSecs})
 		if err != nil {
 			return err

@@ -63,6 +63,7 @@ func TestReadyz(t *testing.T) {
 // serveEnv runs serve against a fake enrollment server and a fake tunnel.
 type serveEnv struct {
 	tun     *fakeTunnel
+	ws      net.Listener // the WebSocket input; nil: off
 	sshAddr string
 	httpURL string
 	key     gossh.Signer
@@ -74,30 +75,29 @@ type serveEnv struct {
 }
 
 // newServeEnv starts serve; opts adjust the fakes before it starts.
-func newServeEnv(t *testing.T, drain time.Duration, opts ...func(*fakeEnroll, *fakeTunnel)) *serveEnv {
+func newServeEnv(t *testing.T, drain time.Duration, opts ...func(*fakeEnroll, *fakeTunnel, *Config)) *serveEnv {
 	t.Helper()
 	enr, esrv := newFake(t)
 	m := ids{"u1": testUserID, "rblocker": uuid.New()}
 	snap := testSnapshot(t, m, `permit (principal == Werbot::User::"u1", action, resource);`, nil, res{"rblocker", "ready", "blocker"})
 	tun, tunnelURL := serveFakeTunnel(t, enr.ca, func(int) attempt { return attempt{snap: snap} })
+	cfg := Config{ServerURL: esrv.URL, JoinToken: testToken(enr.ca.Fingerprint()), DataDir: t.TempDir(), Name: "gw",
+		TunnelURL: tunnelURL, MaxSessions: 10, DrainTimeout: drain}
 	for _, o := range opts {
-		o(enr, tun)
+		o(enr, tun, &cfg)
 	}
 	host, err := gossh.ParsePrivateKey(enr.hostKey)
 	require.NoError(t, err)
-	e := &serveEnv{tun: tun, key: newKey(t), host: host.PublicKey()}
+	wsLn, err := listenWS(cfg) // nil unless an option set WSAddr
+	require.NoError(t, err)
+	e := &serveEnv{tun: tun, ws: wsLn, key: newKey(t), host: host.PublicKey()}
 	tun.with(func(f *fakeTunnel) { f.fp = fp(e.key) })
 
-	sshLn, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
-	httpLn, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
+	sshLn, httpLn := listenLocal(t), listenLocal(t)
 	e.sshAddr, e.httpURL = sshLn.Addr().String(), "http://"+httpLn.Addr().String()
-	cfg := Config{ServerURL: esrv.URL, JoinToken: testToken(enr.ca.Fingerprint()), DataDir: t.TempDir(), Name: "gw",
-		TunnelURL: tunnelURL, MaxSessions: 10, DrainTimeout: drain}
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
-	go func() { done <- serve(ctx, cfg, sshLn, httpLn, slog.New(slog.DiscardHandler)) }()
+	go func() { done <- serve(ctx, cfg, sshLn, httpLn, wsLn, slog.New(slog.DiscardHandler)) }()
 	e.cancel = cancel
 	e.wait = sync.OnceValue(func() error {
 		select {
@@ -249,7 +249,7 @@ func TestServeRecordsSessions(t *testing.T) {
 // process exits (standalone) or enrolls again (embedded) instead of retrying forever.
 func TestServeReturnsWhenCertExpires(t *testing.T) {
 	const ttl = 2 * time.Second
-	e := newServeEnv(t, 50*time.Millisecond, func(enr *fakeEnroll, tun *fakeTunnel) {
+	e := newServeEnv(t, 50*time.Millisecond, func(enr *fakeEnroll, tun *fakeTunnel, _ *Config) {
 		enr.ttl = ttl
 		tun.renewErr = connect.NewError(connect.CodeUnavailable, errors.New("down"))
 	})

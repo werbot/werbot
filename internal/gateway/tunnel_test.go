@@ -156,8 +156,8 @@ func TestTunnelSkipsSameVersion(t *testing.T) {
 	p := e.c.Policy()
 	<-e.c.PolicyChanged() // the first snapshot
 
-	e.f.push <- &gatewayv1.Snapshot{Version: "v1", CedarPolicies: "garbage ((("}
-	e.f.push <- testSnap("v2")
+	e.f.push <- snapMsg(&gatewayv1.Snapshot{Version: "v1", CedarPolicies: "garbage ((("})
+	e.f.push <- snapMsg(testSnap("v2"))
 	require.Eventually(t, func() bool { return e.c.Policy() != p }, 2*time.Second, time.Millisecond)
 	require.Equal(t, "v2", e.c.Policy().Version())
 	require.NotContains(t, e.log.String(), "compile")
@@ -176,14 +176,14 @@ func TestTunnelBrokenSnapshotNotReady(t *testing.T) {
 	p := e.c.Policy()
 
 	// a revoke the gateway cannot compile: keep v1 for active sessions, refuse new ones
-	e.f.push <- &gatewayv1.Snapshot{Version: "v3", CedarPolicies: "garbage ((("}
+	e.f.push <- snapMsg(&gatewayv1.Snapshot{Version: "v3", CedarPolicies: "garbage ((("})
 	require.Eventually(t, func() bool { return !e.c.Connected() }, 2*time.Second, time.Millisecond)
 	require.Contains(t, e.log.String(), "compile")
 	require.Contains(t, e.metrics(t), "werbot_gateway_tunnel_connected 0")
 	require.Same(t, p, e.c.Policy())
 	require.Equal(t, "v1", e.c.Policy().Version())
 
-	e.f.push <- testSnap("v4")
+	e.f.push <- snapMsg(testSnap("v4"))
 	require.Eventually(t, e.c.Connected, 2*time.Second, time.Millisecond)
 	require.Equal(t, "v4", e.c.Policy().Version())
 	require.Contains(t, e.metrics(t), "werbot_gateway_tunnel_connected 1")
@@ -257,4 +257,28 @@ func TestTunnelStopsOnExpiredCert(t *testing.T) {
 	case <-time.After(3 * time.Second):
 		t.Fatal("Run did not return after the certificate expired")
 	}
+}
+
+// DisconnectedSince is the start time before the first stream, zero while
+// connected, and the time of the loss after a snapshot that does not compile
+// or a broken stream; a compiled snapshot resets it.
+func TestTunnelDisconnectedSince(t *testing.T) {
+	before := time.Now()
+	e := newTunnelEnv(t, nil, time.Hour)
+	e.c.backoffMin = time.Hour // no reconnect after the break
+	require.False(t, e.c.DisconnectedSince().Before(before), "the start time")
+	e.run(t, nil)
+	require.Eventually(t, func() bool { return e.c.Connected() && e.c.DisconnectedSince().IsZero() }, 2*time.Second, time.Millisecond)
+
+	lost := time.Now()
+	e.f.push <- snapMsg(&gatewayv1.Snapshot{Version: "bad", CedarPolicies: "garbage ((("})
+	require.Eventually(t, func() bool { return !e.c.DisconnectedSince().IsZero() }, 2*time.Second, time.Millisecond)
+	require.False(t, e.c.DisconnectedSince().Before(lost))
+	e.f.push <- snapMsg(testSnap("v2"))
+	require.Eventually(t, func() bool { return e.c.DisconnectedSince().IsZero() }, 2*time.Second, time.Millisecond)
+
+	lost = time.Now()
+	e.f.kill <- connect.NewError(connect.CodeInternal, errors.New("boom"))
+	require.Eventually(t, func() bool { return !e.c.DisconnectedSince().IsZero() }, 2*time.Second, time.Millisecond)
+	require.False(t, e.c.DisconnectedSince().Before(lost))
 }

@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file werbot/connector/ssh/v1/ssh.proto.
  */
 export const file_werbot_connector_ssh_v1_ssh: GenFile = /*@__PURE__*/
-  fileDesc("CiF3ZXJib3QvY29ubmVjdG9yL3NzaC92MS9zc2gucHJvdG8SF3dlcmJvdC5jb25uZWN0b3Iuc3NoLnYxIkwKBkNvbmZpZxIMCgRob3N0GAEgASgJEgwKBHBvcnQYAiABKA0SDQoFbG9naW4YAyABKAkSFwoPcG9ydF9mb3J3YXJkaW5nGAQgASgIQuIBChtjb20ud2VyYm90LmNvbm5lY3Rvci5zc2gudjFCCFNzaFByb3RvUAFaOmdpdGh1Yi5jb20vd2VyYm90L3dlcmJvdC9nZW4vd2VyYm90L2Nvbm5lY3Rvci9zc2gvdjE7c3NodjGiAgNXQ1OqAhdXZXJib3QuQ29ubmVjdG9yLlNzaC5WMcoCF1dlcmJvdFxDb25uZWN0b3JcU3NoXFYx4gIjV2VyYm90XENvbm5lY3RvclxTc2hcVjFcR1BCTWV0YWRhdGHqAhpXZXJib3Q6OkNvbm5lY3Rvcjo6U3NoOjpWMWIGcHJvdG8z");
+  fileDesc("CiF3ZXJib3QvY29ubmVjdG9yL3NzaC92MS9zc2gucHJvdG8SF3dlcmJvdC5jb25uZWN0b3Iuc3NoLnYxImcKBkNvbmZpZxIMCgRob3N0GAEgASgJEgwKBHBvcnQYAiABKA0SDQoFbG9naW4YAyABKAkSFwoPcG9ydF9mb3J3YXJkaW5nGAQgASgIEhkKEXJlbW90ZV9mb3J3YXJkaW5nGAUgASgIQuIBChtjb20ud2VyYm90LmNvbm5lY3Rvci5zc2gudjFCCFNzaFByb3RvUAFaOmdpdGh1Yi5jb20vd2VyYm90L3dlcmJvdC9nZW4vd2VyYm90L2Nvbm5lY3Rvci9zc2gvdjE7c3NodjGiAgNXQ1OqAhdXZXJib3QuQ29ubmVjdG9yLlNzaC5WMcoCF1dlcmJvdFxDb25uZWN0b3JcU3NoXFYx4gIjV2VyYm90XENvbm5lY3RvclxTc2hcVjFcR1BCTWV0YWRhdGHqAhpXZXJib3Q6OkNvbm5lY3Rvcjo6U3NoOjpWMWIGcHJvdG8z");
 
 /**
  * @generated from message werbot.connector.ssh.v1.Config
@@ -39,6 +39,13 @@ export type Config = Message<"werbot.connector.ssh.v1.Config"> & {
    * @generated from field: bool port_forwarding = 4;
    */
   portForwarding: boolean;
+
+  /**
+   * allow remote forwards (ssh -R) on the target's loopback
+   *
+   * @generated from field: bool remote_forwarding = 5;
+   */
+  remoteForwarding: boolean;
 };
 
 /**

@@ -1,6 +1,7 @@
 package identity
 
 import (
+	"cmp"
 	"context"
 	"errors"
 
@@ -11,44 +12,46 @@ import (
 	"github.com/werbot/werbot/internal/platform/principal"
 )
 
-// Login checks email and password and opens a session in the user's first
-// organization. Unknown email, wrong password and no membership all return
-// errInvalidCredentials; the password is verified in every case.
-func (s *Service) Login(ctx context.Context, email, password, userAgent string) (string, error) {
-	var u dbq.GetLoginUserRow
-	err := dbx.System(ctx, s.pool, dbx.ReasonLogin, func(tx pgx.Tx) error {
-		var err error
-		u, err = newStore(tx).GetLoginUser(ctx, normalizeEmail(email))
-		return err
-	})
-	found := err == nil
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		return "", err
+// Login checks email and password in the user's first organization. A user
+// without a second factor gets a session (LoginResult.Token); a user with one
+// gets an mfa_token for CompleteMFA and no session. Unknown email, wrong
+// password, a user without a password and no membership all return
+// errInvalidCredentials; the password
+// is verified in every case. Past the login rate limit it returns
+// apperr.ErrResourceExhausted before the check.
+func (s *Service) Login(ctx context.Context, email, password, userAgent string) (LoginResult, error) {
+	u, found, err := s.loginUser(ctx, normalizeEmail(email))
+	if err != nil {
+		return LoginResult{}, err
 	}
 	// argon2 runs outside the transaction: no pooled connection waits on it.
-	hash := dummyHash
-	if found {
-		hash = u.PasswordHash
-	}
-	ok, err := verifyPassword(ctx, hash, password)
+	// An unknown email and a user without a password (created by an IdP)
+	// cost the same work as a wrong password.
+	ok, err := verifyPassword(ctx, cmp.Or(u.PasswordHash, dummyHash), password)
 	if err != nil {
-		return "", err
+		return LoginResult{}, err
 	}
-	if !found || !ok || u.OrgID == nil {
-		return "", errInvalidCredentials
+	if !found || !ok || u.PasswordHash == "" || u.OrgID == nil {
+		return LoginResult{}, errInvalidCredentials
 	}
-	var token string
+	return s.finishLogin(ctx, u.ID, *u.OrgID, userAgent)
+}
+
+// loginUser counts the attempt and finds the user of email; found is false
+// for an unknown email.
+func (s *Service) loginUser(ctx context.Context, email string) (u dbq.GetLoginUserRow, found bool, err error) {
+	if err := s.limitLogin(ctx, email); err != nil {
+		return u, false, err
+	}
 	err = dbx.System(ctx, s.pool, dbx.ReasonLogin, func(tx pgx.Tx) error {
 		var err error
-		if token, err = s.createSession(ctx, newStore(tx), u.ID, *u.OrgID, userAgent); err != nil {
-			return err
-		}
-		return writeAudit(ctx, tx, "auth.login", *u.OrgID, u.ID)
+		u, err = newStore(tx).GetLoginUser(ctx, email)
+		return err
 	})
-	if err != nil {
-		return "", err
+	if errors.Is(err, pgx.ErrNoRows) {
+		return u, false, nil
 	}
-	return token, nil
+	return u, err == nil, err
 }
 
 // Logout deletes the caller's session.

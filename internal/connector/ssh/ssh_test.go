@@ -15,7 +15,13 @@ func TestSSHRegistered(t *testing.T) {
 	ty, ok := connector.Lookup("ssh")
 	require.True(t, ok)
 	assert.Equal(t, connector.CategoryServers, ty.Category)
-	assert.Equal(t, []string{"ssh.connect"}, ty.Actions)
+	assert.Equal(t, []string{"ssh.connect", "ssh.exec", "ssh.shell", "ssh.remote_forward"}, ty.Actions, "connect first: CheckAccess uses Actions[0]")
+	a, ok := ty.ExecAction()
+	assert.True(t, ok)
+	assert.Equal(t, "ssh.exec", a)
+	a, ok = ty.ShellAction()
+	assert.True(t, ok)
+	assert.Equal(t, "ssh.shell", a)
 	assert.Equal(t, []connector.CredentialKind{connector.CredentialPassword, connector.CredentialPrivateKey}, ty.Credentials)
 	assert.Equal(t, "L2", ty.Level)
 	assert.Equal(t, []connector.Kind{connector.KindTerminal, connector.KindExec, connector.KindStream}, ty.Kinds)
@@ -54,6 +60,19 @@ func TestSSHEndpointAndRecorded(t *testing.T) {
 	assert.True(t, e.AnyTarget)
 	assert.False(t, e.NoTarget)
 	assert.Equal(t, []connector.PortRange{{Port: 2200}}, e.Ports)
+}
+
+func TestSSHRemoteForwarding(t *testing.T) {
+	ty, _ := connector.Lookup("ssh")
+	e, _, err := ty.EndpointOf([]byte(`{"host":"h","login":"u"}`))
+	require.NoError(t, err)
+	assert.False(t, e.RemoteForward, "off by default")
+
+	e, _, err = ty.EndpointOf([]byte(`{"host":"h","login":"u","remoteForwarding":true}`))
+	require.NoError(t, err)
+	assert.True(t, e.RemoteForward)
+	assert.True(t, e.NoTarget, "a remote forward opens no stream target")
+	assert.Contains(t, ty.Actions, "ssh.remote_forward")
 }
 
 func TestSSHEndpointDefaultsPortWithoutValidate(t *testing.T) {

@@ -1,0 +1,19 @@
+/* Werbot gold, same values as web/src/lib/theme.css (--wb-brand-*, --wb-on-brand). */
+:root {
+	--sl-color-accent-low: #fdf6de;
+	--sl-color-accent: #f6c90c;
+	--sl-color-accent-high: #92400e;
+	--sl-color-text-accent: #b45309;
+}
+:root[data-theme='dark'] {
+	--sl-color-accent-low: #3a2e04;
+	--sl-color-accent: #f6c90c;
+	--sl-color-accent-high: #fae08f;
+	--sl-color-text-accent: #f6c90c;
+}
+/* Gold fill with dark text in both themes (--wb-on-brand). */
+.sl-link-button.primary {
+	background-color: #f6c90c;
+	border-color: #f6c90c;
+	color: #231f20;
+}

@@ -1,6 +1,7 @@
 package identity
 
 import (
+	"cmp"
 	"context"
 	"crypto/rand"
 	"crypto/subtle"
@@ -35,7 +36,7 @@ var dummyHash = encodeHash(make([]byte, argonSaltLen), make([]byte, argonKeyLen)
 // argonSlots bounds concurrent argon2 runs: each allocates its memory
 // parameter (64 MiB), so public Login cannot exhaust the process memory.
 // ponytail: per-process cap of GOMAXPROCS runs (~GOMAXPROCS × 64 MiB); callers
-// queue on it. Rate limiting of Login and RequestPasswordReset is a later stage.
+// queue on it. Login is also rate limited per IP and email (ratelimit.go).
 var argonSlots = make(chan struct{}, runtime.GOMAXPROCS(0))
 
 // argonKey is argon2.IDKey run in a free slot; it gives up with ctx.Err()
@@ -96,8 +97,12 @@ func verifyPassword(ctx context.Context, encoded, pw string) (bool, error) {
 }
 
 // checkCurrentPassword verifies a password the user re-enters to confirm a
-// change: a mismatch is ErrInvalidArgument.
+// change: a mismatch is ErrInvalidArgument, a user without a password
+// (created by an IdP) is ErrFailedPrecondition.
 func checkCurrentPassword(ctx context.Context, hash, pw string) error {
+	if hash == "" {
+		return fmt.Errorf("the account has no password, sign in with the identity provider: %w", apperr.ErrFailedPrecondition)
+	}
 	ok, err := verifyPassword(ctx, hash, pw)
 	if err != nil {
 		return err
@@ -106,6 +111,16 @@ func checkCurrentPassword(ctx context.Context, hash, pw string) error {
 		return fmt.Errorf("current password is wrong: %w", apperr.ErrInvalidArgument)
 	}
 	return nil
+}
+
+// inviteePassword checks password against hash: a user without a password
+// (IdP-provisioned) answers errInvalidCredentials at the same cost, as Login.
+func inviteePassword(ctx context.Context, hash, password string) error {
+	ok, err := verifyPassword(ctx, cmp.Or(hash, dummyHash), password)
+	if err == nil && (!ok || hash == "") {
+		err = errInvalidCredentials
+	}
+	return err
 }
 
 // loginPattern is the users.login CHECK (migrations/00003_users.sql).

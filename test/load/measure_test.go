@@ -24,19 +24,20 @@ import (
 // session with 32 flows takes about 512 KiB (stage 6b), the L1 mix uses one flow per binding.
 func gatewayBudget(active int64) int64 { return 200_000_000 + 256_000*active }
 
-// serverBudget is the RSS budget of a server replica (10 §10.1).
+// serverBudget is the RSS budget of a server replica (10 §10.1); streams are
+// the tunnel streams plus the relay streams (browsers and bridges).
 func serverBudget(streams int64) int64 { return 300_000_000 + 64_000*streams }
 
 // sampled are the services of every sample: gateways report werbot_gateway_sessions_active
-// on :9090, server replicas werbot_tunnel_streams on :9100.
+// on :9090, server replicas werbot_tunnel_streams plus werbot_relay_streams on :9100.
 var sampled = []struct {
-	service, metric string
-	port            int
+	service, metric, plus string
+	port                  int
 }{
-	{"gw1", "werbot_gateway_sessions_active", 9090},
-	{"gw2", "werbot_gateway_sessions_active", 9090},
-	{"server1", "werbot_tunnel_streams", 9100},
-	{"server2", "werbot_tunnel_streams", 9100},
+	{"gw1", "werbot_gateway_sessions_active", "", 9090},
+	{"gw2", "werbot_gateway_sessions_active", "", 9090},
+	{"server1", "werbot_tunnel_streams", "werbot_relay_streams", 9100},
+	{"server2", "werbot_tunnel_streams", "werbot_relay_streams", 9100},
 }
 
 // sample is one moment of the stand. A service missing from a map could not be
@@ -76,10 +77,10 @@ func parseVMRSS(r io.Reader) (int64, error) {
 	return 0, fmt.Errorf("no VmRSS")
 }
 
-// sampleEvery reads the stand every interval until ctx ends, then sends all
+// sampleEvery reads the stand every sampleInterval until ctx ends, then sends all
 // samples and closes the channel. PIDs and addresses are resolved once, now:
 // a service killed later drops out of the samples instead of failing them.
-func sampleEvery(ctx context.Context, t testing.TB, st *cluster.Stand, every time.Duration) <-chan []sample {
+func sampleEvery(ctx context.Context, t testing.TB, st *cluster.Stand) <-chan []sample {
 	t.Helper()
 	pids, addrs := map[string]int{}, map[string]string{}
 	for _, s := range sampled {
@@ -90,7 +91,7 @@ func sampleEvery(ctx context.Context, t testing.TB, st *cluster.Stand, every tim
 	go func() {
 		defer close(out)
 		var all []sample
-		tick := time.NewTicker(every)
+		tick := time.NewTicker(sampleInterval)
 		defer tick.Stop()
 		for {
 			all = append(all, takeSample(ctx, st, pids, addrs))
@@ -112,7 +113,7 @@ func takeSample(ctx context.Context, st *cluster.Stand, pids map[string]int, add
 		if err != nil {
 			continue
 		}
-		active, err := cluster.ReadMetric(addrs[svc.service], svc.metric)
+		active, err := readActive(addrs[svc.service], svc.metric, svc.plus)
 		if err != nil {
 			continue
 		}
@@ -135,6 +136,16 @@ func takeSample(ctx context.Context, st *cluster.Stand, pids map[string]int, add
 		}
 	}
 	return s
+}
+
+// readActive reads metric at addr and adds the metric plus when it is set.
+func readActive(addr, metric, plus string) (int64, error) {
+	active, err := cluster.ReadMetric(addr, metric)
+	if err != nil || plus == "" {
+		return active, err
+	}
+	extra, err := cluster.ReadMetric(addr, plus)
+	return active + extra, err
 }
 
 // p99 is the nearest-rank 99th percentile: sorted[ceil(0.99*n) - 1]; 0 for no values.

@@ -22,6 +22,8 @@ const (
 	QueueFeeds = "feeds"
 	// QueueMaintenance runs housekeeping such as gateway.gc.
 	QueueMaintenance = "maintenance"
+	// QueueIdP runs idp.recheck; a slow identity provider cannot occupy other queues' workers.
+	QueueIdP = "idp" //nolint:revive // name fixed by contract §1.2 (stage 14)
 )
 
 // queues is the only place for MaxWorkers.
@@ -30,6 +32,7 @@ var queues = map[string]river.QueueConfig{
 	QueueEmail:       {MaxWorkers: 2},
 	QueueFeeds:       {MaxWorkers: 1},
 	QueueMaintenance: {MaxWorkers: 2},
+	QueueIdP:         {MaxWorkers: 2},
 }
 
 // Migrate applies the River schema. Call it only from bootstrap under

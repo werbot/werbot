@@ -1,0 +1,37 @@
+// Package oauth is the OAuth 2.0 authorization server of werbot server for the
+// CLI (zitadel/oidc op). Its state lives only in Postgres, so any replica
+// serves any step of a flow.
+package oauth
+
+import (
+	"context"
+	"time"
+
+	"github.com/google/uuid"
+)
+
+const (
+	// ClientCLI is the only client: the public, native werbot CLI.
+	ClientCLI = "werbot-cli"
+	// AccessTokenTTL is the lifetime of access and ID tokens.
+	AccessTokenTTL = 10 * time.Minute
+	// Audience is the aud of every access token but an agent profile's.
+	Audience = "werbot-api"
+	// AudienceAgentExchange is the aud of an agent profile's access token:
+	// VerifyAccessToken refuses it, only the token exchange takes it.
+	AudienceAgentExchange = "werbot-agent-exchange"
+)
+
+// Config configures the authorization server.
+type Config struct {
+	Issuer string // WERBOT_PUBLIC_URL: iss of every token; an http issuer is allowed (insecure, see docs/security.md)
+	WebURL string // WERBOT_WEB_URL: consent and device pages
+	// IdPCheck asks the IdPs of userID in orgID before a refresh token
+	// rotates; an error refuses the renewal with invalid_grant. nil: no check.
+	IdPCheck func(ctx context.Context, orgID, userID uuid.UUID) error //nolint:revive // name fixed by contract §3.1
+}
+
+// Users reports a user's role in an organization (*identity.Service).
+type Users interface {
+	Membership(ctx context.Context, orgID, userID uuid.UUID) (role string, err error)
+}

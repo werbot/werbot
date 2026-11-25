@@ -2,13 +2,17 @@ package dbtest
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base32"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/werbot/werbot/internal/platform/principal"
+	"github.com/werbot/werbot/internal/platform/secretbox"
 )
 
 func insertID(t testing.TB, pool *pgxpool.Pool, sql string, args ...any) uuid.UUID {
@@ -27,10 +31,12 @@ func exec(t testing.TB, pool *pgxpool.Pool, sql string, args ...any) {
 	}
 }
 
-// Org inserts an organization.
+// Org inserts an organization with its default settings row.
 func Org(t testing.TB, pool *pgxpool.Pool) uuid.UUID {
 	t.Helper()
-	return insertID(t, pool, "INSERT INTO organization (name) VALUES ('test') RETURNING id")
+	return insertID(t, pool, `WITH o AS (INSERT INTO organization (name) VALUES ('test') RETURNING id),
+		s AS (INSERT INTO org_setting (org_id) SELECT id FROM o)
+		SELECT id FROM o`)
 }
 
 // User inserts a user and its membership in orgID with the given role.
@@ -120,6 +126,13 @@ func (f Fixture) StartSession(t testing.TB, pool *pgxpool.Pool, userID uuid.UUID
 		f.OrgID, userID, f.ResourceID, f.GatewayID, f.InstanceID)
 }
 
+// OnlineInstance marks instanceID seen now, serving the given connector types.
+func (f Fixture) OnlineInstance(t testing.TB, pool *pgxpool.Pool, instanceID uuid.UUID, connectors ...string) {
+	t.Helper()
+	exec(t, pool, "UPDATE gateway_instance SET last_seen_at = now(), connectors = $3 WHERE id = $1 AND org_id = $2",
+		instanceID, f.OrgID, append([]string{}, connectors...))
+}
+
 // Principal returns userID acting in OrgID with its seeded role.
 func (f Fixture) Principal(userID uuid.UUID) principal.Principal {
 	role := principal.RoleMember
@@ -130,4 +143,83 @@ func (f Fixture) Principal(userID uuid.UUID) principal.Principal {
 		role = principal.RoleAdmin
 	}
 	return principal.Principal{UserID: userID, OrgID: f.OrgID, Role: role}
+}
+
+// ApprovalPolicy inserts a policy of OrgID; selector, requesters and approvers are jsonb texts.
+func (f Fixture) ApprovalPolicy(t testing.TB, pool *pgxpool.Pool, name, mode, selector, requesters, approvers string) uuid.UUID {
+	t.Helper()
+	return insertID(t, pool,
+		`INSERT INTO approval_policy (org_id, name, mode, resource_selector, requesters, approvers)
+		 VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6::jsonb) RETURNING id`,
+		f.OrgID, name, mode, selector, requesters, approvers)
+}
+
+// Grant inserts a grant of resourceID to userID that expires after ttl (a negative ttl gives an expired grant).
+func (f Fixture) Grant(t testing.TB, pool *pgxpool.Pool, userID, resourceID uuid.UUID, ttl time.Duration) uuid.UUID {
+	t.Helper()
+	return insertID(t, pool,
+		`INSERT INTO access_grant (org_id, user_id, resource_id, expires_at)
+		 VALUES ($1, $2, $3, now() + make_interval(secs => $4::float8)) RETURNING id`,
+		f.OrgID, userID, resourceID, ttl.Seconds())
+}
+
+// Lock inserts a lock of OrgID with reason "test"; targetID is nil only for all_agents.
+func (f Fixture) Lock(t testing.TB, pool *pgxpool.Pool, targetType string, targetID *uuid.UUID) uuid.UUID {
+	t.Helper()
+	return insertID(t, pool,
+		"INSERT INTO lock (org_id, target_type, target_id, reason) VALUES ($1, $2, $3, 'test') RETURNING id",
+		f.OrgID, targetType, targetID)
+}
+
+// Agent inserts an active agent of sponsorID (a member of orgID) with empty limits.
+func Agent(t testing.TB, pool *pgxpool.Pool, orgID, sponsorID uuid.UUID, name string) uuid.UUID {
+	t.Helper()
+	return insertID(t, pool,
+		"INSERT INTO agent (org_id, sponsor_user_id, name, created_by) VALUES ($1, $2, $3, $2) RETURNING id",
+		orgID, sponsorID, name)
+}
+
+// AgentRun inserts a running run of agentID, owned by the agent's sponsor, expiring in an hour.
+func AgentRun(t testing.TB, pool *pgxpool.Pool, orgID, agentID uuid.UUID, maxActions, maxConcurrent int) uuid.UUID {
+	t.Helper()
+	return insertID(t, pool,
+		`INSERT INTO agent_run (org_id, agent_id, sponsor_user_id, client, status, max_actions, max_concurrent, expires_at)
+		 SELECT org_id, id, sponsor_user_id, 'test', 'running', $3, $4, now() + interval '1 hour'
+		 FROM agent WHERE id = $2 AND org_id = $1 RETURNING id`,
+		orgID, agentID, maxActions, maxConcurrent)
+}
+
+// TOTP stores a confirmed TOTP factor of userID and returns its secret: 20
+// random bytes in unpadded base32, as otpauth URLs carry it. The table holds
+// that string sealed by box.
+func (f Fixture) TOTP(t testing.TB, pool *pgxpool.Pool, box *secretbox.Box, userID uuid.UUID) (secret string) {
+	t.Helper()
+	raw := make([]byte, 20)
+	_, _ = rand.Read(raw) // never fails (crypto/rand)
+	secret = base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(raw)
+	ciphertext, keyID, err := box.Seal([]byte(secret))
+	if err != nil {
+		t.Fatalf("dbtest: %v", err)
+	}
+	exec(t, pool, "INSERT INTO totp_secret (user_id, ciphertext, key_id, confirmed_at) VALUES ($1, $2, $3, now())",
+		userID, ciphertext, keyID)
+	return secret
+}
+
+// MFARule inserts an MFA rule of OrgID; subjects and selector are jsonb texts,
+// strength is any or webauthn.
+func (f Fixture) MFARule(t testing.TB, pool *pgxpool.Pool, name, subjects, selector string, maxAge time.Duration, strength string) uuid.UUID {
+	t.Helper()
+	return insertID(t, pool,
+		`INSERT INTO mfa_rule (org_id, name, subjects, resource_selector, max_age, strength)
+		 VALUES ($1, $2, $3::jsonb, $4::jsonb, make_interval(secs => $5::float8), $6) RETURNING id`,
+		f.OrgID, name, subjects, selector, maxAge.Seconds(), strength)
+}
+
+// FreshRateWindow waits for the next minute when under 20 s of the current
+// one remain, so the calls of a test fall into one fixed rate window.
+func FreshRateWindow() {
+	if s := time.Now().Second(); s > 40 {
+		time.Sleep(time.Duration(61-s) * time.Second)
+	}
 }

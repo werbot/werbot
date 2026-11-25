@@ -3,6 +3,7 @@ package policy
 import (
 	"bytes"
 	"cmp"
+	"errors"
 	"fmt"
 	"regexp"
 	"slices"
@@ -23,7 +24,10 @@ forbid (principal, action, resource) when { context.ip_blocked };
 `
 
 // Compile turns s into a policy set and its Cedar text. The text is
-// deterministic: bindings sort by ID, rules by ResourceID, list items by value.
+// deterministic: bindings sort by ID, rules by ResourceID, list items by
+// value, grants, locks, command, path, terminal and MFA rules and custom
+// policies by ID; the agent baseline ends it (writeBaseline).
+// Agent entities join the resource entities.
 func Compile(s Snapshot) (*PolicySet, string, error) {
 	var b strings.Builder
 	for _, bd := range slices.SortedFunc(slices.Values(s.Bindings), func(x, y SnapshotBinding) int { return compareIDs(x.ID, y.ID) }) {
@@ -36,15 +40,35 @@ func Compile(s Snapshot) (*PolicySet, string, error) {
 			return nil, "", err
 		}
 	}
-	b.WriteString(blocklistPolicy)
+	writeGrants(&b, s.Grants, s.Locks)
+	if err := writeLocks(&b, s.Locks); err != nil {
+		return nil, "", err
+	}
+	if err := errors.Join(writeCommandRules(&b, s.CommandRules), writePathRules(&b, s.PathRules), writeTerminalRules(&b, s.TerminalRules),
+		writeMFARules(&b, s.MFARules, s.Resources)); err != nil {
+		return nil, "", err
+	}
+	if err := writeCustomPolicies(&b, s.CustomPolicies); err != nil {
+		return nil, "", err
+	}
+	b.WriteString(blocklistPolicy + "\n")
+	writeBaseline(&b, connector.Types(), s.BlockedRuns)
 	text := b.String()
 
 	policies, err := parse(text)
 	if err != nil {
 		return nil, "", err
 	}
-	entities := make(cedar.EntityMap, len(s.Resources))
-	for _, r := range s.Resources {
+	entities := resourceEntities(s.Resources)
+	agentEntities(entities, s.Agents)
+	return &PolicySet{policies: policies, entities: entities}, text, nil
+}
+
+// resourceEntities are the Cedar entities of resources: name and type
+// attributes, labels as tags.
+func resourceEntities(resources []SnapshotResource) cedar.EntityMap {
+	entities := make(cedar.EntityMap, len(resources))
+	for _, r := range resources {
 		uid := cedar.NewEntityUID("Werbot::Resource", cedar.String(r.ID.String()))
 		tags := make(cedar.RecordMap, len(r.Labels))
 		for k, v := range r.Labels {
@@ -56,7 +80,7 @@ func Compile(s Snapshot) (*PolicySet, string, error) {
 			Tags:       cedar.NewRecord(tags),
 		}
 	}
-	return &PolicySet{policies: policies, entities: entities}, text, nil
+	return entities
 }
 
 // parse indexes the policies of text by their @id; a duplicate id is an error,
@@ -86,12 +110,8 @@ func writeBinding(b *strings.Builder, bd SnapshotBinding) error {
 	default:
 		return fmt.Errorf("policy: binding %s: unknown subject type %q", bd.ID, bd.SubjectType)
 	}
-	refs := make([]string, 0, len(bd.ResourceIDs))
-	for _, id := range slices.SortedFunc(slices.Values(bd.ResourceIDs), compareIDs) {
-		refs = append(refs, fmt.Sprintf("Werbot::Resource::%q", id))
-	}
 	fmt.Fprintf(b, "@id(\"binding:%s\")\npermit (%s, action, resource)\nwhen { [%s].contains(resource) }",
-		bd.ID, principal, strings.Join(refs, ", "))
+		bd.ID, principal, strings.Join(entityRefs("Werbot::Resource", bd.ResourceIDs), ", "))
 	if len(bd.Ports) > 0 {
 		cond, err := portCondition(bd)
 		if err != nil {

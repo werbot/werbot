@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"crypto/hkdf"
+	"crypto/sha256"
 	"log/slog"
 	"net/http"
 	"time"
@@ -14,16 +16,23 @@ import (
 
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
 	"github.com/werbot/werbot/internal/access"
+	"github.com/werbot/werbot/internal/agentic"
 	"github.com/werbot/werbot/internal/audit"
+	"github.com/werbot/werbot/internal/connector"
 	"github.com/werbot/werbot/internal/credential"
 	"github.com/werbot/werbot/internal/identity"
+	"github.com/werbot/werbot/internal/identity/oauth"
+	"github.com/werbot/werbot/internal/identity/oidclogin"
 	"github.com/werbot/werbot/internal/inventory"
 	"github.com/werbot/werbot/internal/notify"
 	"github.com/werbot/werbot/internal/platform/config"
 	"github.com/werbot/werbot/internal/platform/jobs"
+	"github.com/werbot/werbot/internal/platform/metrics"
+	"github.com/werbot/werbot/internal/platform/rate"
 	"github.com/werbot/werbot/internal/platform/secretbox"
 	"github.com/werbot/werbot/internal/platform/tlsca"
 	"github.com/werbot/werbot/internal/policy"
+	"github.com/werbot/werbot/internal/relay"
 	"github.com/werbot/werbot/internal/session"
 	"github.com/werbot/werbot/internal/session/recstore"
 )
@@ -42,9 +51,19 @@ func (p policyResources) PolicyResources(ctx context.Context, orgID uuid.UUID) (
 	}
 	out := make([]policy.SnapshotResource, len(rs))
 	for i, r := range rs {
-		out[i] = policy.SnapshotResource{ID: r.ID, Name: r.Name, Type: r.Type, Labels: r.Labels}
+		out[i] = policy.SnapshotResource{ID: r.ID, Name: r.Name, Type: r.Type, Labels: r.Labels, Host: endpointHost(r)}
 	}
 	return out, nil
+}
+
+// endpointHost is the host of the endpoint of r; "" when its type has none
+// or its config is not decoded.
+func endpointHost(r inventory.Resource) string {
+	t, ok := connector.Lookup(r.Type)
+	if !ok || t.Endpoint == nil || r.Config == nil {
+		return ""
+	}
+	return t.Endpoint(r.Config).Host
 }
 
 // policyBindings is the access service as a policy.BindingSource.
@@ -76,6 +95,7 @@ type services struct {
 	Inventory  *inventory.Service
 	Credential *credential.Service
 	Access     *access.Service
+	Agents     *agentic.Service
 	Policy     *policy.Service
 	Box        *secretbox.Box
 	CA         *tlsca.CA
@@ -83,15 +103,20 @@ type services struct {
 	Sessions   *session.Service
 	Recordings *session.Recordings
 	Audit      *audit.Service
+	Relay      *relay.Relay
+	IdPs       *oidclogin.Store //nolint:revive // name fixed by contract
+	OIDC       oidclogin.Config
 	Logger     *slog.Logger // replay errors; nil is slog.Default()
 	Jobs       *river.Client[pgx.Tx]
 }
 
-// newServices wires the services, registers every worker and periodic job on
-// one River client (not started) and loads the stored GeoIP database, so every
-// replica decides country rules from start. A broken database is logged, not fatal.
-// signer comes from bootstrap; recordings go to cfg.RecordingsS3 or cfg.DataDir.
-func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box *secretbox.Box, ca *tlsca.CA, signer *session.Signer, logger *slog.Logger) (*services, error) {
+// newServices wires the services and this replica's relay (not started),
+// registers every worker and periodic job on one River client (not started)
+// and loads the stored GeoIP database, so every replica decides country rules
+// from start. A broken database is logged, not fatal.
+// signer comes from bootstrap; recordings go to cfg.RecordingsS3 or cfg.DataDir;
+// reg is the registry /metrics serves.
+func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box *secretbox.Box, ca *tlsca.CA, signer *session.Signer, reg *metrics.Registry, logger *slog.Logger) (*services, error) {
 	mailer, err := notify.NewMailer(cfg.SMTP, cfg.Env == "development", logger)
 	if err != nil {
 		return nil, err
@@ -100,18 +125,21 @@ func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box
 	if err != nil {
 		return nil, err
 	}
-	s := &services{Inventory: inventory.New(pool), Credential: credential.New(pool, box), Access: access.New(pool),
+	s := &services{Inventory: inventory.New(pool), Credential: credential.New(pool, box),
 		Box: box, CA: ca, Gateways: inventory.NewGateways(pool, ca, box), Sessions: session.New(pool),
 		Recordings: session.NewRecordings(pool, store, kind, signer), Audit: audit.New(audit.NewPostgres(pool)), Logger: logger}
-	// identity needs the River client, which needs the policy jobs: teams
-	// reads s.Identity, which is set below, before any request is served.
+	s.Access = access.New(pool, accessEmails{s}, accessSettings{s}, access.Config{WebURL: cfg.WebURL})
+	s.Agents = agentic.New(pool, accessEmails{s}, agentic.Config{WebURL: cfg.WebURL, RevokeProfiles: oauth.RevokeAgentProfiles})
+	// teams reads s.Identity, which is set below, before any request is served.
 	s.Policy = policy.New(policy.Deps{Pool: pool, Resources: policyResources{s.Inventory}, Bindings: policyBindings{s.Access},
 		Teams: teamsFunc(func(ctx context.Context, orgID, userID uuid.UUID) ([]uuid.UUID, error) {
 			return s.Identity.UserTeams(ctx, orgID, userID)
-		}), Logger: logger})
+		}), Grants: policyGrants{s.Access}, Locks: policyLocks{s.Access}, Agents: policyAgents{s.Agents}, Logger: logger})
 	if err := s.Policy.ReloadGeoIP(ctx); err != nil {
 		logger.Warn("geoip reload failed", "err", err)
 	}
+
+	s.Relay = newRelay(cfg, pool, ca, ticketsAdapter{s.Sessions}, reg, logger)
 
 	workers := river.NewWorkers()
 	river.AddWorker(workers, notify.NewWorker(mailer, box))
@@ -122,22 +150,57 @@ func newServices(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, box
 	periodic := policy.RegisterJobs(workers, s.Policy, feeds)
 	periodic = append(periodic, session.RegisterJobs(workers, s.Sessions, time.Now())...)
 	periodic = append(periodic, inventory.RegisterGatewayJobs(workers, s.Gateways)...)
+	periodic = append(periodic, access.RegisterApprovalJobs(workers, s.Access)...)
+	periodic = append(periodic, agentic.RegisterJobs(workers, s.Agents)...)
+	periodic = append(periodic, relay.RegisterJobs(workers, s.Relay)...)
+	periodic = append(periodic, rate.RegisterJobs(workers, pool)...)
+	periodic = append(periodic, identity.RegisterMFAJobs(workers, pool)...)
+	s.Identity = identity.New(pool, emailQueue{s, box}, identity.Config{
+		WebURL: cfg.WebURL, SecureCookies: cfg.Env != "development", Logger: logger, Box: box, Metrics: reg,
+	})
+	s.IdPs, s.OIDC = oidclogin.NewStore(pool, box), oidcConfig(cfg)
+	periodic = append(periodic, oidclogin.RegisterJobs(workers, s.IdPs, s.Identity, s.OIDC)...)
 	if s.Jobs, err = jobs.NewClient(pool, workers, periodic, logger); err != nil {
 		return nil, err
 	}
-	s.Identity = identity.New(pool, notify.NewQueue(s.Jobs, box), identity.Config{
-		WebURL: cfg.WebURL, SecureCookies: cfg.Env != "development", Logger: logger,
-	})
 	return s, nil
 }
 
-// mount registers ResourceService, AccessService, PolicyService, SessionService,
-// AuditService and the recording replay route on mux.
+// emailQueue is notify's queue on s.Jobs for identity, which is built
+// before the River client: the client takes identity's idp.recheck worker.
+type emailQueue struct {
+	s   *services
+	box *secretbox.Box
+}
+
+func (q emailQueue) EnqueueTx(ctx context.Context, tx pgx.Tx, to, template string, data map[string]string) error {
+	return notify.NewQueue(q.s.Jobs, q.box).EnqueueTx(ctx, tx, to, template, data)
+}
+
+// oidcConfig is the OIDC login config; the cookie keys derive from WERBOT_SECRET_KEY.
+func oidcConfig(cfg config.Config) oidclogin.Config {
+	// HKDF fails only for keys longer than 255 hash blocks.
+	hash, _ := hkdf.Key(sha256.New, cfg.SecretKey, nil, "werbot-oidc-hash", 32)
+	block, _ := hkdf.Key(sha256.New, cfg.SecretKey, nil, "werbot-oidc-block", 32)
+	return oidclogin.Config{WebURL: cfg.WebURL, SecureCookies: cfg.Env != "development", HashKey: hash, BlockKey: block}
+}
+
+// mount registers ResourceService, ResourcePresetService, AccessService, ApprovalPolicyService, AccessRequestService, LockService,
+// PolicyService, SessionService, AuditService, AgentService, IdentityProviderService, the recording
+// replay route and the OIDC login routes on mux.
 func (s *services) mount(mux *http.ServeMux, opts ...connect.HandlerOption) {
-	mux.Handle(werbotv1connect.NewResourceServiceHandler(inventory.NewHandler(s.Inventory, s.Credential), opts...))
+	mux.Handle(werbotv1connect.NewResourceServiceHandler(inventory.NewHandler(s.Inventory, s.Credential, accessibleResources{s.Policy},
+		s.Gateways, s.Access), opts...))
+	mux.Handle(werbotv1connect.NewResourcePresetServiceHandler(inventory.NewPresetHandler(s.Inventory), opts...))
 	mux.Handle(werbotv1connect.NewAccessServiceHandler(access.NewHandler(s.Access), opts...))
+	mux.Handle(werbotv1connect.NewApprovalPolicyServiceHandler(access.NewApprovalPolicyHandler(s.Access), opts...))
+	mux.Handle(werbotv1connect.NewAccessRequestServiceHandler(access.NewAccessRequestHandler(s.Access), opts...))
+	mux.Handle(werbotv1connect.NewLockServiceHandler(access.NewLockHandler(s.Access), opts...))
 	mux.Handle(werbotv1connect.NewPolicyServiceHandler(policy.NewHandler(s.Policy), opts...))
 	mux.Handle(werbotv1connect.NewSessionServiceHandler(session.NewSessionHandler(s.Sessions, s.Recordings), opts...))
 	mux.Handle(werbotv1connect.NewAuditServiceHandler(audit.NewHandler(s.Audit), opts...))
+	mux.Handle(werbotv1connect.NewAgentServiceHandler(agentic.NewHandler(s.Agents), opts...))
+	mux.Handle(werbotv1connect.NewIdentityProviderServiceHandler(oidclogin.NewIdentityProviderHandler(s.IdPs, s.OIDC), opts...))
 	mux.Handle("GET /api/recordings/{file}", session.NewReplayHandler(s.Sessions, s.Recordings, s.Logger))
+	mux.Handle("/api/oidc/", oidclogin.Handler(s.Identity, s.IdPs, s.OIDC))
 }

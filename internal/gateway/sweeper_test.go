@@ -159,7 +159,7 @@ func TestRevokeAppliesToSessionOpenedDuringSnapshot(t *testing.T) {
 		e := newPipeEnv(t, 10)
 		startSweeper(t, e.p)
 		revoke := compileV(t, e.m, "v2", `forbid (principal, action, resource);`, res{"rblocker", "blocker", "blocker"})
-		e.f.onStart = func() { // the snapshot lands, and the sweeper handles it, between the PDP and add
+		e.f.onStart = func(context.Context) { // the snapshot lands, and the sweeper handles it, between the PDP and add
 			e.f.setPolicy(revoke)
 			synctest.Wait()
 		}
@@ -200,4 +200,23 @@ func TestRevokeRacesClose(t *testing.T) {
 		require.Len(t, reasons, 1)
 		require.Contains(t, []string{"closed", "access_revoked"}, reasons[0])
 	}
+}
+
+// A snapshot change re-decides a running exec with its classes: a forbid ends it,
+// a rule that only asks for an approval does not.
+func TestSweeperRevokesExecOnHardDeny(t *testing.T) {
+	e := newExecEnv(t)
+	startSweeper(t, e.p)
+	approvalOnly := execPolicy(t, e.m, "v2", `@id("binding:b") permit (principal, action, resource);
+@id("command:r") @obligation("approval")
+forbid (principal, action == Werbot::Action::"execy.exec", resource) when { context.classes.contains("read") }
+unless { context.approval_granted };`)
+	s, err := e.p.Open(t.Context(), e.cmdReq("x", KindExec, "tail -f /var/log/x"))
+	require.NoError(t, err)
+	e.runBlocker(t, s)
+	e.f.setPolicy(approvalOnly)
+	e.stillRunning(t, s.ID)
+	e.f.setPolicy(execPolicy(t, e.m, "v3", `@id("binding:b") permit (principal, action, resource);
+forbid (principal, action == Werbot::Action::"execy.exec", resource) when { context.classes.contains("read") };`))
+	e.ended(t, s.ID, "access_revoked")
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/werbot/werbot/internal/platform/apperr"
+	"github.com/werbot/werbot/internal/platform/db/dbtest"
 	"github.com/werbot/werbot/internal/platform/principal"
 )
 
@@ -56,7 +57,7 @@ func TestTeamLifecycle(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, teams)
 
-	assert.Equal(t, []string{"team.create", "team.rename", "team.member_add", "team.member_remove", "team.delete"}, auditActions(t, pool)[1:]) // [0] is auth.login
+	assert.Equal(t, []string{"team.create", "team.rename", "team.member_add", "team.member_remove", "team.delete"}, dbtest.AuditActions(t, pool)[1:]) // [0] is auth.login
 }
 
 func TestMemberCannotManageTeams(t *testing.T) {

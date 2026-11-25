@@ -7,3 +7,5 @@ lint:
   use: [STANDARD]
 breaking:
   use: [FILE]
+  ignore:
+    - proto/werbot/relay

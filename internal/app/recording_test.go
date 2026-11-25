@@ -75,11 +75,11 @@ func (u *ingestUploader) UploadChunk(ctx context.Context, sid uuid.UUID, seq int
 	return apperr.ToConnect(u.rec.IngestChunk(ctx, u.orgID, u.instanceID, sid, seq, hash, gz))
 }
 
-func (u *ingestUploader) EndSession(ctx context.Context, sid uuid.UUID, reason string, _ *gatewayv1.SessionCounters) error {
+func (u *ingestUploader) EndSession(ctx context.Context, sid uuid.UUID, reason string, _ *gatewayv1.SessionCounters, _ *recorder.SessionResult) error {
 	if err := u.unavailable(); err != nil {
 		return err
 	}
-	return apperr.ToConnect(u.sessions.End(ctx, u.orgID, u.instanceID, sid, reason, nil))
+	return apperr.ToConnect(u.sessions.End(ctx, u.orgID, u.instanceID, sid, reason, nil, nil))
 }
 
 func (u *ingestUploader) FinishRecording(ctx context.Context, m recorder.Manifest) error {
@@ -143,7 +143,7 @@ func (g *outageRig) record(t *testing.T) {
 	t.Helper()
 	r := recorder.New(g.sid, 80, 24, g.sink, recorder.Options{})
 	r.Output([]byte(strings.Repeat(recordedLine, 200<<10/len(recordedLine))))
-	require.NoError(t, g.sink.End(g.sid, "closed", nil))
+	require.NoError(t, g.sink.End(g.sid, "closed", nil, nil))
 	require.NoError(t, r.Close(t.Context()))
 	require.Greater(t, g.sink.n.Load(), int64(1))
 }

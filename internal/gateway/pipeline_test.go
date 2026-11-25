@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/werbot/werbot/internal/platform/metrics"
+	"github.com/werbot/werbot/internal/platform/sshca"
 	"github.com/werbot/werbot/internal/platform/version"
 )
 
@@ -112,7 +113,7 @@ func TestRegisterConnector(t *testing.T) {
 	require.Equal(t, "fake", c.Type())
 	_, ok = LookupConnector("nope")
 	require.False(t, ok)
-	require.Equal(t, []string{"blocker", "fake", "panicky", "plainstream", "spy", "streamonly"}, connectors())
+	require.Equal(t, []string{"blocker", "consoley", "echo", "eof", "execy", "failing", "fake", "masky", "panicky", "plainstream", "quiet", "rfwd", "rfwdbare", "spy", "streamonly"}, connectors())
 }
 
 func TestPinKeyCallsServer(t *testing.T) {
@@ -162,7 +163,7 @@ func TestActiveSessionsIDsCapped(t *testing.T) {
 	for range 5 {
 		id := uuid.New()
 		a.add(id, &tracked{})
-		require.NoError(t, sp.End(id, "closed", nil))
+		require.NoError(t, sp.End(id, "closed", nil, nil))
 		a.done(id)
 	}
 	ids := heartbeatSessionIDs(a, sp)
@@ -179,4 +180,36 @@ func TestActiveSessionsIDsCapped(t *testing.T) {
 	a.release() // no slot taken
 	require.Zero(t, a.used())
 	require.Contains(t, log.String(), "slot released twice")
+}
+
+// Expected: the CLI session of the user's certificate reaches the PDP on Open
+// and on every re-evaluation: a cli_session lock ends and refuses only that
+// session; key authentication has no CLI session.
+func TestCLISessionLock(t *testing.T) {
+	e := newPipeEnv(t, 10)
+	startSweeper(t, e.p)
+	locked, other := uuid.New(), uuid.New()
+	req := func(cli uuid.UUID) OpenRequest {
+		r := e.req("blocker", KindExec)
+		if cli != uuid.Nil {
+			r.Identity = Identity{Method: "ssh-cert", Value: "SHA256:cert", Cert: &sshca.Identity{UserID: e.m["u1"], CLISessionID: cli}}
+		}
+		return r
+	}
+	open := func(cli uuid.UUID) *Session {
+		s, err := e.p.Open(t.Context(), req(cli))
+		require.NoError(t, err)
+		e.runBlocker(t, s)
+		return s
+	}
+	a, b, key := open(locked), open(other), open(uuid.Nil)
+	e.f.setPolicy(compileV(t, e.m, "locked", fmt.Sprintf(`permit (principal == Werbot::User::"u1", action, resource);
+forbid (principal, action, resource) when { context.cli_session_id == %q && context.now < 9223372036854775807 };`, locked.String()),
+		res{"rblocker", "blocker", "blocker"}))
+	e.ended(t, a.ID, "access_revoked")
+	e.stillRunning(t, b.ID)
+	e.stillRunning(t, key.ID)
+	_, err := e.p.Open(t.Context(), req(locked))
+	require.ErrorIs(t, err, ErrDenied)
+	open(other)
 }

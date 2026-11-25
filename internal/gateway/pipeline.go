@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"net/netip"
 	"runtime/debug"
-	"slices"
 	"sync/atomic"
 	"time"
 
@@ -18,6 +18,7 @@ import (
 	"github.com/werbot/werbot/internal/connector"
 	"github.com/werbot/werbot/internal/gateway/recorder"
 	"github.com/werbot/werbot/internal/platform/metrics"
+	"github.com/werbot/werbot/internal/platform/sshca"
 )
 
 // Errors of Pipeline.Open; the front turns them into user messages.
@@ -30,8 +31,13 @@ var (
 	ErrSpoolMax        = errors.New("gateway: recording spool is full") // the user sees the ErrBusy text
 )
 
-// Identity is how the front identified the user: "ssh-key" and the SHA256 fingerprint.
-type Identity struct{ Method, Value string }
+// Identity is how the front identified the user: "ssh-key" or "ssh-cert" and
+// the SHA256 fingerprint of the key or certificate; Cert is the werbot
+// identity of a certificate the front verified.
+type Identity struct {
+	Method, Value string
+	Cert          *sshca.Identity
+}
 
 // OpenRequest is what a front asks the pipeline to open.
 type OpenRequest struct {
@@ -41,19 +47,31 @@ type OpenRequest struct {
 	Resource string // resource name
 	Target   string // KindStream, KindDatagram: host:port
 	ClientIP netip.Addr
-	Window   Window // KindTerminal: initial size for the recorder
+	Window   Window    // KindTerminal: initial size for the recorder
+	Command  string    // KindExec, KindTerminal with a command: the command to run
+	Notice   io.Writer // the user's side channel: stderr of an exec, the PTY of a terminal
 	// Handshake is the user the front authenticated for Identity; nil: none.
 	Handshake *Handshake
+	ToolCall  uuid.UUID // an agent's tool call (sshca.EnvToolCall); uuid.Nil: none
+	MFA       MFAStep
+	Transport string // "tcp" | "ws" | "internal" (the web terminal); "": tcp
+	// RemoteForward: KindStream from tcpip-forward, Target "<bind_host>:<bind_port>".
+	RemoteForward bool
 }
 
 // control is the control plane of the pipeline; *tunnelClient implements it.
 type control interface {
-	AuthenticateUser(ctx context.Context, fingerprint string, ip netip.Addr) (User, error)
-	StartSession(ctx context.Context, userID, resourceID uuid.UUID, ip netip.Addr, kind Kind, target string) (uuid.UUID, Secret, error)
+	AuthenticateUser(ctx context.Context, id Identity, ip netip.Addr) (User, error)
+	StartSession(ctx context.Context, userID, resourceID uuid.UUID, ip netip.Addr, kind Kind, target, command string, classes, paths []string, args startArgs) (uuid.UUID, Secret, error)
+	RecordDenial(ctx context.Context, runID uuid.UUID, resource, command string, classes, reasons []string) (paused bool, err error)
 	PinHostKey(ctx context.Context, resourceID uuid.UUID, alg string, key []byte) error
+	RequestApproval(ctx context.Context, r approvalRequest) (approvalTicket, error)
+	GetApproval(ctx context.Context, id string) (status string, err error)
+	SubscribeApproval(id string) (decided <-chan struct{}, unsubscribe func())
 	Policy() *Policy
 	PolicyChanged() <-chan struct{} // receives after a new Policy is stored
 	Connected() bool
+	DisconnectedSince() time.Time // zero while Connected; else when the tunnel was lost
 }
 
 // endCause cancels a session context; its text is the end reason.
@@ -86,6 +104,7 @@ type Pipeline struct {
 	health                            *prober
 	dial                              func(ctx context.Context, network, address string) (net.Conn, error)
 	now                               func() time.Time
+	dropped                           *metrics.Counter // live view events observers lost: they fell behind
 
 	stop    context.Context // canceled at the end of drain: the front closes its connections
 	stopNow context.CancelFunc
@@ -120,6 +139,7 @@ func newPipeline(ctl control, cfg Config, logger *slog.Logger) *Pipeline {
 		guard:        localGuard{deny: cfg.DenyLocalTargets, hosts: cfg.DenyHosts},
 		flushTimeout: 10 * time.Second,
 		now:          time.Now,
+		dropped:      reg.Counter("werbot_gateway_observer_drops_total", "Live view events an observer lost: it fell behind."),
 	}
 	p.dial = p.guard.dialer()
 	p.health = newProber(ctl.Policy, tcpProbe(p.dial), reg)
@@ -127,18 +147,18 @@ func newPipeline(ctl control, cfg Config, logger *slog.Logger) *Pipeline {
 }
 
 // Open checks the request in contract order and starts the session on the server.
-// Any error frees the slot and, unless it is ErrNotReady, goes to the next
-// heartbeat as a denial. A spool at SpoolMax, or one that cannot write, refuses
-// the kinds the resource type records: recording is mandatory for them.
+// Any error frees the slot and, unless it is ErrNotReady, is reported as a denial
+// (p.deny). A spool at SpoolMax, or one that cannot write, refuses the kinds the
+// resource type records: recording is mandatory for them.
 func (p *Pipeline) Open(ctx context.Context, r OpenRequest) (*Session, error) {
 	if err := p.active.reserve(p.cfg.MaxSessions); err != nil {
-		p.deny(r, uuid.Nil, err)
+		p.deny(ctx, r, AccessRequest{}, err)
 		return nil, p.reject(err)
 	}
-	s, user, err := p.open(ctx, r)
+	s, req, err := p.open(ctx, r)
 	if err != nil {
 		p.active.release()
-		p.deny(r, user, err)
+		p.deny(ctx, r, req, err)
 		return nil, p.reject(err)
 	}
 	return s, nil
@@ -156,57 +176,46 @@ func (p *Pipeline) reject(err error) error {
 	return err
 }
 
-// open returns the user it authenticated, also with an error, for the denial.
-func (p *Pipeline) open(ctx context.Context, r OpenRequest) (*Session, uuid.UUID, error) {
+// open returns the request it decided, also with an error, for the denial. After
+// an approval wait that is the recheck's: the session runs on its user and resource.
+func (p *Pipeline) open(ctx context.Context, r OpenRequest) (*Session, AccessRequest, error) {
 	pol, req, host, err := p.decide(ctx, r)
-	u, res := req.User, req.Resource
 	if err != nil {
-		return nil, u.ID, err
+		return nil, req, err
 	}
-	// after the PDP: only an allowed user learns that the spool is full
-	typ, _ := connector.Lookup(res.Type)
+	typ, _ := connector.Lookup(req.Resource.Type)
 	recorded := typ.Records(r.Kind)
-	if recorded && (p.spool.Total() >= p.cfg.SpoolMax || !p.spool.Writable()) {
-		return nil, u.ID, ErrSpoolMax
+	if err := p.servable(ctx, r.Kind, req.Resource, host, recorded); err != nil {
+		return nil, req, err
 	}
-	c, ok := LookupConnector(res.Type)
-	if !ok {
-		return nil, u.ID, ErrUnsupportedType
+	if err := p.shellBeforeCommand(pol, req, r, typ); err != nil {
+		return nil, req, err
 	}
-	if !slices.Contains(c.Kinds(), r.Kind) {
-		return nil, u.ID, ErrUnsupportedKind
+	if pol, req, err = p.authorizeCommand(ctx, pol, withExecAction(req, r, typ), commandInput{Text: r.Command, Cwd: "~"}, r.Notice); err != nil {
+		return nil, req, err
 	}
-	if _, dials := c.(TargetDialer); dials {
-		if err := p.guard.allowHost(ctx, dialHost(res, host)); err != nil {
-			return nil, u.ID, err
-		}
+	if req, err = p.authorizeShell(pol, req, r, typ); err != nil {
+		return nil, req, err
 	}
-	id, secret, err := p.ctl.StartSession(ctx, u.ID, res.ID, r.ClientIP, r.Kind, r.Target)
+	u, res := req.User, req.Resource
+	id, secret, err := p.ctl.StartSession(ctx, u.ID, res.ID, r.ClientIP, r.Kind, r.Target, req.Command, req.Classes, req.Paths, startOf(u, r))
 	if err != nil {
-		return nil, u.ID, controlErr(err)
+		return nil, req, startErr(err)
 	}
-	rec := NopRecording(id, 0, 0)
-	if recorded {
-		rec = p.cfg.Recording(id, r.Window.Cols, r.Window.Rows)
-	}
-	t := &tracked{req: req, kind: r.Kind, host: host, version: pol.Version(), started: time.Now()}
+	rec := p.recording(id, r, recorded)
+	t := &tracked{req: req, kind: r.Kind, host: host, version: pol.Version(), started: time.Now(), rec: rec}
 	t.idle, t.max = limits(res, p.cfg)
 	p.active.add(id, t) // reported in heartbeats from now on, so the server keeps the session
-	return &Session{
+	s := &Session{
 		ID: id, Kind: r.Kind, Front: r.Front, User: u, Resource: res, Secret: secret, ClientIP: r.ClientIP, Target: r.Target,
+		Command: r.Command, Classes: req.Classes, Paths: req.Paths, Console: req.Console,
 		PinKey:    func(alg string, key []byte) error { return p.pinKey(res, alg, key) },
 		Dial:      p.dial,
 		Recording: rec,
 		Metrics:   p.cfg.Metrics,
-	}, u.ID, nil
-}
-
-// controlErr maps a control plane error: an outage is ErrNotReady, anything else ErrDenied.
-func controlErr(err error) error {
-	if unreachable(err) {
-		return fmt.Errorf("%w: %w", ErrNotReady, err)
 	}
-	return fmt.Errorf("%w: %w", ErrDenied, err)
+	s.CheckCommand = p.commandChecker(req, r, s)
+	return s, req, nil
 }
 
 // Run serves s on c until it ends, then spools the session end with its counters,
@@ -216,13 +225,14 @@ func (p *Pipeline) Run(ctx context.Context, s *Session, c Connector) error {
 	sctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
 	meter{p.active.bind(s.ID, cancel), p.meters}.wrap(s)
+	s.trackOutcome()
 	panicked, err := p.serve(sctx, s, c, cancel)
 	cancel(errServed)
-	reason := endReason(sctx, err)
+	reason := s.ended(sctx, err)
 	if panicked { // also after a client cancel or drain
 		reason = string(causeInternal)
 	}
-	if reason == "error" {
+	if reason == "error" && err != nil { // a lost web stream is "error" without a connector error
 		p.log.Warn("session: connector failed", "session_id", s.ID, "type", c.Type(), "error", s.Secret.Redact(err.Error()))
 	}
 	if text := closeText[reason]; text != "" && s.Terminal != nil {
@@ -232,11 +242,8 @@ func (p *Pipeline) Run(ctx context.Context, s *Session, c Connector) error {
 	return err
 }
 
-// closeText is what a terminal reads when the sweeper ends it.
-var closeText = map[string]string{
-	string(causeIdle): "Session closed: idle timeout",
-	string(causeMax):  "Session closed: max duration reached",
-}
+// errConnectorPanic is the Run error of a session whose connector panicked.
+var errConnectorPanic = errors.New("connector panicked")
 
 func (p *Pipeline) serve(ctx context.Context, s *Session, c Connector, cancel context.CancelCauseFunc) (panicked bool, err error) {
 	defer func() {
@@ -245,9 +252,13 @@ func (p *Pipeline) serve(ctx context.Context, s *Session, c Connector, cancel co
 			p.panics.Inc()
 			p.log.Error("session: connector panic", "session_id", s.ID, "type", c.Type(),
 				"panic", s.Secret.Redact(fmt.Sprint(r)), "stack", s.Secret.Redact(string(debug.Stack())))
-			panicked, err = true, fmt.Errorf("connector %q panicked", c.Type())
+			panicked, err = true, fmt.Errorf("%w: %s", errConnectorPanic, c.Type())
 		}
 	}()
+	defer maskExec(s, p.ctl.Policy())() // flushes right after Serve, before Run returns
+	if s.Console {
+		return false, c.(ConsoleServer).ServeConsole(ctx, s) // Open checked it: never a raw shell
+	}
 	return false, c.Serve(ctx, s)
 }
 
@@ -262,7 +273,7 @@ func (p *Pipeline) finish(ctx context.Context, s *Session, reason string) {
 	if c := p.active.countersOf(s.ID); c != nil {
 		final = countersProto(s.ID, c.load())
 	}
-	if err := p.spool.End(s.ID, reason, final); err != nil {
+	if err := p.spool.End(s.ID, reason, final, s.result()); err != nil {
 		p.log.Error("session: end not spooled; the server closes it as lost", "session_id", s.ID, "reason", reason, "error", err)
 	}
 	cctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)

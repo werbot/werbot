@@ -109,6 +109,9 @@ func resourceToProto(r Resource, kinds map[uuid.UUID]connector.CredentialKind) (
 	if r.GatewayID != nil {
 		out.GatewayId = r.GatewayID.String()
 	}
+	if r.PresetID != nil {
+		out.PresetId = r.PresetID.String()
+	}
 	if r.Config != nil {
 		js, err := protojson.Marshal(r.Config)
 		if err != nil {

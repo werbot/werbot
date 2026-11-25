@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -16,9 +17,13 @@ import (
 )
 
 // RequestPasswordReset emails a reset link when the address belongs to a
-// user. It returns nil either way, so the answer never reveals an account.
+// user. It returns nil either way, so the answer never reveals an account;
+// the rate limit is counted before the lookup, so it answers alike too.
 func (s *Service) RequestPasswordReset(ctx context.Context, email string) error {
 	email = normalizeEmail(email)
+	if err := s.limit(ctx, "reset:"+email, ResetPerEmail, time.Hour); err != nil {
+		return err
+	}
 	return dbx.System(ctx, s.pool, dbx.ReasonLogin, func(tx pgx.Tx) error {
 		st := newStore(tx)
 		u, err := st.GetResetUser(ctx, email)
@@ -41,7 +46,7 @@ func (s *Service) RequestPasswordReset(ctx context.Context, email string) error 
 }
 
 // ResetPassword sets a new password with a reset token and signs the user out
-// everywhere. A bad password leaves the token unspent.
+// everywhere, CLI sessions included. A bad password leaves the token unspent.
 func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) error {
 	if err := validatePassword(newPassword); err != nil {
 		return err
@@ -63,6 +68,9 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 			return err
 		}
 		if err := st.DeleteUserSessions(ctx, *c.UserID); err != nil {
+			return err
+		}
+		if err := st.RevokeUserCLISessions(ctx, dbq.RevokeUserCLISessionsParams{UserID: *c.UserID}); err != nil {
 			return err
 		}
 		var orgID *uuid.UUID

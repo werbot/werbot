@@ -29,6 +29,6 @@ func (p *Pipeline) user(ctx context.Context, r OpenRequest) (u User, reused bool
 	if h := r.Handshake; h != nil && p.now().Sub(h.At) <= handshakeReuse {
 		return h.User, true, nil
 	}
-	u, err = p.ctl.AuthenticateUser(ctx, r.Identity.Value, r.ClientIP)
+	u, err = p.ctl.AuthenticateUser(ctx, r.Identity, r.ClientIP)
 	return u, false, err
 }

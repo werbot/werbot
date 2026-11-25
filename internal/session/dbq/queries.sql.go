@@ -36,6 +36,35 @@ func (q *Queries) AppendRecordingChunk(ctx context.Context, arg AppendRecordingC
 	return err
 }
 
+const consumeStreamTicket = `-- name: ConsumeStreamTicket :one
+UPDATE stream_ticket SET used_at = now()
+WHERE id = $1 AND used_at IS NULL AND expires_at > now()
+RETURNING id, org_id, mode, session_id, resource_id, user_id, cols, rows, gateway_instance_id, target_server_id, client_ip, expires_at, used_at, created_at, user_session_id
+`
+
+func (q *Queries) ConsumeStreamTicket(ctx context.Context, id uuid.UUID) (StreamTicket, error) {
+	row := q.db.QueryRow(ctx, consumeStreamTicket, id)
+	var i StreamTicket
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.Mode,
+		&i.SessionID,
+		&i.ResourceID,
+		&i.UserID,
+		&i.Cols,
+		&i.Rows,
+		&i.GatewayInstanceID,
+		&i.TargetServerID,
+		&i.ClientIp,
+		&i.ExpiresAt,
+		&i.UsedAt,
+		&i.CreatedAt,
+		&i.UserSessionID,
+	)
+	return i, err
+}
+
 const createRecording = `-- name: CreateRecording :exec
 INSERT INTO recording (session_id, org_id, store)
 VALUES ($1, $2, $3)
@@ -51,6 +80,18 @@ type CreateRecordingParams struct {
 func (q *Queries) CreateRecording(ctx context.Context, arg CreateRecordingParams) error {
 	_, err := q.db.Exec(ctx, createRecording, arg.SessionID, arg.OrgID, arg.Store)
 	return err
+}
+
+const deleteExpiredStreamTickets = `-- name: DeleteExpiredStreamTickets :execrows
+DELETE FROM stream_ticket WHERE expires_at < now() - make_interval(secs => $1::float8)
+`
+
+func (q *Queries) DeleteExpiredStreamTickets(ctx context.Context, afterSecs float64) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteExpiredStreamTickets, afterSecs)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const endLostSessions = `-- name: EndLostSessions :many
@@ -141,14 +182,21 @@ func (q *Queries) EndMissingSessions(ctx context.Context, arg EndMissingSessions
 const endSession = `-- name: EndSession :one
 UPDATE session
 SET ended_at = now(), end_reason = $1::text,
-    bytes_up = GREATEST(bytes_up, $2::bigint), bytes_down = GREATEST(bytes_down, $3::bigint),
-    datagrams_up = GREATEST(datagrams_up, $4::bigint), datagrams_down = GREATEST(datagrams_down, $5::bigint)
-WHERE id = $6 AND org_id = $7 AND gateway_instance_id = $8::uuid AND ended_at IS NULL
+    command = coalesce(nullif($2::text, ''), command), classes = coalesce($3::text[], classes), paths = coalesce($4::text[], paths),
+    exit_code = $5::int, output_sha256 = $6::bytea,
+    bytes_up = GREATEST(bytes_up, $7::bigint), bytes_down = GREATEST(bytes_down, $8::bigint),
+    datagrams_up = GREATEST(datagrams_up, $9::bigint), datagrams_down = GREATEST(datagrams_down, $10::bigint)
+WHERE id = $11 AND org_id = $12 AND gateway_instance_id = $13::uuid AND ended_at IS NULL
 RETURNING resource_id
 `
 
 type EndSessionParams struct {
 	Reason        string
+	Command       string
+	Classes       []string
+	Paths         []string
+	ExitCode      *int32
+	OutputSha256  []byte
 	BytesUp       int64
 	BytesDown     int64
 	DatagramsUp   int64
@@ -162,6 +210,11 @@ type EndSessionParams struct {
 func (q *Queries) EndSession(ctx context.Context, arg EndSessionParams) (*uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, endSession,
 		arg.Reason,
+		arg.Command,
+		arg.Classes,
+		arg.Paths,
+		arg.ExitCode,
+		arg.OutputSha256,
 		arg.BytesUp,
 		arg.BytesDown,
 		arg.DatagramsUp,
@@ -264,9 +317,70 @@ func (q *Queries) InsertSigningKey(ctx context.Context, arg InsertSigningKeyPara
 	return err
 }
 
+const insertStreamTicket = `-- name: InsertStreamTicket :one
+INSERT INTO stream_ticket (org_id, mode, session_id, resource_id, user_id, cols, rows,
+                           gateway_instance_id, target_server_id, client_ip, user_session_id, expires_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7,
+        $8, $9, $10, $11,
+        now() + make_interval(secs => $12::float8))
+RETURNING id, org_id, mode, session_id, resource_id, user_id, cols, rows, gateway_instance_id, target_server_id, client_ip, expires_at, used_at, created_at, user_session_id
+`
+
+type InsertStreamTicketParams struct {
+	OrgID             uuid.UUID
+	Mode              string
+	SessionID         *uuid.UUID
+	ResourceID        *uuid.UUID
+	UserID            uuid.UUID
+	Cols              int32
+	Rows              int32
+	GatewayInstanceID uuid.UUID
+	TargetServerID    uuid.UUID
+	ClientIp          *netip.Addr
+	UserSessionID     *uuid.UUID
+	TtlSecs           float64
+}
+
+func (q *Queries) InsertStreamTicket(ctx context.Context, arg InsertStreamTicketParams) (StreamTicket, error) {
+	row := q.db.QueryRow(ctx, insertStreamTicket,
+		arg.OrgID,
+		arg.Mode,
+		arg.SessionID,
+		arg.ResourceID,
+		arg.UserID,
+		arg.Cols,
+		arg.Rows,
+		arg.GatewayInstanceID,
+		arg.TargetServerID,
+		arg.ClientIp,
+		arg.UserSessionID,
+		arg.TtlSecs,
+	)
+	var i StreamTicket
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.Mode,
+		&i.SessionID,
+		&i.ResourceID,
+		&i.UserID,
+		&i.Cols,
+		&i.Rows,
+		&i.GatewayInstanceID,
+		&i.TargetServerID,
+		&i.ClientIp,
+		&i.ExpiresAt,
+		&i.UsedAt,
+		&i.CreatedAt,
+		&i.UserSessionID,
+	)
+	return i, err
+}
+
 const listSessions = `-- name: ListSessions :many
 SELECT s.id, s.user_id, s.resource_id, s.gateway_id, s.client_ip, s.started_at, s.ended_at,
-       s.kind, s.target, s.bytes_up, s.bytes_down, s.datagrams_up, s.datagrams_down,
+       s.kind, s.target, s.front,
+       (s.ended_at IS NULL AND s.kind = 'terminal' AND s.gateway_instance_id IS NOT NULL)::bool AS live, coalesce(s.command, '')::text AS command, s.classes, s.paths, s.bytes_up, s.bytes_down, s.datagrams_up, s.datagrams_down,
        coalesce(u.login, '')::text AS user_login,
        coalesce(r.name, '')::text AS resource_name,
        coalesce(s.end_reason, '')::text AS end_reason,
@@ -310,6 +424,11 @@ type ListSessionsRow struct {
 	EndedAt       *time.Time
 	Kind          string
 	Target        string
+	Front         string
+	Live          bool
+	Command       string
+	Classes       []string
+	Paths         []string
 	BytesUp       int64
 	BytesDown     int64
 	DatagramsUp   int64
@@ -352,6 +471,11 @@ func (q *Queries) ListSessions(ctx context.Context, arg ListSessionsParams) ([]L
 			&i.EndedAt,
 			&i.Kind,
 			&i.Target,
+			&i.Front,
+			&i.Live,
+			&i.Command,
+			&i.Classes,
+			&i.Paths,
 			&i.BytesUp,
 			&i.BytesDown,
 			&i.DatagramsUp,
@@ -405,6 +529,78 @@ func (q *Queries) LockRecording(ctx context.Context, arg LockRecordingParams) (L
 	return i, err
 }
 
+const lockSessionToTerminate = `-- name: LockSessionToTerminate :one
+SELECT gateway_instance_id, ended_at, terminate_requested_at
+FROM session
+WHERE id = $1 AND org_id = $2 AND ($3::uuid IS NULL OR user_id = $3)
+FOR UPDATE
+`
+
+type LockSessionToTerminateParams struct {
+	ID     uuid.UUID
+	OrgID  uuid.UUID
+	UserID *uuid.UUID
+}
+
+type LockSessionToTerminateRow struct {
+	GatewayInstanceID    *uuid.UUID
+	EndedAt              *time.Time
+	TerminateRequestedAt *time.Time
+}
+
+// A set user_id narrows to that user's session; the lock orders terminate against End.
+func (q *Queries) LockSessionToTerminate(ctx context.Context, arg LockSessionToTerminateParams) (LockSessionToTerminateRow, error) {
+	row := q.db.QueryRow(ctx, lockSessionToTerminate, arg.ID, arg.OrgID, arg.UserID)
+	var i LockSessionToTerminateRow
+	err := row.Scan(&i.GatewayInstanceID, &i.EndedAt, &i.TerminateRequestedAt)
+	return i, err
+}
+
+const lookupStreamTicket = `-- name: LookupStreamTicket :one
+SELECT t.id, t.org_id, t.mode, t.session_id, t.resource_id, t.user_id, t.cols, t.rows, t.gateway_instance_id, t.target_server_id, t.client_ip, t.expires_at, t.used_at, t.created_at, t.user_session_id, u.login, coalesce(r.name, '')::text AS resource_name
+FROM stream_ticket t
+JOIN users u ON u.id = t.user_id
+LEFT JOIN resource r ON r.id = t.resource_id AND r.org_id = t.org_id
+WHERE t.id = $1 AND t.org_id = $2 AND t.gateway_instance_id = $3 AND t.expires_at > now()
+`
+
+type LookupStreamTicketParams struct {
+	ID         uuid.UUID
+	OrgID      uuid.UUID
+	InstanceID uuid.UUID
+}
+
+type LookupStreamTicketRow struct {
+	StreamTicket StreamTicket
+	Login        string
+	ResourceName string
+}
+
+func (q *Queries) LookupStreamTicket(ctx context.Context, arg LookupStreamTicketParams) (LookupStreamTicketRow, error) {
+	row := q.db.QueryRow(ctx, lookupStreamTicket, arg.ID, arg.OrgID, arg.InstanceID)
+	var i LookupStreamTicketRow
+	err := row.Scan(
+		&i.StreamTicket.ID,
+		&i.StreamTicket.OrgID,
+		&i.StreamTicket.Mode,
+		&i.StreamTicket.SessionID,
+		&i.StreamTicket.ResourceID,
+		&i.StreamTicket.UserID,
+		&i.StreamTicket.Cols,
+		&i.StreamTicket.Rows,
+		&i.StreamTicket.GatewayInstanceID,
+		&i.StreamTicket.TargetServerID,
+		&i.StreamTicket.ClientIp,
+		&i.StreamTicket.ExpiresAt,
+		&i.StreamTicket.UsedAt,
+		&i.StreamTicket.CreatedAt,
+		&i.StreamTicket.UserSessionID,
+		&i.Login,
+		&i.ResourceName,
+	)
+	return i, err
+}
+
 const membersAmong = `-- name: MembersAmong :many
 SELECT user_id FROM membership WHERE org_id = $1 AND user_id = ANY($2::uuid[])
 `
@@ -432,6 +628,73 @@ func (q *Queries) MembersAmong(ctx context.Context, arg MembersAmongParams) ([]u
 		return nil, err
 	}
 	return items, nil
+}
+
+const notifySessionTerminate = `-- name: NotifySessionTerminate :exec
+SELECT pg_notify('werbot_session_terminate', $1::text)
+`
+
+func (q *Queries) NotifySessionTerminate(ctx context.Context, payload string) error {
+	_, err := q.db.Exec(ctx, notifySessionTerminate, payload)
+	return err
+}
+
+const observableSession = `-- name: ObservableSession :one
+SELECT gateway_instance_id::uuid AS instance_id
+FROM session
+WHERE id = $1 AND org_id = $2 AND ($3::uuid IS NULL OR user_id = $3)
+  AND ended_at IS NULL AND kind = 'terminal' AND gateway_instance_id IS NOT NULL
+`
+
+type ObservableSessionParams struct {
+	ID     uuid.UUID
+	OrgID  uuid.UUID
+	UserID *uuid.UUID
+}
+
+// The instance of a live terminal session; a set user_id narrows to that user's session.
+func (q *Queries) ObservableSession(ctx context.Context, arg ObservableSessionParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, observableSession, arg.ID, arg.OrgID, arg.UserID)
+	var instance_id uuid.UUID
+	err := row.Scan(&instance_id)
+	return instance_id, err
+}
+
+const pendingTerminations = `-- name: PendingTerminations :one
+SELECT coalesce(array_agg(id ORDER BY id), '{}')::uuid[] AS ids
+FROM session
+WHERE org_id = $1 AND gateway_instance_id = $2::uuid
+  AND terminate_requested_at IS NOT NULL AND ended_at IS NULL
+`
+
+type PendingTerminationsParams struct {
+	OrgID      uuid.UUID
+	InstanceID uuid.UUID
+}
+
+// One row for dbx.ReadInOrg; the partial index session_terminate_pending_idx serves it.
+func (q *Queries) PendingTerminations(ctx context.Context, arg PendingTerminationsParams) ([]uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, pendingTerminations, arg.OrgID, arg.InstanceID)
+	var ids []uuid.UUID
+	err := row.Scan(&ids)
+	return ids, err
+}
+
+const requestTerminate = `-- name: RequestTerminate :exec
+UPDATE session
+SET terminate_requested_at = now(), terminate_reason = $1::text
+WHERE id = $2 AND org_id = $3
+`
+
+type RequestTerminateParams struct {
+	Reason string
+	ID     uuid.UUID
+	OrgID  uuid.UUID
+}
+
+func (q *Queries) RequestTerminate(ctx context.Context, arg RequestTerminateParams) error {
+	_, err := q.db.Exec(ctx, requestTerminate, arg.Reason, arg.ID, arg.OrgID)
+	return err
 }
 
 const resourceIDsByName = `-- name: ResourceIDsByName :many
@@ -468,6 +731,22 @@ func (q *Queries) ResourceIDsByName(ctx context.Context, arg ResourceIDsByNamePa
 	return items, nil
 }
 
+const sessionInOrg = `-- name: SessionInOrg :one
+SELECT EXISTS (SELECT 1 FROM session WHERE id = $1 AND org_id = $2)
+`
+
+type SessionInOrgParams struct {
+	ID    uuid.UUID
+	OrgID uuid.UUID
+}
+
+func (q *Queries) SessionInOrg(ctx context.Context, arg SessionInOrgParams) (bool, error) {
+	row := q.db.QueryRow(ctx, sessionInOrg, arg.ID, arg.OrgID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const sessionOfInstanceExists = `-- name: SessionOfInstanceExists :one
 SELECT EXISTS (SELECT 1 FROM session WHERE id = $1 AND org_id = $2 AND gateway_instance_id = $3::uuid)
 `
@@ -483,6 +762,35 @@ func (q *Queries) SessionOfInstanceExists(ctx context.Context, arg SessionOfInst
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
+}
+
+const terminalTarget = `-- name: TerminalTarget :one
+SELECT r.id AS resource_id,
+       (SELECT i.id FROM gateway_instance i
+        WHERE r.gateway_id IS NOT NULL AND i.gateway_id = r.gateway_id AND i.org_id = r.org_id
+          AND i.last_seen_at > now() - interval '45 seconds' AND r.type = ANY(i.connectors)
+        ORDER BY random() LIMIT 1) AS instance_id
+FROM resource r
+WHERE r.org_id = $1 AND r.name = $2
+`
+
+type TerminalTargetParams struct {
+	OrgID uuid.UUID
+	Name  string
+}
+
+type TerminalTargetRow struct {
+	ResourceID uuid.UUID
+	InstanceID uuid.UUID
+}
+
+// The resource by name with a random online instance of its pool serving its
+// type; instance_id is NULL (scanned as uuid.Nil) without a pool or an online instance.
+func (q *Queries) TerminalTarget(ctx context.Context, arg TerminalTargetParams) (TerminalTargetRow, error) {
+	row := q.db.QueryRow(ctx, terminalTarget, arg.OrgID, arg.Name)
+	var i TerminalTargetRow
+	err := row.Scan(&i.ResourceID, &i.InstanceID)
+	return i, err
 }
 
 const updateSessionCounters = `-- name: UpdateSessionCounters :exec

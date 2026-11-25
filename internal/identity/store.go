@@ -2,6 +2,7 @@ package identity
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -28,6 +29,7 @@ type Store interface {
 	GetUserOrg(ctx context.Context, userID uuid.UUID) (uuid.UUID, error)
 	DeleteUserSessions(ctx context.Context, userID uuid.UUID) error
 	GetProfile(ctx context.Context, id uuid.UUID) (dbq.GetProfileRow, error)
+	GetCertSubject(ctx context.Context, arg dbq.GetCertSubjectParams) (dbq.GetCertSubjectRow, error)
 	UpdateProfile(ctx context.Context, arg dbq.UpdateProfileParams) error
 	GetPasswordHash(ctx context.Context, id uuid.UUID) (string, error)
 	DeleteOtherUserSessions(ctx context.Context, arg dbq.DeleteOtherUserSessionsParams) error
@@ -56,4 +58,63 @@ type Store interface {
 	RemoveTeamMember(ctx context.Context, arg dbq.RemoveTeamMemberParams) (int64, error)
 	UserTeams(ctx context.Context, arg dbq.UserTeamsParams) ([]uuid.UUID, error)
 	ListOrgMembers(ctx context.Context, orgID uuid.UUID) ([]dbq.ListOrgMembersRow, error)
+	CreateOrgSetting(ctx context.Context, orgID uuid.UUID) error
+	GetOrgSettings(ctx context.Context, orgID uuid.UUID) (dbq.GetOrgSettingsRow, error)
+	LockOrgSettings(ctx context.Context, orgID uuid.UUID) (dbq.LockOrgSettingsRow, error)
+	UpdateOrgSettings(ctx context.Context, arg dbq.UpdateOrgSettingsParams) error
+	GetMemberRole(ctx context.Context, arg dbq.GetMemberRoleParams) (string, error)
+	GetCLISessionRole(ctx context.Context, arg dbq.GetCLISessionRoleParams) (dbq.GetCLISessionRoleRow, error)
+	ListCLISessions(ctx context.Context, arg dbq.ListCLISessionsParams) ([]dbq.ListCLISessionsRow, error)
+	RevokeCLISession(ctx context.Context, arg dbq.RevokeCLISessionParams) (int64, error)
+	RevokeUserCLISessions(ctx context.Context, arg dbq.RevokeUserCLISessionsParams) error
+	GetUserCA(ctx context.Context, orgID uuid.UUID) (dbq.GetUserCARow, error)
+	InsertUserCA(ctx context.Context, arg dbq.InsertUserCAParams) error
+	LookupCertUser(ctx context.Context, arg dbq.LookupCertUserParams) (dbq.LookupCertUserRow, error)
+	DeleteOldMFAChallenges(ctx context.Context, olderSecs float64) (int64, error)
+	DeleteOldMFAVerifications(ctx context.Context, olderSecs float64) (int64, error)
+	UpsertTOTPSecret(ctx context.Context, arg dbq.UpsertTOTPSecretParams) (int64, error)
+	ConfirmTOTPSecret(ctx context.Context, userID uuid.UUID) (int64, error)
+	GetTOTPSecret(ctx context.Context, userID uuid.UUID) (dbq.GetTOTPSecretRow, error)
+	UseTOTPStep(ctx context.Context, arg dbq.UseTOTPStepParams) (int64, error)
+	DeleteTOTPSecret(ctx context.Context, userID uuid.UUID) (int64, error)
+	DeleteRecoveryCodes(ctx context.Context, userID uuid.UUID) (int64, error)
+	InsertRecoveryCodes(ctx context.Context, arg dbq.InsertRecoveryCodesParams) error
+	UseRecoveryCode(ctx context.Context, arg dbq.UseRecoveryCodeParams) (int64, error)
+	DeleteWebAuthnCredential(ctx context.Context, arg dbq.DeleteWebAuthnCredentialParams) (int64, error)
+	HasFactor(ctx context.Context, userID uuid.UUID) (bool, error)
+	GetTOTPFactor(ctx context.Context, userID uuid.UUID) (time.Time, error)
+	GetRecoveryFactor(ctx context.Context, userID uuid.UUID) (dbq.GetRecoveryFactorRow, error)
+	ListWebAuthnFactors(ctx context.Context, userID uuid.UUID) ([]dbq.ListWebAuthnFactorsRow, error)
+	GetRequireMFA(ctx context.Context, orgID uuid.UUID) (string, error)
+	ListWebAuthnCredentials(ctx context.Context, userID uuid.UUID) ([]dbq.ListWebAuthnCredentialsRow, error)
+	CreateWebAuthnCredential(ctx context.Context, arg dbq.CreateWebAuthnCredentialParams) (dbq.CreateWebAuthnCredentialRow, error)
+	UseWebAuthnCredential(ctx context.Context, arg dbq.UseWebAuthnCredentialParams) (int64, error)
+	MFADeviceLocked(ctx context.Context, arg dbq.MFADeviceLockedParams) (bool, error)
+	DeleteStaleCeremonies(ctx context.Context, userID uuid.UUID) error
+	CreateCeremony(ctx context.Context, arg dbq.CreateCeremonyParams) error
+	UseCeremony(ctx context.Context, arg dbq.UseCeremonyParams) ([]byte, error)
+	GetLoginFactors(ctx context.Context, userID uuid.UUID) (dbq.GetLoginFactorsRow, error)
+	GetMFALoginToken(ctx context.Context, tokenHash []byte) (dbq.GetMFALoginTokenRow, error)
+	SetSessionMFA(ctx context.Context, tokenHash []byte) (uuid.UUID, error)
+	SetSessionMFAByID(ctx context.Context, arg dbq.SetSessionMFAByIDParams) error
+	CreateMFAVerification(ctx context.Context, arg dbq.CreateMFAVerificationParams) error
+	CreateMFAChallenge(ctx context.Context, arg dbq.CreateMFAChallengeParams) (dbq.CreateMFAChallengeRow, error)
+	GetUserMFAChallenge(ctx context.Context, arg dbq.GetUserMFAChallengeParams) (dbq.GetUserMFAChallengeRow, error)
+	GetInstanceMFAChallenge(ctx context.Context, arg dbq.GetInstanceMFAChallengeParams) (dbq.GetInstanceMFAChallengeRow, error)
+	ConfirmMFAChallenge(ctx context.Context, arg dbq.ConfirmMFAChallengeParams) (dbq.ConfirmMFAChallengeRow, error)
+	DenyMFAChallenge(ctx context.Context, arg dbq.DenyMFAChallengeParams) error
+	MFAChallengeStatus(ctx context.Context, arg dbq.MFAChallengeStatusParams) (string, error)
+	ListConfirmedMFAChallenges(ctx context.Context, arg dbq.ListConfirmedMFAChallengesParams) ([]uuid.UUID, error)
+	NotifyMFAConfirmed(ctx context.Context, payload string) error
+	LastMFAVerification(ctx context.Context, arg dbq.LastMFAVerificationParams) (dbq.LastMFAVerificationRow, error)
+	GetIdPLinkUser(ctx context.Context, arg dbq.GetIdPLinkUserParams) (uuid.UUID, error)
+	GetMemberByEmail(ctx context.Context, arg dbq.GetMemberByEmailParams) (uuid.UUID, error)
+	LoginTaken(ctx context.Context, login string) (bool, error)
+	UpsertIdPLink(ctx context.Context, arg dbq.UpsertIdPLinkParams) error
+	SetExternalRole(ctx context.Context, arg dbq.SetExternalRoleParams) (string, error)
+	AddExternalTeams(ctx context.Context, arg dbq.AddExternalTeamsParams) error
+	RemoveExternalTeams(ctx context.Context, arg dbq.RemoveExternalTeamsParams) error
+	ListEnabledIdPs(ctx context.Context) ([]dbq.ListEnabledIdPsRow, error)
+	DeleteOrgUserSessions(ctx context.Context, arg dbq.DeleteOrgUserSessionsParams) error
+	RevokeOrgUserCLISessions(ctx context.Context, arg dbq.RevokeOrgUserCLISessionsParams) error
 }

@@ -1,7 +1,8 @@
 # Cluster stand of stage 7a: two server replicas, two web replicas, two
 # gateways of one pool behind nginx, Postgres and SeaweedFS (S3 recordings).
 # Targets sit on an internal-only network that only the gateways join.
-# Run with `make e2e-cluster`; the Go harness (stand.go) drives it.
+# Run with `make e2e-cluster` (`make redteam`: project werbot-redteam); the Go
+# harness (stand.go) drives it.
 # Every secret below is a throwaway test-only value.
 # No restart policy: a crashed werbot process stays stopped, and the scenarios see it.
 name: werbot-cluster
@@ -29,6 +30,7 @@ x-server: &server
     WERBOT_RECORDINGS_S3_BUCKET: werbot-recordings
     WERBOT_RECORDINGS_S3_ACCESS_KEY: werbot
     WERBOT_RECORDINGS_S3_SECRET_KEY: werbot-s3-secret
+    WERBOT_INTERNAL_URL: ${SERVER_INTERNAL_URL:-} # empty: https://<hostname>:8444; stage 16 points server2 at a dead port
 
 x-web: &web
   image: werbot:cluster
@@ -144,6 +146,13 @@ services:
     command: ["/echotarget"]
     volumes: ["./.bin/echotarget:/echotarget:ro"]
     networks: { private: { ipv4_address: 10.231.1.40 } }
+
+  sshtarget: # red-team (test/redteam): password SSH target
+    image: busybox:1.37@sha256:a7dbc319b1438115a207e11930dc4bb3e643dcb3ec0bdd694bb36cd8fad289ec
+    # built on the host by the harness (internal/e2e/sshtarget)
+    command: ["/sshtarget", "-addr", ":2222", "-password", "rt-secret-9f31c0a8"]
+    volumes: ["./.bin/sshtarget:/sshtarget:ro"]
+    networks: [private]
 
   dns: # scenario 14
     image: coredns/coredns:1.12.1@sha256:e8c262566636e6bc340ece6473b0eed193cad045384401529721ddbe6463d31c

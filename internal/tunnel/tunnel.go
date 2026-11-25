@@ -21,6 +21,7 @@ import (
 	"github.com/werbot/werbot/gen/gateway/v1/gatewayv1connect"
 	"github.com/werbot/werbot/internal/platform/apperr"
 	"github.com/werbot/werbot/internal/platform/metrics"
+	"github.com/werbot/werbot/internal/platform/sshca"
 	"github.com/werbot/werbot/internal/platform/tlsca"
 )
 
@@ -45,33 +46,13 @@ type User struct {
 	ID      uuid.UUID
 	Login   string
 	TeamIDs []uuid.UUID
+	Agent   *AgentRef // set for an agent certificate; the user is its sponsor
 }
 
 // Secret is a revealed resource credential.
 type Secret struct {
 	Kind  string
 	Value []byte
-}
-
-// SessionStart describes a session to record.
-type SessionStart struct {
-	OrgID, GatewayID, InstanceID, UserID, ResourceID uuid.UUID
-	ClientIP                                         netip.Addr
-	Kind, Target                                     string
-}
-
-// Counters are a session's traffic totals since it began; up is client to target.
-type Counters struct {
-	SessionID                                      uuid.UUID
-	BytesUp, BytesDown, DatagramsUp, DatagramsDown int64
-}
-
-// Denial is a connection attempt a gateway refused; UserID is nil when unknown.
-type Denial struct {
-	UserID                                         *uuid.UUID
-	KeyFingerprint, Resource, Kind, Target, Reason string
-	ClientIP                                       netip.Addr
-	At                                             time.Time
 }
 
 // ResourceHealth is one probe result of a resource.
@@ -93,6 +74,9 @@ type Gateways interface {
 type Users interface {
 	ByFingerprint(ctx context.Context, orgID uuid.UUID, fingerprint string) (User, error)
 	ByLogin(ctx context.Context, orgID uuid.UUID, login string) (User, error)
+	ByCert(ctx context.Context, orgID uuid.UUID, id sshca.Identity) (User, error) // a live CLI session of the certificate
+	// ByWebTicket reads an unspent, unexpired stream ticket of the instance.
+	ByWebTicket(ctx context.Context, orgID, instanceID, ticketID uuid.UUID) (User, WebTicket, error)
 }
 
 // Resources checks pool ownership and pins host keys.
@@ -120,10 +104,12 @@ type Snapshots interface {
 // Sessions records sessions per instance and the attempts gateways refused.
 type Sessions interface {
 	Start(ctx context.Context, s SessionStart) (uuid.UUID, error)
-	End(ctx context.Context, orgID, instanceID, id uuid.UUID, reason string, c *Counters) error // nil c keeps the stored counters
+	End(ctx context.Context, orgID, instanceID, id uuid.UUID, reason string, c *Counters, r *SessionResult) error // nil c keeps the stored counters
 	EndMissing(ctx context.Context, orgID, instanceID uuid.UUID, active []uuid.UUID, reason string) (int64, error)
 	UpdateCounters(ctx context.Context, orgID, instanceID uuid.UUID, cs []Counters) error
 	Deny(ctx context.Context, orgID uuid.UUID, ds []Denial) error
+	// PendingTerminations lists the open sessions of the instance asked to end.
+	PendingTerminations(ctx context.Context, orgID, instanceID uuid.UUID) ([]uuid.UUID, error)
 }
 
 // Health stores the probe results of an instance.
@@ -154,6 +140,10 @@ type Deps struct {
 	Recordings  RecordingIngest
 	Health      Health
 	Pools       Pools
+	Approvals   Approvals // nil: no approval decisions are sent
+	Agents      Agents    // nil: RecordDenial is unimplemented
+	Relay       Bridger   // nil: Stream is unimplemented
+	MFA         MFA       // nil: the MFA challenge RPCs are unimplemented, no MFA age is sent
 	Country     func(netip.Addr) string
 	Metrics     *metrics.Registry // nil: a private registry
 	Logger      *slog.Logger      // nil: slog.Default()
@@ -189,7 +179,8 @@ func New(d Deps, hub *Hub) *Handler {
 
 // Mount registers TunnelService behind the mTLS middleware. Connect has its
 // own handler: its gzip compressor encodes each distinct message once for
-// all streams (gzipCache); the other procedures keep the default one.
+// all streams (gzipCache); the other procedures keep the default one. Stream
+// has its own read limit (mountStream).
 func (h *Handler) Mount(mux *http.ServeMux) {
 	opts := connect.WithHandlerOptions(connect.WithCompressMinBytes(CompressMinBytes),
 		connect.WithReadMaxBytes(readMaxBytes), connect.WithInterceptors(validate.NewInterceptor()))
@@ -200,10 +191,12 @@ func (h *Handler) Mount(mux *http.ServeMux) {
 		connect.WithCompression("gzip", func() connect.Decompressor { return &gzip.Reader{} },
 			func() connect.Compressor { return &gzipOnce{c: &h.gz} }))
 	mux.Handle(gatewayv1connect.TunnelServiceConnectProcedure, h.mtls(stream))
+	h.mountStream(mux)
 }
 
 // readMaxBytes caps one tunnel message; a snapshot only travels server → gateway.
-const readMaxBytes = 1 << 20
+// The worst valid heartbeat (console denials at their bounds) fits it.
+const readMaxBytes = 4 << 20
 
 type ctxKey int
 

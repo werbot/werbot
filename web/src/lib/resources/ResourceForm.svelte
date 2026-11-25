@@ -5,6 +5,8 @@
 	export type ResourceValues = ConfigValue & {
 		name: string;
 		type: string;
+		/** set when created from a preset: `type` is then its base type */
+		presetId?: string;
 		gatewayId: string;
 		labels: Record<string, string>;
 		idleTimeout?: Duration;
@@ -61,7 +63,8 @@
 
 	let type = $derived(types.find((t) => t.name === typeName));
 	let valid = $derived(!!value.config || value.configJson !== undefined);
-	let Form = $derived(configFormFor(typeName));
+	let baseType = $derived(type?.baseType || typeName);
+	let Form = $derived(configFormFor(baseType));
 
 	onMount(async () => {
 		try {
@@ -86,7 +89,8 @@
 		onsubmit({
 			...value,
 			name,
-			type: typeName,
+			type: baseType,
+			presetId: type?.presetId,
 			gatewayId,
 			labels: labelsFromRows(rows),
 			idleTimeout: duration(idleMinutes),

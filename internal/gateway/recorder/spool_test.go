@@ -77,13 +77,16 @@ func (u *fakeUploader) UploadChunk(_ context.Context, id uuid.UUID, seq int, has
 	return nil
 }
 
-func (u *fakeUploader) EndSession(_ context.Context, id uuid.UUID, reason string, c *gatewayv1.SessionCounters) error {
+func (u *fakeUploader) EndSession(_ context.Context, id uuid.UUID, reason string, c *gatewayv1.SessionCounters, r *recorder.SessionResult) error {
 	u.endCalls.Add(1)
 	if err := u.fail(); err != nil {
 		return err
 	}
 	if c != nil {
 		reason += fmt.Sprintf(" %s %d/%d/%d/%d", c.GetSessionId(), c.GetBytesUp(), c.GetBytesDown(), c.GetDatagramsUp(), c.GetDatagramsDown())
+	}
+	if r != nil {
+		reason += fmt.Sprintf(" %q %v %v", r.Command, r.Classes, r.Paths)
 	}
 	u.note(fmt.Sprintf("end %s %s", id, reason))
 	return nil
@@ -215,7 +218,7 @@ func TestSpoolShutdown(t *testing.T) {
 	_, _ = appendN(t, sp, id, 1)
 	require.NoError(t, sp.Shutdown())
 	require.Error(t, sp.Append(id, 1, make([]byte, 32), []byte("gz")))
-	require.Error(t, sp.End(id, "closed", nil))
+	require.Error(t, sp.End(id, "closed", nil, nil))
 	require.Error(t, sp.Close(id))
 	require.Error(t, sp.Append(uuid.New(), 0, make([]byte, 32), []byte("gz")))
 	entries, err := os.ReadDir(dir)

@@ -2,6 +2,8 @@
 UPDATE session
 -- Final counters never lower the stored ones; zeros leave them as they are.
 SET ended_at = now(), end_reason = @reason::text,
+    command = coalesce(nullif(@command::text, ''), command), classes = coalesce(@classes::text[], classes), paths = coalesce(@paths::text[], paths),
+    exit_code = sqlc.narg(exit_code)::int, output_sha256 = sqlc.narg(output_sha256)::bytea,
     bytes_up = GREATEST(bytes_up, @bytes_up::bigint), bytes_down = GREATEST(bytes_down, @bytes_down::bigint),
     datagrams_up = GREATEST(datagrams_up, @datagrams_up::bigint), datagrams_down = GREATEST(datagrams_down, @datagrams_down::bigint)
 WHERE id = @id AND org_id = @org_id AND gateway_instance_id = @instance_id::uuid AND ended_at IS NULL
@@ -24,6 +26,9 @@ SELECT user_id FROM membership WHERE org_id = @org_id AND user_id = ANY(@user_id
 
 -- name: SessionOfInstanceExists :one
 SELECT EXISTS (SELECT 1 FROM session WHERE id = @id AND org_id = @org_id AND gateway_instance_id = @instance_id::uuid);
+
+-- name: SessionInOrg :one
+SELECT EXISTS (SELECT 1 FROM session WHERE id = @id AND org_id = @org_id);
 
 -- name: EndMissingSessions :many
 UPDATE session
@@ -83,7 +88,8 @@ WHERE session_id = @session_id AND org_id = @org_id;
 -- name: ListSessions :many
 -- LEFT JOINs keep the history of deleted users and resources.
 SELECT s.id, s.user_id, s.resource_id, s.gateway_id, s.client_ip, s.started_at, s.ended_at,
-       s.kind, s.target, s.bytes_up, s.bytes_down, s.datagrams_up, s.datagrams_down,
+       s.kind, s.target, s.front,
+       (s.ended_at IS NULL AND s.kind = 'terminal' AND s.gateway_instance_id IS NOT NULL)::bool AS live, coalesce(s.command, '')::text AS command, s.classes, s.paths, s.bytes_up, s.bytes_down, s.datagrams_up, s.datagrams_down,
        coalesce(u.login, '')::text AS user_login,
        coalesce(r.name, '')::text AS resource_name,
        coalesce(s.end_reason, '')::text AS end_reason,
@@ -103,3 +109,66 @@ WHERE s.org_id = @org_id
   AND (sqlc.narg(id)::uuid IS NULL OR s.id = sqlc.narg(id))
 ORDER BY s.started_at DESC, s.id DESC
 LIMIT @row_limit::int OFFSET @row_offset::int;
+
+-- name: LockSessionToTerminate :one
+-- A set user_id narrows to that user's session; the lock orders terminate against End.
+SELECT gateway_instance_id, ended_at, terminate_requested_at
+FROM session
+WHERE id = @id AND org_id = @org_id AND (sqlc.narg(user_id)::uuid IS NULL OR user_id = sqlc.narg(user_id))
+FOR UPDATE;
+
+-- name: RequestTerminate :exec
+UPDATE session
+SET terminate_requested_at = now(), terminate_reason = @reason::text
+WHERE id = @id AND org_id = @org_id;
+
+-- name: NotifySessionTerminate :exec
+SELECT pg_notify('werbot_session_terminate', @payload::text);
+
+-- name: PendingTerminations :one
+-- One row for dbx.ReadInOrg; the partial index session_terminate_pending_idx serves it.
+SELECT coalesce(array_agg(id ORDER BY id), '{}')::uuid[] AS ids
+FROM session
+WHERE org_id = @org_id AND gateway_instance_id = @instance_id::uuid
+  AND terminate_requested_at IS NOT NULL AND ended_at IS NULL;
+
+-- name: ObservableSession :one
+-- The instance of a live terminal session; a set user_id narrows to that user's session.
+SELECT gateway_instance_id::uuid AS instance_id
+FROM session
+WHERE id = @id AND org_id = @org_id AND (sqlc.narg(user_id)::uuid IS NULL OR user_id = sqlc.narg(user_id))
+  AND ended_at IS NULL AND kind = 'terminal' AND gateway_instance_id IS NOT NULL;
+
+-- name: TerminalTarget :one
+-- The resource by name with a random online instance of its pool serving its
+-- type; instance_id is NULL (scanned as uuid.Nil) without a pool or an online instance.
+SELECT r.id AS resource_id,
+       (SELECT i.id FROM gateway_instance i
+        WHERE r.gateway_id IS NOT NULL AND i.gateway_id = r.gateway_id AND i.org_id = r.org_id
+          AND i.last_seen_at > now() - interval '45 seconds' AND r.type = ANY(i.connectors)
+        ORDER BY random() LIMIT 1) AS instance_id
+FROM resource r
+WHERE r.org_id = @org_id AND r.name = @name;
+
+-- name: InsertStreamTicket :one
+INSERT INTO stream_ticket (org_id, mode, session_id, resource_id, user_id, cols, rows,
+                           gateway_instance_id, target_server_id, client_ip, user_session_id, expires_at)
+VALUES (@org_id, @mode, sqlc.narg(session_id), sqlc.narg(resource_id), @user_id, @cols, @rows,
+        @gateway_instance_id, @target_server_id, sqlc.narg(client_ip), sqlc.narg(user_session_id),
+        now() + make_interval(secs => @ttl_secs::float8))
+RETURNING *;
+
+-- name: ConsumeStreamTicket :one
+UPDATE stream_ticket SET used_at = now()
+WHERE id = @id AND used_at IS NULL AND expires_at > now()
+RETURNING *;
+
+-- name: LookupStreamTicket :one
+SELECT sqlc.embed(t), u.login, coalesce(r.name, '')::text AS resource_name
+FROM stream_ticket t
+JOIN users u ON u.id = t.user_id
+LEFT JOIN resource r ON r.id = t.resource_id AND r.org_id = t.org_id
+WHERE t.id = @id AND t.org_id = @org_id AND t.gateway_instance_id = @instance_id AND t.expires_at > now();
+
+-- name: DeleteExpiredStreamTickets :execrows
+DELETE FROM stream_ticket WHERE expires_at < now() - make_interval(secs => @after_secs::float8);

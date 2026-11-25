@@ -2,6 +2,7 @@ package access
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -17,6 +18,22 @@ func parseID(s string) (uuid.UUID, error) {
 		return uuid.Nil, fmt.Errorf("invalid id: %w", apperr.ErrInvalidArgument)
 	}
 	return id, nil
+}
+
+// idString is the text of id; nil is empty.
+func idString(id *uuid.UUID) string {
+	if id == nil {
+		return ""
+	}
+	return id.String()
+}
+
+// timestamp converts t; nil stays unset.
+func timestamp(t *time.Time) *timestamppb.Timestamp {
+	if t == nil {
+		return nil
+	}
+	return timestamppb.New(*t)
 }
 
 func bindingToProto(b Binding) *werbotv1.Binding {

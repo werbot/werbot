@@ -39,6 +39,7 @@ type Resource struct {
 	Type      string
 	Category  connector.Category
 	GatewayID *uuid.UUID
+	PresetID  *uuid.UUID    // nil unless created from a preset
 	Config    proto.Message // nil when the type is no longer registered
 	Labels    map[string]string
 	HostKey   *HostKey // nil: no key pinned
@@ -53,6 +54,7 @@ type Resource struct {
 type CreateInput struct {
 	Name, Type string
 	GatewayID  *uuid.UUID
+	PresetID   *uuid.UUID
 	Config     proto.Message
 	Labels     map[string]string
 	// IdleTimeout and MaxDuration: nil means the gateway default.
@@ -148,7 +150,7 @@ func validateConfig(t connector.Type, cfg proto.Message) ([]byte, error) {
 func toResource(r dbq.GetResourceRow) (Resource, error) {
 	res := Resource{
 		ID: r.ID, OrgID: r.OrgID, Name: r.Name, Type: r.Type, Category: connector.Category(r.Category),
-		GatewayID: r.GatewayID, CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt,
+		GatewayID: r.GatewayID, PresetID: r.PresetID, CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt,
 		IdleTimeout: secsToDuration(r.IdleSecs), MaxDuration: secsToDuration(r.MaxSecs),
 		Health: healthStatus(r.HealthState, r.HealthCheckedAt, r.HealthError),
 	}

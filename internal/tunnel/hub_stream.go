@@ -23,6 +23,7 @@ type stream struct {
 	serial string
 	wake   chan struct{} // capacity 1
 	done   chan struct{}
+	ctl    chan ctlMsg // control messages, capacity ControlQueueSize
 
 	mu      sync.Mutex
 	pending *gatewayv1.Snapshot
@@ -120,6 +121,7 @@ func (hd *Handler) Connect(ctx context.Context, st *connect.BidiStream[gatewayv1
 	defer age.Stop()
 	beat := time.NewTimer(hd.hub.hbTimeout)
 	defer beat.Stop()
+	var ctl chan ctlMsg // read once the first snapshot was sent
 	for {
 		select {
 		case <-s.wake:
@@ -129,11 +131,21 @@ func (hd *Handler) Connect(ctx context.Context, st *connect.BidiStream[gatewayv1
 					return err
 				}
 				hd.pushes.Inc()
+				if ctl == nil {
+					ctl = s.ctl
+					if err := hd.resend(ctx, st, g); err != nil {
+						return err
+					}
+				}
 			}
 			if pool != nil {
 				if err := st.Send(&gatewayv1.ConnectResponse{Msg: &gatewayv1.ConnectResponse_PoolInstances{PoolInstances: pool}}); err != nil {
 					return err
 				}
+			}
+		case m := <-ctl:
+			if err := hd.sendControl(ctx, st, g, m); err != nil {
+				return err
 			}
 		case <-s.done:
 			return s.closeErr()
@@ -234,13 +246,12 @@ func countersOf(id uuid.UUID, c *gatewayv1.SessionCounters) Counters {
 		DatagramsUp: c.GetDatagramsUp(), DatagramsDown: c.GetDatagramsDown()}
 }
 
-// denialOf converts d; an empty or invalid user id, client IP or time stays unset.
+// denialOf converts d; an empty or invalid user id, session id, agent run id,
+// client IP or time stays unset.
 func denialOf(d *gatewayv1.Denial) Denial {
 	out := Denial{KeyFingerprint: d.GetKeyFingerprint(), Resource: d.GetResource(), Kind: d.GetKind(),
-		Target: d.GetTarget(), Reason: d.GetReason()}
-	if id, err := uuid.Parse(d.GetUserId()); err == nil {
-		out.UserID = &id
-	}
+		Target: d.GetTarget(), Reason: d.GetReason(), Classes: d.GetClasses(), Paths: d.GetPaths(), Reasons: d.GetReasons(),
+		UserID: validID(d.GetUserId()), SessionID: validID(d.GetSessionId()), AgentRunID: validID(d.GetAgentRunId())}
 	if ip, err := netip.ParseAddr(d.GetClientIp()); err == nil {
 		out.ClientIP = ip.Unmap()
 	}
@@ -248,6 +259,15 @@ func denialOf(d *gatewayv1.Denial) Denial {
 		out.At = d.GetAt().AsTime()
 	}
 	return out
+}
+
+// validID is s as an id; nil when s is empty or invalid.
+func validID(s string) *uuid.UUID {
+	id, err := uuid.Parse(s)
+	if err != nil {
+		return nil
+	}
+	return &id
 }
 
 // heartbeatHealth converts the probe results and counts the dropped ones:

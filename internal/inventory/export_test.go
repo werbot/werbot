@@ -14,3 +14,6 @@ func PickGateway(ctx context.Context, tx pgx.Tx, orgID uuid.UUID) (*uuid.UUID, e
 
 // GCSchedule is the gateway.gc schedule.
 var GCSchedule = gcSchedule
+
+// NotFound is notFound.
+var NotFound = notFound

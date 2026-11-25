@@ -6,6 +6,38 @@ Between minor `v0.x` releases incompatible changes are possible. They are listed
 
 In `v0.x` an upgrade needs a full stop: every server replica and every gateway instance runs the same version, and a rolling upgrade is not supported (it comes with the public beta and expand/contract migrations).
 
+## Release notes
+
+### Web terminal, live view and terminate
+
+This release adds a web terminal, a live view and Terminate ([web-terminal.md](web-terminal.md)). Check these changes before you upgrade:
+
+- **New listener `:8444`.** Every server replica opens `WERBOT_INTERNAL_ADDR` (default `:8444`), an mTLS-only listener that replicas use to bridge browser streams. It accepts only client certificates of the internal CA. Keep it on the private network and open it between the replicas. With several replicas set `WERBOT_INTERNAL_ADDR` and `WERBOT_INTERNAL_URL` (an address the other replicas can reach); with one replica no setting is needed ([scaling.md](scaling.md#internal-listener)).
+- **Load balancer.** The balancer in front of the server or `werbot web` must pass WebSocket upgrades and keep idle connections at least 60 seconds ([scaling.md](scaling.md#websocket-streams)). Without it the web terminal and the live view do not connect; nothing else is affected.
+- **UI origin.** The server accepts a WebSocket only from the origin of `WERBOT_WEB_URL` (it defaults to `WERBOT_PUBLIC_URL`). Set `WERBOT_WEB_URL` to the address users open in the browser ([web.md](web.md#websocket)).
+- **Gateways.** Upgrade standalone gateways with the server: older ones do not serve browser streams.
+- **Migrations.** `00180` to `00182` add the server replica registry, stream tickets, and the session columns for the entry (`front`) and terminate requests. They run at server start as usual.
+- **Dependency.** The server includes `github.com/coder/websocket` v1.8.15; the UI includes `@xterm/xterm` and `@xterm/addon-fit`.
+
+### AI agents
+
+This release adds AI agents ([agents.md](agents.md)). Check these changes before you upgrade:
+
+- **Stricter command classes, for everyone.** Forms of programs that used to be `read` but write files or run programs now get a stricter class ([policies.md](policies.md#stricter-classes)):
+  - `awk` is `opaque` when its program calls `system` or `getline`, contains `@` (gawk directives such as `@include` or `@load`), has `|` or `>` after `print` or `printf`, comes from `-f` or is not literal, or when an option other than `-F`/`-v` (`--field-separator`/`--assign`) is given.
+  - `sed` is `opaque` with an `e`, `w` or `W` command or an `e` or `w` flag of `s`, with `-f`, with a script that does not parse and without a script.
+  - `less -o`/`-O`/`--log-file`; `curl -o`/`-O`/`--output`/`--remote-name`/`--remote-name-all`/`-D`/`-c`/`--trace`/`--trace-ascii`/`--stderr`/`--libcurl`/`--etag-save`/`--hsts`/`--alt-svc`; `wget -O`/`-o`/`-a`/`-P` and their long forms are `write`. A bare `wget <url>` is `write`; it stays `read` only with `-O -`, `-O /dev/null` or `--spider`. The values `-` and `/dev/null` stay `read`.
+  - `git diff`, `git log` and `git show` with `--ext-diff` or `--textconv` are `opaque`.
+  - `less` with options the classifier does not parse or a non-literal first argument is `opaque`.
+
+  Rules on `write` or `opaque` and the **Only allowed commands** preset therefore deny these forms or ask approval for them, where they ran as `read` before. Expect more refusals and approval requests for people under such rules; give a trusted script a [class override](policies.md#class-overrides) if needed.
+- **Custom `permit` policies apply to agents.** A `permit (principal, …)` without a principal type now also matches AI agents and can widen what they may do. Review your custom policies and write `principal is Werbot::User` where a policy is meant for people only ([policies.md](policies.md#custom-cedar)).
+- **`Approved` line.** After an approved command approval the gateway writes `Approved` on stderr (or the terminal) before the command runs. Scripts that read the stderr of a waiting exec see this extra line.
+- **No exit status for a session the gateway ends.** A command or terminal that a lock, a revoke, a cancel, the idle timeout, the max duration or a gateway shutdown ends now closes without an exit status (OpenSSH exits with 255) instead of exit 0, for people too. Scripts that read such a cut-short command as a success now see a failure.
+- **Locks on agents.** The lock targets `agent`, `agent_run`, `agents_of_user` and `all_agents` are now accepted ([jit.md](jit.md#locks)).
+- **Migrations.** `00160` to `00164` add the agent tables, link sessions and approvals to agent runs and add agent profiles (`cli_session.agent_id`). They run at server start as usual.
+- **New dependency.** The CLI includes the MCP Go SDK (`github.com/modelcontextprotocol/go-sdk` v1.8.0) for `werbot mcp`, with its modules `google/jsonschema-go`, `segmentio/asm`, `segmentio/encoding`, `yosida95/uritemplate/v3` and `golang.org/x/time`. No new environment variable.
+
 ## Backup
 
 Back up before every upgrade. For the Docker Compose quick start, run in its directory (`werbot/`, with `docker-compose.yaml`):

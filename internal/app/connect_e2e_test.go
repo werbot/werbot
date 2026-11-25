@@ -166,28 +166,47 @@ func (s *stack) addKeyFile(t *testing.T) string {
 // addr in the pool "gw", bound to alice when bind is set.
 func (s *stack) addPortResource(t *testing.T, name, typ, addr string, bind bool) uuid.UUID {
 	t.Helper()
-	ctx := context.Background()
-	_, ps, err := net.SplitHostPort(addr)
-	require.NoError(t, err)
-	p, err := strconv.ParseUint(ps, 10, 16)
-	require.NoError(t, err)
-	ports := []*connectorv1.PortRange{{Port: uint32(p)}}
+	_, port := hostPort(t, addr)
+	ports := []*connectorv1.PortRange{{Port: port}}
 	var cfg proto.Message = &tcpv1.Config{Host: "127.0.0.1", Ports: ports}
 	if typ == "udp" {
 		cfg = &udpv1.Config{Host: "127.0.0.1", Ports: ports}
 	}
+	return s.createResource(t, s.gatewayID, name, typ, cfg, "", bind)
+}
+
+// createResource creates resource name of typ with cfg in pool gatewayID,
+// with password when not empty, bound to alice when bind is set.
+func (s *stack) createResource(t *testing.T, gatewayID uuid.UUID, name, typ string, cfg proto.Message, password string, bind bool) uuid.UUID {
+	t.Helper()
+	ctx := context.Background()
 	a, err := anypb.New(cfg)
 	require.NoError(t, err)
 	res, err := s.api.res.CreateResource(ctx, connect.NewRequest(&werbotv1.CreateResourceRequest{
-		Name: name, Type: typ, GatewayId: s.gatewayID.String(), Config: a}))
+		Name: name, Type: typ, GatewayId: gatewayID.String(), Config: a}))
 	require.NoError(t, err)
 	id := res.Msg.GetResource().GetId()
+	if password != "" {
+		_, err = s.api.res.SetCredential(ctx, connect.NewRequest(&werbotv1.SetCredentialRequest{
+			ResourceId: id, Kind: "password", Value: []byte(password)}))
+		require.NoError(t, err)
+	}
 	if bind {
 		_, err = s.api.acc.CreateBinding(ctx, connect.NewRequest(&werbotv1.CreateBindingRequest{
 			SubjectType: "user", SubjectId: s.alice, ResourceId: id}))
 		require.NoError(t, err)
 	}
 	return uuid.MustParse(id)
+}
+
+// hostPort splits addr into its host and port.
+func hostPort(t *testing.T, addr string) (string, uint32) {
+	t.Helper()
+	host, port, err := net.SplitHostPort(addr)
+	require.NoError(t, err)
+	p, err := strconv.ParseUint(port, 10, 16)
+	require.NoError(t, err)
+	return host, uint32(p)
 }
 
 // resourceReady waits until the gateway answers resource@werbot.com for name.

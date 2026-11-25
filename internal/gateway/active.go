@@ -20,6 +20,9 @@ import (
 // rejects a longer list. Config.MaxSessions is capped by it.
 const maxSessionIDs = 10000
 
+// earlyTTL and earlyMax bound the end causes kept for sessions not added yet.
+const earlyTTL, earlyMax = time.Minute, 1024
+
 // closedCh is returned by idle when no slot is taken.
 var closedCh = func() chan struct{} { c := make(chan struct{}); close(c); return c }()
 
@@ -29,9 +32,11 @@ type activeSessions struct {
 	gauge       *metrics.Gauge
 	log         *slog.Logger
 	draining    bool
+	drained     chan struct{} // closed by startDrain: approval waits end
 	slots       int
 	idleCh      chan struct{}          // closed when slots drops to 0; nil while 0
 	sessions    map[uuid.UUID]*tracked // opened sessions
+	early       map[uuid.UUID]*tracked // sessions ended before add (a terminate): only cause and when (started)
 	shutdown    error                  // set by cancelAll: a later bind cancels at once
 	lastOmitted int                    // ids left out of the last heartbeat; the cap warning fires when it changes
 }
@@ -46,12 +51,14 @@ type tracked struct {
 	version   string // the policy version req was last allowed on
 	started   time.Time
 	idle, max time.Duration // 0: no limit
+	held      int           // console checks running (hold): the idle limit waits
+	rec       RecordingSink // the recording Open made; an *observedSink for a terminal
 	c         *counters
 	sent      [4]int64 // the counters in the last heartbeat
 }
 
 func newActiveSessions(gauge *metrics.Gauge, logger *slog.Logger) *activeSessions {
-	return &activeSessions{gauge: gauge, log: logger, sessions: map[uuid.UUID]*tracked{}}
+	return &activeSessions{gauge: gauge, log: logger, sessions: map[uuid.UUID]*tracked{}, early: map[uuid.UUID]*tracked{}, drained: make(chan struct{})}
 }
 
 // reserve takes a slot: ErrNotReady while draining, ErrBusy when limit are taken.
@@ -87,10 +94,13 @@ func (a *activeSessions) release() {
 	}
 }
 
-// startDrain makes every later reserve fail with ErrNotReady.
+// startDrain makes every later reserve fail with ErrNotReady and closes drained.
 func (a *activeSessions) startDrain() {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	if !a.draining {
+		close(a.drained)
+	}
 	a.draining = true
 }
 
@@ -116,13 +126,17 @@ func (a *activeSessions) idle() <-chan struct{} {
 	return a.idleCh
 }
 
-// add tracks an opened session; t.c is set when nil.
+// add tracks an opened session; t.c is set when nil, t.cause to a cause keepEarly kept.
 func (a *activeSessions) add(id uuid.UUID, t *tracked) {
 	if t.c == nil {
 		t.c = newCounters(t.started)
 	}
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	if e := a.early[id]; e != nil && time.Since(e.started) < earlyTTL {
+		t.cause = e.cause
+	}
+	delete(a.early, id)
 	a.sessions[id] = t
 }
 
@@ -142,8 +156,8 @@ func (a *activeSessions) bind(id uuid.UUID, cancel context.CancelCauseFunc) *cou
 	return t.c
 }
 
-// cancel ends a session with cause; before bind the cause waits for it. The
-// first cause wins.
+// cancel ends a session with cause; before bind the cause waits for it,
+// before add for earlyTTL (keepEarly). The first cause wins.
 func (a *activeSessions) cancel(id uuid.UUID, cause error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -154,11 +168,20 @@ func (a *activeSessions) cancelLocked(id uuid.UUID, cause error) {
 	t := a.sessions[id]
 	switch {
 	case t == nil:
+		a.keepEarly(id, cause)
 	case t.cancel != nil:
 		t.cancel(cause)
 	case t.cause == nil:
 		t.cause = cause
 	}
+}
+
+// keepEarly keeps cause (the latest) for a session not added yet; expired causes, and
+// at earlyMax the oldest, make room.
+func (a *activeSessions) keepEarly(id uuid.UUID, cause error) {
+	now := time.Now()
+	pruneOld(a.early, func(e *tracked) time.Time { return e.started }, earlyTTL, earlyMax, now)
+	a.early[id] = &tracked{cause: cause, started: now}
 }
 
 // cancelAll cancels every running session and every one bound later with cause.
@@ -173,8 +196,8 @@ func (a *activeSessions) cancelAll(cause error) {
 	}
 }
 
-// Terminate ends a session with reason (recorder.Options.Terminate); an unknown
-// session is left alone.
+// Terminate ends a session with reason (recorder.Options.Terminate); a
+// session not added yet ends once added, within earlyTTL.
 func (a *activeSessions) Terminate(sessionID uuid.UUID, reason string) {
 	a.cancel(sessionID, endCause(reason))
 }
@@ -187,6 +210,25 @@ func (a *activeSessions) countersOf(id uuid.UUID) *counters {
 		return t.c
 	}
 	return nil
+}
+
+// hold marks a console check of session id running until release: expire
+// skips its idle limit (not its max duration) meanwhile, and the release
+// counts as activity. An unknown session is left alone.
+func (a *activeSessions) hold(id uuid.UUID) (release func()) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	t := a.sessions[id]
+	if t == nil {
+		return func() {}
+	}
+	t.held++
+	return func() {
+		a.mu.Lock()
+		defer a.mu.Unlock()
+		t.held--
+		t.c.touch()
+	}
 }
 
 // done drops a finished session.

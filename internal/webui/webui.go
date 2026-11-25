@@ -14,6 +14,7 @@ import (
 	"net/http/httputil"
 	"net/netip"
 	"net/url"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -50,7 +51,7 @@ func LoadConfig(getenv func(string) string) (Config, error) {
 		return Config{}, err
 	}
 	var err error
-	if c.TrustedProxies, err = config.ParseTrustedProxies(getenv("WERBOT_TRUSTED_PROXIES")); err != nil {
+	if c.TrustedProxies, err = config.ParsePrefixes("WERBOT_TRUSTED_PROXIES", getenv("WERBOT_TRUSTED_PROXIES")); err != nil {
 		return Config{}, err
 	}
 	if c.LogLevel, c.LogFormat, err = config.LoadLogging(getenv); err != nil {
@@ -82,8 +83,12 @@ func parseAPIURL(s string) (*url.URL, error) {
 
 const connectPrefix = "/werbot.v1."
 
-// Handler serves /healthz, /readyz, proxies Connect (/werbot.v1.*) and /api/
-// requests to cfg.APIURL and serves the UI from ui for everything else.
+// apiPrefixes are the paths proxied to the API server: Connect, /api/ and the
+// OAuth authorization server of the CLI.
+var apiPrefixes = []string{connectPrefix, "/api/", "/oauth/", "/.well-known/"}
+
+// Handler serves /healthz, /readyz, proxies apiPrefixes to cfg.APIURL and
+// serves the UI from ui for everything else.
 func Handler(cfg Config, ui fs.FS, draining *atomic.Bool, reg *metrics.Registry, logger *slog.Logger) (http.Handler, error) {
 	api, err := parseAPIURL(cfg.APIURL)
 	if err != nil {
@@ -131,7 +136,7 @@ func Handler(cfg Config, ui fs.FS, draining *atomic.Bool, reg *metrics.Registry,
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		if strings.HasPrefix(r.URL.Path, connectPrefix) || strings.HasPrefix(r.URL.Path, "/api/") {
+		if slices.ContainsFunc(apiPrefixes, func(p string) bool { return strings.HasPrefix(r.URL.Path, p) }) {
 			proxy.ServeHTTP(w, r)
 			return
 		}

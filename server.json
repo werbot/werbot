@@ -1,0 +1,42 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.werbot/werbot",
+  "title": "Werbot",
+  "description": "Authorized SSH for AI agents: policy per command, approvals, transcript",
+  "version": "0.2.0",
+  "websiteUrl": "https://github.com/werbot/werbot",
+  "repository": {
+    "url": "https://github.com/werbot/werbot",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "oci",
+      "identifier": "ghcr.io/werbot/werbot:v0.2.0",
+      "transport": { "type": "stdio" },
+      "runtimeHint": "docker",
+      "runtimeArguments": [
+        {
+          "type": "named",
+          "name": "--mount",
+          "value": "type=bind,src={werbot_home},dst=/var/lib/werbot/.werbot",
+          "isRequired": true,
+          "variables": {
+            "werbot_home": {
+              "description": "Local werbot profile directory (from werbot login)",
+              "isRequired": true,
+              "format": "filepath"
+            }
+          }
+        }
+      ],
+      "packageArguments": [
+        { "type": "positional", "valueHint": "command", "value": "mcp" }
+      ],
+      "environmentVariables": [
+        { "name": "WERBOT_HOME", "value": "/var/lib/werbot/.werbot" },
+        { "name": "WERBOT_SERVER", "description": "Werbot server URL", "isRequired": true }
+      ]
+    }
+  ]
+}

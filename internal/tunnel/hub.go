@@ -90,11 +90,14 @@ func (h *Hub) OrgChanged(payload string) {
 	h.arm(org, false)
 }
 
-// Resync flushes the instance check cache and refreshes every stream; call it
-// after each LISTEN, the first included: notifications may have been lost.
+// Resync flushes the instance check cache, refreshes every stream and queues
+// a resend of pending terminations on each; call it after each LISTEN, the
+// first included: notifications may have been lost. It never reads the
+// database: each stream reads on its own goroutine.
 func (h *Hub) Resync() {
 	h.auth.reset(true)
 	h.OrgChanged("*")
+	h.enqueue(uuid.Nil, ctlMsg{kind: resendTerminations}, true)
 }
 
 // Shutdown closes every stream with CodeUnavailable "shutdown" and refuses new ones.
@@ -175,7 +178,7 @@ func (h *Hub) register(g Gateway, serial string) (*stream, error) {
 	if h.closed {
 		return nil, unavailable("shutdown")
 	}
-	s := &stream{gw: g, serial: serial, wake: make(chan struct{}, 1), done: make(chan struct{})}
+	s := &stream{gw: g, serial: serial, wake: make(chan struct{}, 1), done: make(chan struct{}), ctl: make(chan ctlMsg, ControlQueueSize)}
 	if h.streams[g.OrgID] == nil {
 		h.streams[g.OrgID] = map[*stream]struct{}{}
 	}

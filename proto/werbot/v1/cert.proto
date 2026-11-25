@@ -1,0 +1,22 @@
+syntax = "proto3";
+package werbot.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// Short-lived SSH user certificates for the CLI. CLI tokens only: a browser
+// session never gets a certificate.
+service CertService {
+  // Signs public_key with the organization's user CA for one hour.
+  rpc IssueUserCert(IssueUserCertRequest) returns (IssueUserCertResponse);
+}
+
+message IssueUserCertRequest {
+  // An ed25519 key in authorized_keys format.
+  string public_key = 1 [(buf.validate.field).string = {min_len: 1, max_bytes: 8192}];
+}
+message IssueUserCertResponse {
+  // The certificate in authorized_keys format.
+  string certificate = 1;
+  google.protobuf.Timestamp valid_before = 2;
+}

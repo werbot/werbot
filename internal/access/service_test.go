@@ -30,7 +30,7 @@ func setup(t *testing.T) env {
 	org := dbtest.Org(t, pool)
 	owner := dbtest.User(t, pool, org, "owner")
 	ctx := principal.With(context.Background(), principal.Principal{UserID: owner, OrgID: org, Role: "owner"})
-	return env{access.New(pool), pool, ctx, org, owner}
+	return env{access.New(pool, nil, nil, access.Config{}), pool, ctx, org, owner}
 }
 
 func ptr[T any](v T) *T { return &v }
@@ -243,4 +243,8 @@ func TestCreateBindingPorts(t *testing.T) {
 		_, err := e.svc.Create(e.ctx, e.org, in)
 		assert.ErrorIs(t, err, apperr.ErrInvalidArgument, name)
 	}
+}
+
+func (e env) principal() principal.Principal {
+	return principal.Principal{UserID: e.owner, OrgID: e.org, Role: "owner"}
 }

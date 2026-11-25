@@ -1,0 +1,64 @@
+syntax = "proto3";
+package werbot.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+import "werbot/connector/v1/ports.proto";
+
+// Owner and admin only. A preset names a tcp or udp base type with default ports.
+service ResourcePresetService {
+  rpc ListResourcePresets(ListResourcePresetsRequest) returns (ListResourcePresetsResponse);
+  rpc CreateResourcePreset(CreateResourcePresetRequest) returns (CreateResourcePresetResponse);
+  rpc UpdateResourcePreset(UpdateResourcePresetRequest) returns (UpdateResourcePresetResponse);
+  rpc DeleteResourcePreset(DeleteResourcePresetRequest) returns (DeleteResourcePresetResponse);
+}
+
+message ResourcePreset {
+  string id = 1;
+  string name = 2;
+  string base_type = 3; // "tcp" | "udp"
+  string display_name = 4;
+  string icon = 5; // selects an icon of the web registry
+  repeated werbot.connector.v1.PortRange default_ports = 6;
+  string category = 7;
+  string launch_hint = 8; // shown as text
+  google.protobuf.Timestamp created_at = 9;
+}
+
+message ListResourcePresetsRequest {}
+message ListResourcePresetsResponse {
+  repeated ResourcePreset presets = 1;
+}
+
+message CreateResourcePresetRequest {
+  string name = 1 [(buf.validate.field).string.pattern = "^[a-z][a-z0-9-]{0,31}$"];
+  string base_type = 2 [(buf.validate.field).string = {in: ["tcp", "udp"]}];
+  string display_name = 3 [(buf.validate.field).string = {min_len: 1, max_len: 64}];
+  string icon = 4 [(buf.validate.field).string.pattern = "^[a-z0-9-]{0,64}$"];
+  repeated werbot.connector.v1.PortRange default_ports = 5 [(buf.validate.field).repeated = {min_items: 1, max_items: 16}];
+  string category = 6 [(buf.validate.field).string = {in: ["servers", "databases", "applications", "desktops", "containers", "clouds"]}];
+  string launch_hint = 7 [(buf.validate.field).string.max_len = 512];
+}
+message CreateResourcePresetResponse {
+  ResourcePreset preset = 1;
+}
+
+// name and base_type never change: they must equal the stored values.
+message UpdateResourcePresetRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  string name = 2 [(buf.validate.field).string.pattern = "^[a-z][a-z0-9-]{0,31}$"];
+  string base_type = 3 [(buf.validate.field).string = {in: ["tcp", "udp"]}];
+  string display_name = 4 [(buf.validate.field).string = {min_len: 1, max_len: 64}];
+  string icon = 5 [(buf.validate.field).string.pattern = "^[a-z0-9-]{0,64}$"];
+  repeated werbot.connector.v1.PortRange default_ports = 6 [(buf.validate.field).repeated = {min_items: 1, max_items: 16}];
+  string category = 7 [(buf.validate.field).string = {in: ["servers", "databases", "applications", "desktops", "containers", "clouds"]}];
+  string launch_hint = 8 [(buf.validate.field).string.max_len = 512];
+}
+message UpdateResourcePresetResponse {
+  ResourcePreset preset = 1;
+}
+
+message DeleteResourcePresetRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message DeleteResourcePresetResponse {}

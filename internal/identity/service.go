@@ -3,7 +3,9 @@ package identity
 import (
 	"context"
 	"fmt"
+	"sync"
 
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -11,6 +13,7 @@ import (
 	"github.com/werbot/werbot/internal/identity/dbq"
 	"github.com/werbot/werbot/internal/platform/apperr"
 	"github.com/werbot/werbot/internal/platform/dbx"
+	"github.com/werbot/werbot/internal/platform/metrics"
 	"github.com/werbot/werbot/internal/platform/principal"
 )
 
@@ -19,14 +22,21 @@ const setupLock int64 = 0x574552424f540002
 
 // Service implements the identity use cases.
 type Service struct {
-	pool   *pgxpool.Pool
-	emails EmailQueue
-	cfg    Config
+	pool        *pgxpool.Pool
+	emails      EmailQueue
+	cfg         Config
+	cas         sync.Map // org id → ssh.Signer: a user CA never changes
+	certsIssued *metrics.Counter
+	wa          *webauthn.WebAuthn // nil: passkeys are off (no domain name in WebURL)
 }
 
 // New returns a Service; emails receives invite and reset emails.
 func New(pool *pgxpool.Pool, emails EmailQueue, cfg Config) *Service {
-	return &Service{pool: pool, emails: emails, cfg: cfg}
+	if cfg.Metrics == nil {
+		cfg.Metrics = metrics.NewRegistry()
+	}
+	return &Service{pool: pool, emails: emails, cfg: cfg, wa: newWebAuthn(cfg),
+		certsIssued: cfg.Metrics.Counter("werbot_user_certs_issued_total", "SSH user certificates issued to the CLI.")}
 }
 
 // NeedsSetup reports whether no user exists yet.
@@ -69,6 +79,9 @@ func (s *Service) Setup(ctx context.Context, in SetupInput, userAgent string) (s
 		}
 		orgID, err := st.CreateOrganization(ctx, in.OrganizationName)
 		if err != nil {
+			return err
+		}
+		if err := st.CreateOrgSetting(ctx, orgID); err != nil {
 			return err
 		}
 		userID, err := st.CreateUser(ctx, dbq.CreateUserParams{

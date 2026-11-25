@@ -8,12 +8,13 @@
 	import PortRangesField from './PortRangesField.svelte';
 	import { formatPorts } from './ports.js';
 
-	let { initial, onchange }: ConfigFormProps = $props();
+	let { type, initial, onchange }: ConfigFormProps = $props();
 
 	// svelte-ignore state_referenced_locally
 	const current = initial?.config && anyIs(initial.config, ConfigSchema) ? anyUnpack(initial.config, ConfigSchema) : undefined;
 	let host = $state(current?.host ?? '');
-	let ports = $state(formatPorts(current?.ports ?? []));
+	// svelte-ignore state_referenced_locally
+	let ports = $state(formatPorts(current?.ports ?? type.defaultPorts));
 
 	$effect(() => {
 		try {

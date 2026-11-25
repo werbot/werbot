@@ -27,7 +27,7 @@ export function configFormFor(type: string): Component<ConfigFormProps> {
 	return configForms[type] ?? JsonConfigForm;
 }
 
-export function sshConfigValue(v: { host: string; port: number; login: string; portForwarding: boolean }): ConfigValue {
+export function sshConfigValue(v: { host: string; port: number; login: string; portForwarding: boolean; remoteForwarding: boolean }): ConfigValue {
 	return { config: anyPack(ConfigSchema, create(ConfigSchema, v)) };
 }
 

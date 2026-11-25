@@ -7,16 +7,29 @@ import { SSHKeyService } from '#lib/gen/werbot/v1/ssh_key_pb.js';
 import { MemberService } from '#lib/gen/werbot/v1/member_pb.js';
 import { TeamService } from '#lib/gen/werbot/v1/team_pb.js';
 import { ResourceService } from '#lib/gen/werbot/v1/resource_pb.js';
+import { ResourcePresetService } from '#lib/gen/werbot/v1/preset_pb.js';
 import { AccessService } from '#lib/gen/werbot/v1/access_pb.js';
 import { PolicyService } from '#lib/gen/werbot/v1/policy_pb.js';
 import { GatewayService } from '#lib/gen/werbot/v1/gateway_pb.js';
 import { SessionService } from '#lib/gen/werbot/v1/session_pb.js';
 import { AuditService } from '#lib/gen/werbot/v1/audit_pb.js';
+import { SettingsService } from '#lib/gen/werbot/v1/settings_pb.js';
+import { OAuthConsentService } from '#lib/gen/werbot/v1/oauth_pb.js';
+import { CLISessionService } from '#lib/gen/werbot/v1/cli_session_pb.js';
+import { AccessRequestService } from '#lib/gen/werbot/v1/access_request_pb.js';
+import { ApprovalPolicyService } from '#lib/gen/werbot/v1/approval_policy_pb.js';
+import { AgentService } from '#lib/gen/werbot/v1/agent_pb.js';
+import { AgentProfileService } from '#lib/gen/werbot/v1/agent_profile_pb.js';
+import { LockService } from '#lib/gen/werbot/v1/lock_pb.js';
+import { IdentityProviderService } from '#lib/gen/werbot/v1/identity_provider_pb.js';
+import { MFAChallengeService, MFAService } from '#lib/gen/werbot/v1/mfa_pb.js';
+import { stepUpInterceptor } from '#lib/stepup.svelte.js';
 
 // Same origin in all-in-one mode and behind `werbot web`.
 // Binary format keeps google.protobuf.Any connector configs opaque, so an
 // unknown resource type still decodes without a type registry.
-export const transport: Transport = createConnectTransport({ baseUrl: '/', useBinaryFormat: true });
+// An "mfa required" refusal opens the step-up dialog and repeats the request once.
+export const transport: Transport = createConnectTransport({ baseUrl: '/', useBinaryFormat: true, interceptors: [stepUpInterceptor()] });
 
 export const system: Client<typeof SystemService> = createClient(SystemService, transport);
 export const auth: Client<typeof AuthService> = createClient(AuthService, transport);
@@ -25,8 +38,20 @@ export const sshKeys: Client<typeof SSHKeyService> = createClient(SSHKeyService,
 export const members: Client<typeof MemberService> = createClient(MemberService, transport);
 export const teams: Client<typeof TeamService> = createClient(TeamService, transport);
 export const resources: Client<typeof ResourceService> = createClient(ResourceService, transport);
+export const presets: Client<typeof ResourcePresetService> = createClient(ResourcePresetService, transport);
 export const access: Client<typeof AccessService> = createClient(AccessService, transport);
 export const policy: Client<typeof PolicyService> = createClient(PolicyService, transport);
 export const gateways: Client<typeof GatewayService> = createClient(GatewayService, transport);
 export const sessions: Client<typeof SessionService> = createClient(SessionService, transport);
 export const audit: Client<typeof AuditService> = createClient(AuditService, transport);
+export const settings: Client<typeof SettingsService> = createClient(SettingsService, transport);
+export const oauthConsent: Client<typeof OAuthConsentService> = createClient(OAuthConsentService, transport);
+export const cliSessions: Client<typeof CLISessionService> = createClient(CLISessionService, transport);
+export const accessRequests: Client<typeof AccessRequestService> = createClient(AccessRequestService, transport);
+export const approvalPolicies: Client<typeof ApprovalPolicyService> = createClient(ApprovalPolicyService, transport);
+export const locks: Client<typeof LockService> = createClient(LockService, transport);
+export const agents: Client<typeof AgentService> = createClient(AgentService, transport);
+export const agentProfiles: Client<typeof AgentProfileService> = createClient(AgentProfileService, transport);
+export const mfa: Client<typeof MFAService> = createClient(MFAService, transport);
+export const mfaChallenges: Client<typeof MFAChallengeService> = createClient(MFAChallengeService, transport);
+export const identityProviders: Client<typeof IdentityProviderService> = createClient(IdentityProviderService, transport);

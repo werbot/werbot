@@ -5,6 +5,12 @@
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_buf_validate_validate } from "../../buf/validate/validate_pb";
+import type { AgentInfo, RecordDenialRequestSchema, RecordDenialResponseSchema } from "./tunnel_agent_pb";
+import { file_gateway_v1_tunnel_agent } from "./tunnel_agent_pb";
+import type { CreateMFAChallengeRequestSchema, CreateMFAChallengeResponseSchema, GetMFAChallengeRequestSchema, GetMFAChallengeResponseSchema, MFAConfirmed, VerifyMFATOTPRequestSchema, VerifyMFATOTPResponseSchema } from "./tunnel_mfa_pb";
+import { file_gateway_v1_tunnel_mfa } from "./tunnel_mfa_pb";
+import type { OpenStream, StreamRequestSchema, StreamResponseSchema, Terminate, WebTicket } from "./tunnel_stream_pb";
+import { file_gateway_v1_tunnel_stream } from "./tunnel_stream_pb";
 import type { Duration, Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_duration, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
@@ -13,7 +19,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file gateway/v1/tunnel.proto.
  */
 export const file_gateway_v1_tunnel: GenFile = /*@__PURE__*/
-  fileDesc("ChdnYXRld2F5L3YxL3R1bm5lbC5wcm90bxIKZ2F0ZXdheS52MSJDCg5Db25uZWN0UmVxdWVzdBIqCgloZWFydGJlYXQYASABKAsyFS5nYXRld2F5LnYxLkhlYXJ0YmVhdEgAQgUKA21zZyKZAgoJSGVhcnRiZWF0EhgKB3ZlcnNpb24YASABKAlCB7pIBHICKEASJAoKY29ubmVjdG9ycxgCIAMoCUIQukgNkgEKEEAiBnIEEAEoQBIsChJhY3RpdmVfc2Vzc2lvbl9pZHMYAyADKAlCELpIDZIBChCQTiIFcgOwAQESOAoIY291bnRlcnMYBCADKAsyGy5nYXRld2F5LnYxLlNlc3Npb25Db3VudGVyc0IJukgGkgEDEIgnEi0KB2RlbmlhbHMYBSADKAsyEi5nYXRld2F5LnYxLkRlbmlhbEIIukgFkgECEGQSNQoGaGVhbHRoGAYgAygLMhouZ2F0ZXdheS52MS5SZXNvdXJjZUhlYWx0aEIJukgGkgEDEOgHIoMBCg9TZXNzaW9uQ291bnRlcnMSHAoKc2Vzc2lvbl9pZBgBIAEoCUIIukgFcgOwAQESEAoIYnl0ZXNfdXAYAiABKAMSEgoKYnl0ZXNfZG93bhgDIAEoAxIUCgxkYXRhZ3JhbXNfdXAYBCABKAMSFgoOZGF0YWdyYW1zX2Rvd24YBSABKAMi1AIKBkRlbmlhbBIcCgd1c2VyX2lkGAEgASgJQgu6SAjYAQFyA7ABARIhCg9rZXlfZmluZ2VycHJpbnQYAiABKAlCCLpIBXIDKIABEhkKCHJlc291cmNlGAMgASgJQge6SARyAig/EhUKBGtpbmQYBCABKAlCB7pIBHICKBASGAoGdGFyZ2V0GAUgASgJQgi6SAVyAyisAhIfCgljbGllbnRfaXAYBiABKAlCDLpICdgBAXIEKEBwARJ0CgZyZWFzb24YByABKAlCZLpIYXJfUgZkZW5pZWRSEnRhcmdldF9ub3RfYWxsb3dlZFIQdW5zdXBwb3J0ZWRfdHlwZVIQdW5zdXBwb3J0ZWRfa2luZFIEYnVzeVIKc3Bvb2xfZnVsbFILYXV0aF9mYWlsZWQSJgoCYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIoMBCg5SZXNvdXJjZUhlYWx0aBIdCgtyZXNvdXJjZV9pZBgBIAEoCUIIukgFcgOwAQESCgoCb2sYAiABKAgSFgoFZXJyb3IYAyABKAlCB7pIBHICKGQSLgoKY2hlY2tlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiHAoNUG9vbEluc3RhbmNlcxILCgNpZHMYASADKAkidwoPQ29ubmVjdFJlc3BvbnNlEigKCHNuYXBzaG90GAEgASgLMhQuZ2F0ZXdheS52MS5TbmFwc2hvdEgAEjMKDnBvb2xfaW5zdGFuY2VzGAIgASgLMhkuZ2F0ZXdheS52MS5Qb29sSW5zdGFuY2VzSABCBQoDbXNnIqsBCghTbmFwc2hvdBIWCg5jZWRhcl9wb2xpY2llcxgBIAEoCRIVCg1lbnRpdGllc19qc29uGAIgASgMEicKCXJlc291cmNlcxgDIAMoCzIULmdhdGV3YXkudjEuUmVzb3VyY2USEQoJYmxvY2tsaXN0GAQgAygJEg8KB3ZlcnNpb24YBSABKAkSIwoHbWVtYmVycxgGIAMoCzISLmdhdGV3YXkudjEuTWVtYmVyIisKBk1lbWJlchIPCgd1c2VyX2lkGAEgASgJEhAKCHRlYW1faWRzGAIgAygJIsIBCghSZXNvdXJjZRIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEgwKBHR5cGUYAyABKAkSEwoLY29uZmlnX2pzb24YBCABKAwSLwoMaWRsZV90aW1lb3V0GAUgASgLMhkuZ29vZ2xlLnByb3RvYnVmLkR1cmF0aW9uEi8KDG1heF9kdXJhdGlvbhgGIAEoCzIZLmdvb2dsZS5wcm90b2J1Zi5EdXJhdGlvbhIXCg9ob3N0X2tleV9zaGEyNTYYCCABKAkiiwEKF0F1dGhlbnRpY2F0ZVVzZXJSZXF1ZXN0EigKEmZpbmdlcnByaW50X3NoYTI1NhgBIAEoCUIKukgHcgUQARiAAUgAEhsKBWxvZ2luGAIgASgJQgq6SAdyBRABGP8BSAASHAoJY2xpZW50X2lwGAMgASgJQgm6SAZyBChAcAFCCwoCYnkSBbpIAggBIl0KGEF1dGhlbnRpY2F0ZVVzZXJSZXNwb25zZRIPCgd1c2VyX2lkGAEgASgJEg0KBWxvZ2luGAIgASgJEhAKCHRlYW1faWRzGAMgAygJEg8KB2NvdW50cnkYBCABKAkivgEKE1N0YXJ0U2Vzc2lvblJlcXVlc3QSGQoHdXNlcl9pZBgBIAEoCUIIukgFcgOwAQESHQoLcmVzb3VyY2VfaWQYAiABKAlCCLpIBXIDsAEBEhwKCWNsaWVudF9pcBgDIAEoCUIJukgGcgQoQHABEjUKBGtpbmQYBCABKAlCJ7pIJHIiUgh0ZXJtaW5hbFIEZXhlY1IGc3RyZWFtUghkYXRhZ3JhbRIYCgZ0YXJnZXQYBSABKAlCCLpIBXIDKKwCIlYKFFN0YXJ0U2Vzc2lvblJlc3BvbnNlEhIKCnNlc3Npb25faWQYASABKAkSKgoKY3JlZGVudGlhbBgCIAEoCzIWLmdhdGV3YXkudjEuQ3JlZGVudGlhbCIpCgpDcmVkZW50aWFsEgwKBGtpbmQYASABKAkSDQoFdmFsdWUYAiABKAwi7AEKEUVuZFNlc3Npb25SZXF1ZXN0EhwKCnNlc3Npb25faWQYASABKAlCCLpIBXIDsAEBEokBCgZyZWFzb24YAiABKAlCebpIdnJ0UgZjbG9zZWRSBWVycm9yUg5pbnRlcm5hbF9lcnJvclIQZ2F0ZXdheV9zaHV0ZG93blIVcmVjb3JkaW5nX3VuYXZhaWxhYmxlUgxpZGxlX3RpbWVvdXRSDG1heF9kdXJhdGlvblIOYWNjZXNzX3Jldm9rZWQSLQoIY291bnRlcnMYAyABKAsyGy5nYXRld2F5LnYxLlNlc3Npb25Db3VudGVycyIUChJFbmRTZXNzaW9uUmVzcG9uc2UiagoRUGluSG9zdEtleVJlcXVlc3QSHQoLcmVzb3VyY2VfaWQYASABKAlCCLpIBXIDsAEBEh4KCnB1YmxpY19rZXkYAiABKAxCCrpIB3oFEAEYgEASFgoDYWxnGAMgASgJQgm6SAZyBBABGEAiFAoSUGluSG9zdEtleVJlc3BvbnNlIjYKF1JlbmV3Q2VydGlmaWNhdGVSZXF1ZXN0EhsKB2Nzcl9kZXIYASABKAxCCrpIB3oFEAEYgCAiLAoYUmVuZXdDZXJ0aWZpY2F0ZVJlc3BvbnNlEhAKCGNlcnRfcGVtGAEgASgMIoEBChtVcGxvYWRSZWNvcmRpbmdDaHVua1JlcXVlc3QSHAoKc2Vzc2lvbl9pZBgBIAEoCUIIukgFcgOwAQESFAoDc2VxGAIgASgFQge6SAQaAigAEhUKBGhhc2gYAyABKAxCB7pIBHoCaCASFwoCZ3oYBCABKAxCC7pICHoGEAEYgIAIIh4KHFVwbG9hZFJlY29yZGluZ0NodW5rUmVzcG9uc2UihAEKFkZpbmlzaFJlY29yZGluZ1JlcXVlc3QSHAoKc2Vzc2lvbl9pZBgBIAEoCUIIukgFcgOwAQESFwoGY2h1bmtzGAIgASgFQge6SAQaAigBEhYKBWJ5dGVzGAMgASgDQge6SAQiAigBEhsKCmZpbmFsX2hhc2gYBCABKAxCB7pIBHoCaCAiGQoXRmluaXNoUmVjb3JkaW5nUmVzcG9uc2UyyQUKDVR1bm5lbFNlcnZpY2USRgoHQ29ubmVjdBIaLmdhdGV3YXkudjEuQ29ubmVjdFJlcXVlc3QaGy5nYXRld2F5LnYxLkNvbm5lY3RSZXNwb25zZSgBMAESXQoQQXV0aGVudGljYXRlVXNlchIjLmdhdGV3YXkudjEuQXV0aGVudGljYXRlVXNlclJlcXVlc3QaJC5nYXRld2F5LnYxLkF1dGhlbnRpY2F0ZVVzZXJSZXNwb25zZRJRCgxTdGFydFNlc3Npb24SHy5nYXRld2F5LnYxLlN0YXJ0U2Vzc2lvblJlcXVlc3QaIC5nYXRld2F5LnYxLlN0YXJ0U2Vzc2lvblJlc3BvbnNlEksKCkVuZFNlc3Npb24SHS5nYXRld2F5LnYxLkVuZFNlc3Npb25SZXF1ZXN0Gh4uZ2F0ZXdheS52MS5FbmRTZXNzaW9uUmVzcG9uc2USSwoKUGluSG9zdEtleRIdLmdhdGV3YXkudjEuUGluSG9zdEtleVJlcXVlc3QaHi5nYXRld2F5LnYxLlBpbkhvc3RLZXlSZXNwb25zZRJdChBSZW5ld0NlcnRpZmljYXRlEiMuZ2F0ZXdheS52MS5SZW5ld0NlcnRpZmljYXRlUmVxdWVzdBokLmdhdGV3YXkudjEuUmVuZXdDZXJ0aWZpY2F0ZVJlc3BvbnNlEmkKFFVwbG9hZFJlY29yZGluZ0NodW5rEicuZ2F0ZXdheS52MS5VcGxvYWRSZWNvcmRpbmdDaHVua1JlcXVlc3QaKC5nYXRld2F5LnYxLlVwbG9hZFJlY29yZGluZ0NodW5rUmVzcG9uc2USWgoPRmluaXNoUmVjb3JkaW5nEiIuZ2F0ZXdheS52MS5GaW5pc2hSZWNvcmRpbmdSZXF1ZXN0GiMuZ2F0ZXdheS52MS5GaW5pc2hSZWNvcmRpbmdSZXNwb25zZUKZAQoOY29tLmdhdGV3YXkudjFCC1R1bm5lbFByb3RvUAFaMWdpdGh1Yi5jb20vd2VyYm90L3dlcmJvdC9nZW4vZ2F0ZXdheS92MTtnYXRld2F5djGiAgNHWFiqAgpHYXRld2F5LlYxygIKR2F0ZXdheVxWMeICFkdhdGV3YXlcVjFcR1BCTWV0YWRhdGHqAgtHYXRld2F5OjpWMWIGcHJvdG8z", [file_buf_validate_validate, file_google_protobuf_duration, file_google_protobuf_timestamp]);
+  fileDesc("ChdnYXRld2F5L3YxL3R1bm5lbC5wcm90bxIKZ2F0ZXdheS52MSJDCg5Db25uZWN0UmVxdWVzdBIqCgloZWFydGJlYXQYASABKAsyFS5nYXRld2F5LnYxLkhlYXJ0YmVhdEgAQgUKA21zZyKZAgoJSGVhcnRiZWF0EhgKB3ZlcnNpb24YASABKAlCB7pIBHICKEASJAoKY29ubmVjdG9ycxgCIAMoCUIQukgNkgEKEEAiBnIEEAEoQBIsChJhY3RpdmVfc2Vzc2lvbl9pZHMYAyADKAlCELpIDZIBChCQTiIFcgOwAQESOAoIY291bnRlcnMYBCADKAsyGy5nYXRld2F5LnYxLlNlc3Npb25Db3VudGVyc0IJukgGkgEDEIgnEi0KB2RlbmlhbHMYBSADKAsyEi5nYXRld2F5LnYxLkRlbmlhbEIIukgFkgECEGQSNQoGaGVhbHRoGAYgAygLMhouZ2F0ZXdheS52MS5SZXNvdXJjZUhlYWx0aEIJukgGkgEDEOgHIoMBCg9TZXNzaW9uQ291bnRlcnMSHAoKc2Vzc2lvbl9pZBgBIAEoCUIIukgFcgOwAQESEAoIYnl0ZXNfdXAYAiABKAMSEgoKYnl0ZXNfZG93bhgDIAEoAxIUCgxkYXRhZ3JhbXNfdXAYBCABKAMSFgoOZGF0YWdyYW1zX2Rvd24YBSABKAMi3gQKBkRlbmlhbBIcCgd1c2VyX2lkGAEgASgJQgu6SAjYAQFyA7ABARIhCg9rZXlfZmluZ2VycHJpbnQYAiABKAlCCLpIBXIDKIABEhkKCHJlc291cmNlGAMgASgJQge6SARyAig/EhUKBGtpbmQYBCABKAlCB7pIBHICKBASGAoGdGFyZ2V0GAUgASgJQgi6SAVyAyiACBIfCgljbGllbnRfaXAYBiABKAlCDLpICdgBAXIEKEBwARKaAQoGcmVhc29uGAcgASgJQokBukiFAXKCAVIGZGVuaWVkUhJ0YXJnZXRfbm90X2FsbG93ZWRSEHVuc3VwcG9ydGVkX3R5cGVSEHVuc3VwcG9ydGVkX2tpbmRSBGJ1c3lSCnNwb29sX2Z1bGxSC2F1dGhfZmFpbGVkUg9hcHByb3ZhbF9kZW5pZWRSEGFwcHJvdmFsX3RpbWVvdXQSJgoCYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEiEKDGFnZW50X3J1bl9pZBgJIAEoCUILukgI2AEBcgOwAQESHwoKc2Vzc2lvbl9pZBgKIAEoCUILukgI2AEBcgOwAQESWwoHY2xhc3NlcxgLIAMoCUJKukhHkgFEEAciQHI+UgRyZWFkUgV3cml0ZVILZGVzdHJ1Y3RpdmVSCXByaXZpbGVnZVIHc2VjcmV0c1IGZWdyZXNzUgZvcGFxdWUSHgoFcGF0aHMYDCADKAlCD7pIDJIBCRAQIgVyAyiACBIgCgdyZWFzb25zGA0gAygJQg+6SAySAQkQECIFcgMogAEigwEKDlJlc291cmNlSGVhbHRoEh0KC3Jlc291cmNlX2lkGAEgASgJQgi6SAVyA7ABARIKCgJvaxgCIAEoCBIWCgVlcnJvchgDIAEoCUIHukgEcgIoZBIuCgpjaGVja2VkX2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCIcCg1Qb29sSW5zdGFuY2VzEgsKA2lkcxgBIAMoCSK+AgoPQ29ubmVjdFJlc3BvbnNlEigKCHNuYXBzaG90GAEgASgLMhQuZ2F0ZXdheS52MS5TbmFwc2hvdEgAEjMKDnBvb2xfaW5zdGFuY2VzGAIgASgLMhkuZ2F0ZXdheS52MS5Qb29sSW5zdGFuY2VzSAASNwoQYXBwcm92YWxfZGVjaWRlZBgDIAEoCzIbLmdhdGV3YXkudjEuQXBwcm92YWxEZWNpZGVkSAASLQoLb3Blbl9zdHJlYW0YBCABKAsyFi5nYXRld2F5LnYxLk9wZW5TdHJlYW1IABIqCgl0ZXJtaW5hdGUYBSABKAsyFS5nYXRld2F5LnYxLlRlcm1pbmF0ZUgAEjEKDW1mYV9jb25maXJtZWQYBiABKAsyGC5nYXRld2F5LnYxLk1GQUNvbmZpcm1lZEgAQgUKA21zZyI2Cg9BcHByb3ZhbERlY2lkZWQSEwoLYXBwcm92YWxfaWQYASABKAkSDgoGc3RhdHVzGAIgASgJItQCCghTbmFwc2hvdBIWCg5jZWRhcl9wb2xpY2llcxgBIAEoCRIVCg1lbnRpdGllc19qc29uGAIgASgMEicKCXJlc291cmNlcxgDIAMoCzIULmdhdGV3YXkudjEuUmVzb3VyY2USEQoJYmxvY2tsaXN0GAQgAygJEg8KB3Zl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CkNyZWRlbnRpYWwSDAoEa2luZBgBIAEoCRINCgV2YWx1ZRgCIAEoDCLsAwoRRW5kU2Vzc2lvblJlcXVlc3QSHAoKc2Vzc2lvbl9pZBgBIAEoCUIIukgFcgOwAQESpgEKBnJlYXNvbhgCIAEoCUKVAbpIkQFyjgFSBmNsb3NlZFIFZXJyb3JSDmludGVybmFsX2Vycm9yUhBnYXRld2F5X3NodXRkb3duUhVyZWNvcmRpbmdfdW5hdmFpbGFibGVSDGlkbGVfdGltZW91dFIMbWF4X2R1cmF0aW9uUg5hY2Nlc3NfcmV2b2tlZFIMcG9saWN5X3N0YWxlUgp0ZXJtaW5hdGVkEi0KCGNvdW50ZXJzGAMgASgLMhsuZ2F0ZXdheS52MS5TZXNzaW9uQ291bnRlcnMSFgoJZXhpdF9jb2RlGAQgASgFSACIAQESIQoNb3V0cHV0X3NoYTI1NhgFIAEoDEIKukgH2AEBegJoIBIaCgdjb21tYW5kGAggASgJQgm6SAZyBCiAgAQSWwoHY2xhc3NlcxgJIAMoCUJKukhHkgFEEAciQHI+UgRyZWFkUgV3cml0ZVILZGVzdHJ1Y3RpdmVSCXByaXZpbGVnZVIHc2VjcmV0c1IGZWdyZXNzUgZvcGFxdWUSHwoFcGF0aHMYCiADKAlCELpIDZIBChCAAiIFcgMogAhCDAoKX2V4aXRfY29kZSIUChJFbmRTZXNzaW9uUmVzcG9uc2UiagoRUGluSG9zdEtleVJlcXVlc3QSHQoLcmVzb3VyY2VfaWQYASABKAlCCLpIBXIDsAEBEh4KCnB1YmxpY19rZXkYAiABKAxCCrpIB3oFEAEYgEASFgoDYWxnGAMgASgJQgm6SAZyBBABGEAiFAoSUGluSG9zdEtleVJlc3BvbnNlIjYKF1JlbmV3Q2VydGlmaWNhdGVSZXF1ZXN0EhsKB2Nzcl9kZXIYASABKAxCCrpIB3oFEAEYgCAiLAoYUmVuZXdDZXJ0aWZpY2F0ZVJlc3BvbnNlEhAKCGNlcnRfcGVtGAEgASgMIoEBChtVcGxvYWRSZWNvcmRpbmdDaHVua1JlcXVlc3QSHAoKc2Vzc2lvbl9pZBgBIAEoCUIIukgFcgOwAQESFAoDc2VxGAIgASgFQge6SAQaAigAEhUKBGhhc2gYAyABKAxCB7pIBHoCaCASFwoCZ3oYBCABKAxCC7pICHoGEAEYgIAIIh4KHFVwbG9hZFJlY29yZGluZ0NodW5rUmVzcG9uc2UihAEKFkZpbmlzaFJlY29yZGluZ1JlcXVlc3QSHAoKc2Vzc2lvbl9pZBgBIAEoCUIIukgFcgOwAQESFwoGY2h1bmtzGAIgASgFQge6SAQaAigBEhYKBWJ5dGVzGAMgASgDQge6SAQiAigBEhsKCmZpbmFsX2hhc2gYBCABKAxCB7pIBHoCaCAiGQoXRmluaXNoUmVjb3JkaW5nUmVzcG9uc2Ui1gEKFlJlcXVlc3RBcHByb3ZhbFJlcXVlc3QSGQoHdXNlcl9pZBgBIAEoCUIIukgFcgOwAQESHQoLcmVzb3VyY2VfaWQYAiABKAlCCLpIBXIDsAEBEiEKDGFnZW50X3J1bl9pZBgDIAEoCUILukgI2AEBcgOwAQESHAoHY29tbWFuZBgEIAEoCUILukgIcgYgASiAgAESHwoHY2xhc3NlcxgFIAMoCUIOukgLkgEIECAiBHICGEASIAoHcmVhc29ucxgGIAMoCUIPukgMkgEJECAiBXIDGIACInsKF1JlcXVlc3RBcHByb3ZhbFJlc3BvbnNlEhMKC2FwcHJvdmFsX2lkGAEgASgJEi4KCmV4cGlyZXNfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEgsKA3VybBgDIAEoCRIOCgZzdGF0dXMYBCABKAkiMwoSR2V0QXBwcm92YWxSZXF1ZXN0Eh0KC2FwcHJvdmFsX2lkGAEgASgJQgi6SAVyA7ABASIlChNHZXRBcHByb3ZhbFJlc3BvbnNlEg4KBnN0YXR1cxgBIAEoCTKkCgoNVHVubmVsU2VydmljZRJGCgdDb25uZWN0EhouZ2F0ZXdheS52MS5Db25uZWN0UmVxdWVzdBobLmdhdGV3YXkudjEuQ29ubmVjdFJlc3BvbnNlKAEwARJdChBBdXRoZW50aWNhdGVVc2VyEiMuZ2F0ZXdheS52MS5BdXRoZW50aWNhdGVVc2VyUmVxdWVzdBokLmdhdGV3YXkudjEuQXV0aGVudGljYXRlVXNlclJlc3BvbnNlElEKDFN0YXJ0U2Vzc2lvbhIfLmdhdGV3YXkudjEuU3RhcnRTZXNzaW9uUmVxdWVzdBogLmdhdGV3YXkudjEuU3RhcnRTZXNzaW9uUmVzcG9uc2USSwoKRW5kU2Vzc2lvbhIdLmdhdGV3YXkudjEuRW5kU2Vzc2lvblJlcXVlc3QaHi5nYXRld2F5LnYxLkVuZFNlc3Npb25SZXNwb25zZRJLCgpQaW5Ib3N0S2V5Eh0uZ2F0ZXdheS52MS5QaW5Ib3N0S2V5UmVxdWVzdBoeLmdhdGV3YXkudjEuUGluSG9zdEtleVJlc3BvbnNlEl0KEFJlbmV3Q2VydGlmaWNhdGUSIy5nYXRld2F5LnYxLlJlbmV3Q2VydGlmaWNhdGVSZXF1ZXN0GiQuZ2F0ZXdheS52MS5SZW5ld0NlcnRpZmljYXRlUmVzcG9uc2USaQoUVXBsb2FkUmVjb3JkaW5nQ2h1bmsSJy5nYXRld2F5LnYxLlVwbG9hZFJlY29yZGluZ0NodW5rUmVxdWVzdBooLmdhdGV3YXkudjEuVXBsb2FkUmVjb3JkaW5nQ2h1bmtSZXNwb25zZRJaCg9GaW5pc2hSZWNvcmRpbmcSIi5nYXRld2F5LnYxLkZpbmlzaFJlY29yZGluZ1JlcXVlc3QaIy5nYXRld2F5LnYxLkZpbmlzaFJlY29yZGluZ1Jlc3BvbnNlEloKD1JlcXVlc3RBcHByb3ZhbBIiLmdhdGV3YXkudjEuUmVxdWVzdEFwcHJvdmFsUmVxdWVzdBojLmdhdGV3YXkudjEuUmVxdWVzdEFwcHJvdmFsUmVzcG9uc2USTgoLR2V0QXBwcm92YWwSHi5nYXRld2F5LnYxLkdldEFwcHJvdmFsUmVxdWVzdBofLmdhdGV3YXkudjEuR2V0QXBwcm92YWxSZXNwb25zZRJRCgxSZWNvcmREZW5pYWwSHy5nYXRld2F5LnYxLlJlY29yZERlbmlhbFJlcXVlc3QaIC5nYXRld2F5LnYxLlJlY29yZERlbmlhbFJlc3BvbnNlEkMKBlN0cmVhbRIZLmdhdGV3YXkudjEuU3RyZWFtUmVxdWVzdBoaLmdhdGV3YXkudjEuU3RyZWFtUmVzcG9uc2UoATABEmMKEkNyZWF0ZU1GQUNoYWxsZW5nZRIlLmdhdGV3YXkudjEuQ3JlYXRlTUZBQ2hhbGxlbmdlUmVxdWVzdBomLmdhdGV3YXkudjEuQ3JlYXRlTUZBQ2hhbGxlbmdlUmVzcG9uc2USVAoNVmVyaWZ5TUZBVE9UUBIgLmdhdGV3YXkudjEuVmVyaWZ5TUZBVE9UUFJlcXVlc3QaIS5nYXRld2F5LnYxLlZlcmlmeU1GQVRPVFBSZXNwb25zZRJaCg9HZXRNRkFDaGFsbGVuZ2USIi5nYXRld2F5LnYxLkdldE1GQUNoYWxsZW5nZVJlcXVlc3QaIy5nYXRld2F5LnYxLkdldE1GQUNoYWxsZW5nZVJlc3BvbnNlQpkBCg5jb20uZ2F0ZXdheS52MUILVHVubmVsUHJvdG9QAVoxZ2l0aHViLmNvbS93ZXJib3Qvd2VyYm90L2dlbi9nYXRld2F5L3YxO2dhdGV3YXl2MaICA0dYWKoCCkdhdGV3YXkuVjHKAgpHYXRld2F5XFYx4gIWR2F0ZXdheVxWMVxHUEJNZXRhZGF0YeoCC0dhdGV3YXk6OlYxYgZwcm90bzM", [file_buf_validate_validate, file_gateway_v1_tunnel_agent, file_gateway_v1_tunnel_mfa, file_gateway_v1_tunnel_stream, file_google_protobuf_duration, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message gateway.v1.ConnectRequest
@@ -156,6 +162,8 @@ export type Denial = Message<"gateway.v1.Denial"> & {
   kind: string;
 
   /**
+   * stream or datagram: host:port; exec or terminal with a command: the command
+   *
    * @generated from field: string target = 5;
    */
   target: string;
@@ -174,6 +182,35 @@ export type Denial = Message<"gateway.v1.Denial"> & {
    * @generated from field: google.protobuf.Timestamp at = 8;
    */
   at?: Timestamp | undefined;
+
+  /**
+   * the agent run of the attempt, when RecordDenial was not reachable
+   *
+   * @generated from field: string agent_run_id = 9;
+   */
+  agentRunId: string;
+
+  /**
+   * a console line denied inside this session (target: the line) and its decision
+   *
+   * @generated from field: string session_id = 10;
+   */
+  sessionId: string;
+
+  /**
+   * @generated from field: repeated string classes = 11;
+   */
+  classes: string[];
+
+  /**
+   * @generated from field: repeated string paths = 12;
+   */
+  paths: string[];
+
+  /**
+   * @generated from field: repeated string reasons = 13;
+   */
+  reasons: string[];
 };
 
 /**
@@ -200,7 +237,7 @@ export type ResourceHealth = Message<"gateway.v1.ResourceHealth"> & {
   ok: boolean;
 
   /**
-   * the gateway truncates; the bound keeps a full heartbeat under the 1 MiB read limit
+   * the gateway truncates; the bound keeps a full heartbeat under the 4 MiB read limit
    *
    * @generated from field: string error = 3;
    */
@@ -257,6 +294,30 @@ export type ConnectResponse = Message<"gateway.v1.ConnectResponse"> & {
      */
     value: PoolInstances;
     case: "poolInstances";
+  } | {
+    /**
+     * @generated from field: gateway.v1.ApprovalDecided approval_decided = 3;
+     */
+    value: ApprovalDecided;
+    case: "approvalDecided";
+  } | {
+    /**
+     * @generated from field: gateway.v1.OpenStream open_stream = 4;
+     */
+    value: OpenStream;
+    case: "openStream";
+  } | {
+    /**
+     * @generated from field: gateway.v1.Terminate terminate = 5;
+     */
+    value: Terminate;
+    case: "terminate";
+  } | {
+    /**
+     * @generated from field: gateway.v1.MFAConfirmed mfa_confirmed = 6;
+     */
+    value: MFAConfirmed;
+    case: "mfaConfirmed";
   } | { case: undefined; value?: undefined };
 };
 
@@ -266,6 +327,32 @@ export type ConnectResponse = Message<"gateway.v1.ConnectResponse"> & {
  */
 export const ConnectResponseSchema: GenMessage<ConnectResponse> = /*@__PURE__*/
   messageDesc(file_gateway_v1_tunnel, 6);
+
+/**
+ * ApprovalDecided is a decided command approval of the receiving instance.
+ *
+ * @generated from message gateway.v1.ApprovalDecided
+ */
+export type ApprovalDecided = Message<"gateway.v1.ApprovalDecided"> & {
+  /**
+   * @generated from field: string approval_id = 1;
+   */
+  approvalId: string;
+
+  /**
+   * "approved" or "denied"
+   *
+   * @generated from field: string status = 2;
+   */
+  status: string;
+};
+
+/**
+ * Describes the message gateway.v1.ApprovalDecided.
+ * Use `create(ApprovalDecidedSchema)` to create a new message.
+ */
+export const ApprovalDecidedSchema: GenMessage<ApprovalDecided> = /*@__PURE__*/
+  messageDesc(file_gateway_v1_tunnel, 7);
 
 /**
  * @generated from message gateway.v1.Snapshot
@@ -304,6 +391,48 @@ export type Snapshot = Message<"gateway.v1.Snapshot"> & {
    * @generated from field: repeated gateway.v1.Member members = 6;
    */
   members: Member[];
+
+  /**
+   * unix seconds when grants and locks expire, ascending, unique
+   *
+   * @generated from field: repeated int64 expirations = 7;
+   */
+  expirations: bigint[];
+
+  /**
+   * "best_effort" or "strict": strict ends sessions when the tunnel is down too long
+   *
+   * @generated from field: string lock_mode = 8;
+   */
+  lockMode: string;
+
+  /**
+   * "agents", "all" or "none": whose exec output the gateway masks
+   *
+   * @generated from field: string mask_output = 9;
+   */
+  maskOutput: string;
+
+  /**
+   * the organization's command class overrides, ascending pattern
+   *
+   * @generated from field: repeated gateway.v1.ClassRule class_rules = 10;
+   */
+  classRules: ClassRule[];
+
+  /**
+   * the organization's path rules by ascending id; only in a compiled snapshot
+   *
+   * @generated from field: repeated gateway.v1.PathRule path_rules = 17;
+   */
+  pathRules: PathRule[];
+
+  /**
+   * the organization's user CA keys (authorized_keys); empty: no certificate is accepted
+   *
+   * @generated from field: repeated string user_ca_keys = 18;
+   */
+  userCaKeys: string[];
 };
 
 /**
@@ -311,7 +440,65 @@ export type Snapshot = Message<"gateway.v1.Snapshot"> & {
  * Use `create(SnapshotSchema)` to create a new message.
  */
 export const SnapshotSchema: GenMessage<Snapshot> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 7);
+  messageDesc(file_gateway_v1_tunnel, 8);
+
+/**
+ * ClassRule gives the commands matching pattern the classes.
+ *
+ * @generated from message gateway.v1.ClassRule
+ */
+export type ClassRule = Message<"gateway.v1.ClassRule"> & {
+  /**
+   * @generated from field: string pattern = 1;
+   */
+  pattern: string;
+
+  /**
+   * @generated from field: repeated string classes = 2;
+   */
+  classes: string[];
+};
+
+/**
+ * Describes the message gateway.v1.ClassRule.
+ * Use `create(ClassRuleSchema)` to create a new message.
+ */
+export const ClassRuleSchema: GenMessage<ClassRule> = /*@__PURE__*/
+  messageDesc(file_gateway_v1_tunnel, 9);
+
+/**
+ * PathRule is a path rule for EvalPaths: access "read"|"write"|"any", effect "only"|"deny"|"approval".
+ *
+ * @generated from message gateway.v1.PathRule
+ */
+export type PathRule = Message<"gateway.v1.PathRule"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: repeated string paths = 2;
+   */
+  paths: string[];
+
+  /**
+   * @generated from field: string access = 3;
+   */
+  access: string;
+
+  /**
+   * @generated from field: string effect = 4;
+   */
+  effect: string;
+};
+
+/**
+ * Describes the message gateway.v1.PathRule.
+ * Use `create(PathRuleSchema)` to create a new message.
+ */
+export const PathRuleSchema: GenMessage<PathRule> = /*@__PURE__*/
+  messageDesc(file_gateway_v1_tunnel, 10);
 
 /**
  * Member is an organization member and its teams, sorted.
@@ -335,7 +522,7 @@ export type Member = Message<"gateway.v1.Member"> & {
  * Use `create(MemberSchema)` to create a new message.
  */
 export const MemberSchema: GenMessage<Member> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 8);
+  messageDesc(file_gateway_v1_tunnel, 11);
 
 /**
  * @generated from message gateway.v1.Resource
@@ -388,7 +575,7 @@ export type Resource = Message<"gateway.v1.Resource"> & {
  * Use `create(ResourceSchema)` to create a new message.
  */
 export const ResourceSchema: GenMessage<Resource> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 9);
+  messageDesc(file_gateway_v1_tunnel, 12);
 
 /**
  * @generated from message gateway.v1.AuthenticateUserRequest
@@ -409,6 +596,18 @@ export type AuthenticateUserRequest = Message<"gateway.v1.AuthenticateUserReques
      */
     value: string;
     case: "login";
+  } | {
+    /**
+     * @generated from field: gateway.v1.CertIdentity cert = 4;
+     */
+    value: CertIdentity;
+    case: "cert";
+  } | {
+    /**
+     * @generated from field: string web_ticket = 5;
+     */
+    value: string;
+    case: "webTicket";
   } | { case: undefined; value?: undefined };
 
   /**
@@ -422,7 +621,54 @@ export type AuthenticateUserRequest = Message<"gateway.v1.AuthenticateUserReques
  * Use `create(AuthenticateUserRequestSchema)` to create a new message.
  */
 export const AuthenticateUserRequestSchema: GenMessage<AuthenticateUserRequest> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 10);
+  messageDesc(file_gateway_v1_tunnel, 13);
+
+/**
+ * CertIdentity is a user certificate the gateway verified against the
+ * organization's user CA: its werbot extensions, principal and fingerprint.
+ *
+ * @generated from message gateway.v1.CertIdentity
+ */
+export type CertIdentity = Message<"gateway.v1.CertIdentity"> & {
+  /**
+   * @generated from field: string user_id = 1;
+   */
+  userId: string;
+
+  /**
+   * @generated from field: string cli_session_id = 2;
+   */
+  cliSessionId: string;
+
+  /**
+   * @generated from field: string login = 3;
+   */
+  login: string;
+
+  /**
+   * @generated from field: string cert_fingerprint = 4;
+   */
+  certFingerprint: string;
+
+  /**
+   * an agent certificate: both set, or neither
+   *
+   * @generated from field: string agent_id = 5;
+   */
+  agentId: string;
+
+  /**
+   * @generated from field: string run_id = 6;
+   */
+  runId: string;
+};
+
+/**
+ * Describes the message gateway.v1.CertIdentity.
+ * Use `create(CertIdentitySchema)` to create a new message.
+ */
+export const CertIdentitySchema: GenMessage<CertIdentity> = /*@__PURE__*/
+  messageDesc(file_gateway_v1_tunnel, 14);
 
 /**
  * @generated from message gateway.v1.AuthenticateUserResponse
@@ -447,6 +693,28 @@ export type AuthenticateUserResponse = Message<"gateway.v1.AuthenticateUserRespo
    * @generated from field: string country = 4;
    */
   country: string;
+
+  /**
+   * @generated from field: gateway.v1.AgentInfo agent = 5;
+   */
+  agent?: AgentInfo | undefined;
+
+  /**
+   * @generated from field: gateway.v1.WebTicket web = 6;
+   */
+  web?: WebTicket | undefined;
+
+  /**
+   * the last MFA of the request's binding: seconds since (9223372036854775807: none) and its method
+   *
+   * @generated from field: int64 mfa_age_seconds = 7;
+   */
+  mfaAgeSeconds: bigint;
+
+  /**
+   * @generated from field: string mfa_method = 8;
+   */
+  mfaMethod: string;
 };
 
 /**
@@ -454,7 +722,7 @@ export type AuthenticateUserResponse = Message<"gateway.v1.AuthenticateUserRespo
  * Use `create(AuthenticateUserResponseSchema)` to create a new message.
  */
 export const AuthenticateUserResponseSchema: GenMessage<AuthenticateUserResponse> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 11);
+  messageDesc(file_gateway_v1_tunnel, 15);
 
 /**
  * @generated from message gateway.v1.StartSessionRequest
@@ -486,6 +754,49 @@ export type StartSessionRequest = Message<"gateway.v1.StartSessionRequest"> & {
    * @generated from field: string target = 5;
    */
   target: string;
+
+  /**
+   * exec only: the authorized command (the gateway truncates) and its classes
+   *
+   * @generated from field: string command = 6;
+   */
+  command: string;
+
+  /**
+   * @generated from field: repeated string classes = 7;
+   */
+  classes: string[];
+
+  /**
+   * the paths the authorized command touches
+   *
+   * @generated from field: repeated string paths = 15;
+   */
+  paths: string[];
+
+  /**
+   * an agent's session: its run counts the action; a tool call of another run is not stored
+   *
+   * @generated from field: string agent_run_id = 8;
+   */
+  agentRunId: string;
+
+  /**
+   * @generated from field: string tool_call_id = 9;
+   */
+  toolCallId: string;
+
+  /**
+   * @generated from field: string front = 10;
+   */
+  front: string;
+
+  /**
+   * client transport; empty is tcp
+   *
+   * @generated from field: string transport = 11;
+   */
+  transport: string;
 };
 
 /**
@@ -493,7 +804,7 @@ export type StartSessionRequest = Message<"gateway.v1.StartSessionRequest"> & {
  * Use `create(StartSessionRequestSchema)` to create a new message.
  */
 export const StartSessionRequestSchema: GenMessage<StartSessionRequest> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 12);
+  messageDesc(file_gateway_v1_tunnel, 16);
 
 /**
  * @generated from message gateway.v1.StartSessionResponse
@@ -515,7 +826,7 @@ export type StartSessionResponse = Message<"gateway.v1.StartSessionResponse"> & 
  * Use `create(StartSessionResponseSchema)` to create a new message.
  */
 export const StartSessionResponseSchema: GenMessage<StartSessionResponse> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 13);
+  messageDesc(file_gateway_v1_tunnel, 17);
 
 /**
  * @generated from message gateway.v1.Credential
@@ -537,7 +848,7 @@ export type Credential = Message<"gateway.v1.Credential"> & {
  * Use `create(CredentialSchema)` to create a new message.
  */
 export const CredentialSchema: GenMessage<Credential> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 14);
+  messageDesc(file_gateway_v1_tunnel, 18);
 
 /**
  * @generated from message gateway.v1.EndSessionRequest
@@ -549,7 +860,8 @@ export type EndSessionRequest = Message<"gateway.v1.EndSessionRequest"> & {
   sessionId: string;
 
   /**
-   * gateway-side end reasons; gateway_lost is set only by the server
+   * gateway-side end reasons; gateway_lost is set only by the server;
+   * policy_stale: a strict organization's tunnel was down too long
    *
    * @generated from field: string reason = 2;
    */
@@ -561,6 +873,35 @@ export type EndSessionRequest = Message<"gateway.v1.EndSessionRequest"> & {
    * @generated from field: gateway.v1.SessionCounters counters = 3;
    */
   counters?: SessionCounters | undefined;
+
+  /**
+   * exec: the exit status and the SHA-256 of the recorded output
+   *
+   * @generated from field: optional int32 exit_code = 4;
+   */
+  exitCode?: number | undefined;
+
+  /**
+   * @generated from field: bytes output_sha256 = 5;
+   */
+  outputSha256: Uint8Array;
+
+  /**
+   * console only: the last checked command (the gateway truncates), its classes and paths
+   *
+   * @generated from field: string command = 8;
+   */
+  command: string;
+
+  /**
+   * @generated from field: repeated string classes = 9;
+   */
+  classes: string[];
+
+  /**
+   * @generated from field: repeated string paths = 10;
+   */
+  paths: string[];
 };
 
 /**
@@ -568,7 +909,7 @@ export type EndSessionRequest = Message<"gateway.v1.EndSessionRequest"> & {
  * Use `create(EndSessionRequestSchema)` to create a new message.
  */
 export const EndSessionRequestSchema: GenMessage<EndSessionRequest> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 15);
+  messageDesc(file_gateway_v1_tunnel, 19);
 
 /**
  * @generated from message gateway.v1.EndSessionResponse
@@ -581,7 +922,7 @@ export type EndSessionResponse = Message<"gateway.v1.EndSessionResponse"> & {
  * Use `create(EndSessionResponseSchema)` to create a new message.
  */
 export const EndSessionResponseSchema: GenMessage<EndSessionResponse> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 16);
+  messageDesc(file_gateway_v1_tunnel, 20);
 
 /**
  * @generated from message gateway.v1.PinHostKeyRequest
@@ -610,7 +951,7 @@ export type PinHostKeyRequest = Message<"gateway.v1.PinHostKeyRequest"> & {
  * Use `create(PinHostKeyRequestSchema)` to create a new message.
  */
 export const PinHostKeyRequestSchema: GenMessage<PinHostKeyRequest> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 17);
+  messageDesc(file_gateway_v1_tunnel, 21);
 
 /**
  * @generated from message gateway.v1.PinHostKeyResponse
@@ -623,7 +964,7 @@ export type PinHostKeyResponse = Message<"gateway.v1.PinHostKeyResponse"> & {
  * Use `create(PinHostKeyResponseSchema)` to create a new message.
  */
 export const PinHostKeyResponseSchema: GenMessage<PinHostKeyResponse> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 18);
+  messageDesc(file_gateway_v1_tunnel, 22);
 
 /**
  * @generated from message gateway.v1.RenewCertificateRequest
@@ -640,7 +981,7 @@ export type RenewCertificateRequest = Message<"gateway.v1.RenewCertificateReques
  * Use `create(RenewCertificateRequestSchema)` to create a new message.
  */
 export const RenewCertificateRequestSchema: GenMessage<RenewCertificateRequest> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 19);
+  messageDesc(file_gateway_v1_tunnel, 23);
 
 /**
  * @generated from message gateway.v1.RenewCertificateResponse
@@ -657,7 +998,7 @@ export type RenewCertificateResponse = Message<"gateway.v1.RenewCertificateRespo
  * Use `create(RenewCertificateResponseSchema)` to create a new message.
  */
 export const RenewCertificateResponseSchema: GenMessage<RenewCertificateResponse> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 20);
+  messageDesc(file_gateway_v1_tunnel, 24);
 
 /**
  * UploadRecordingChunk stores chunk seq of a session served by the caller.
@@ -694,7 +1035,7 @@ export type UploadRecordingChunkRequest = Message<"gateway.v1.UploadRecordingChu
  * Use `create(UploadRecordingChunkRequestSchema)` to create a new message.
  */
 export const UploadRecordingChunkRequestSchema: GenMessage<UploadRecordingChunkRequest> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 21);
+  messageDesc(file_gateway_v1_tunnel, 25);
 
 /**
  * @generated from message gateway.v1.UploadRecordingChunkResponse
@@ -707,7 +1048,7 @@ export type UploadRecordingChunkResponse = Message<"gateway.v1.UploadRecordingCh
  * Use `create(UploadRecordingChunkResponseSchema)` to create a new message.
  */
 export const UploadRecordingChunkResponseSchema: GenMessage<UploadRecordingChunkResponse> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 22);
+  messageDesc(file_gateway_v1_tunnel, 26);
 
 /**
  * FinishRecording closes a recording: the totals must match the ingested chain.
@@ -741,7 +1082,7 @@ export type FinishRecordingRequest = Message<"gateway.v1.FinishRecordingRequest"
  * Use `create(FinishRecordingRequestSchema)` to create a new message.
  */
 export const FinishRecordingRequestSchema: GenMessage<FinishRecordingRequest> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 23);
+  messageDesc(file_gateway_v1_tunnel, 27);
 
 /**
  * @generated from message gateway.v1.FinishRecordingResponse
@@ -754,7 +1095,123 @@ export type FinishRecordingResponse = Message<"gateway.v1.FinishRecordingRespons
  * Use `create(FinishRecordingResponseSchema)` to create a new message.
  */
 export const FinishRecordingResponseSchema: GenMessage<FinishRecordingResponse> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel, 24);
+  messageDesc(file_gateway_v1_tunnel, 28);
+
+/**
+ * @generated from message gateway.v1.RequestApprovalRequest
+ */
+export type RequestApprovalRequest = Message<"gateway.v1.RequestApprovalRequest"> & {
+  /**
+   * @generated from field: string user_id = 1;
+   */
+  userId: string;
+
+  /**
+   * @generated from field: string resource_id = 2;
+   */
+  resourceId: string;
+
+  /**
+   * empty: the user's own command
+   *
+   * @generated from field: string agent_run_id = 3;
+   */
+  agentRunId: string;
+
+  /**
+   * @generated from field: string command = 4;
+   */
+  command: string;
+
+  /**
+   * @generated from field: repeated string classes = 5;
+   */
+  classes: string[];
+
+  /**
+   * @generated from field: repeated string reasons = 6;
+   */
+  reasons: string[];
+};
+
+/**
+ * Describes the message gateway.v1.RequestApprovalRequest.
+ * Use `create(RequestApprovalRequestSchema)` to create a new message.
+ */
+export const RequestApprovalRequestSchema: GenMessage<RequestApprovalRequest> = /*@__PURE__*/
+  messageDesc(file_gateway_v1_tunnel, 29);
+
+/**
+ * @generated from message gateway.v1.RequestApprovalResponse
+ */
+export type RequestApprovalResponse = Message<"gateway.v1.RequestApprovalResponse"> & {
+  /**
+   * @generated from field: string approval_id = 1;
+   */
+  approvalId: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp expires_at = 2;
+   */
+  expiresAt?: Timestamp | undefined;
+
+  /**
+   * the approval page for the approvers
+   *
+   * @generated from field: string url = 3;
+   */
+  url: string;
+
+  /**
+   * "pending", or "approved" for an agent's approved command it asks again
+   *
+   * @generated from field: string status = 4;
+   */
+  status: string;
+};
+
+/**
+ * Describes the message gateway.v1.RequestApprovalResponse.
+ * Use `create(RequestApprovalResponseSchema)` to create a new message.
+ */
+export const RequestApprovalResponseSchema: GenMessage<RequestApprovalResponse> = /*@__PURE__*/
+  messageDesc(file_gateway_v1_tunnel, 30);
+
+/**
+ * @generated from message gateway.v1.GetApprovalRequest
+ */
+export type GetApprovalRequest = Message<"gateway.v1.GetApprovalRequest"> & {
+  /**
+   * @generated from field: string approval_id = 1;
+   */
+  approvalId: string;
+};
+
+/**
+ * Describes the message gateway.v1.GetApprovalRequest.
+ * Use `create(GetApprovalRequestSchema)` to create a new message.
+ */
+export const GetApprovalRequestSchema: GenMessage<GetApprovalRequest> = /*@__PURE__*/
+  messageDesc(file_gateway_v1_tunnel, 31);
+
+/**
+ * @generated from message gateway.v1.GetApprovalResponse
+ */
+export type GetApprovalResponse = Message<"gateway.v1.GetApprovalResponse"> & {
+  /**
+   * "pending", "approved", "denied", "expired" or "canceled"
+   *
+   * @generated from field: string status = 1;
+   */
+  status: string;
+};
+
+/**
+ * Describes the message gateway.v1.GetApprovalResponse.
+ * Use `create(GetApprovalResponseSchema)` to create a new message.
+ */
+export const GetApprovalResponseSchema: GenMessage<GetApprovalResponse> = /*@__PURE__*/
+  messageDesc(file_gateway_v1_tunnel, 32);
 
 /**
  * TunnelService is the gateway-to-core control plane. The caller is a gateway
@@ -828,6 +1285,65 @@ export const TunnelService: GenService<{
     methodKind: "unary";
     input: typeof FinishRecordingRequestSchema;
     output: typeof FinishRecordingResponseSchema;
+  },
+  /**
+   * RequestApproval asks the approvers to allow one command of a session;
+   * the decision arrives as approval_decided on Connect.
+   *
+   * @generated from rpc gateway.v1.TunnelService.RequestApproval
+   */
+  requestApproval: {
+    methodKind: "unary";
+    input: typeof RequestApprovalRequestSchema;
+    output: typeof RequestApprovalResponseSchema;
+  },
+  /**
+   * @generated from rpc gateway.v1.TunnelService.GetApproval
+   */
+  getApproval: {
+    methodKind: "unary";
+    input: typeof GetApprovalRequestSchema;
+    output: typeof GetApprovalResponseSchema;
+  },
+  /**
+   * @generated from rpc gateway.v1.TunnelService.RecordDenial
+   */
+  recordDenial: {
+    methodKind: "unary";
+    input: typeof RecordDenialRequestSchema;
+    output: typeof RecordDenialResponseSchema;
+  },
+  /**
+   * @generated from rpc gateway.v1.TunnelService.Stream
+   */
+  stream: {
+    methodKind: "bidi_streaming";
+    input: typeof StreamRequestSchema;
+    output: typeof StreamResponseSchema;
+  },
+  /**
+   * @generated from rpc gateway.v1.TunnelService.CreateMFAChallenge
+   */
+  createMFAChallenge: {
+    methodKind: "unary";
+    input: typeof CreateMFAChallengeRequestSchema;
+    output: typeof CreateMFAChallengeResponseSchema;
+  },
+  /**
+   * @generated from rpc gateway.v1.TunnelService.VerifyMFATOTP
+   */
+  verifyMFATOTP: {
+    methodKind: "unary";
+    input: typeof VerifyMFATOTPRequestSchema;
+    output: typeof VerifyMFATOTPResponseSchema;
+  },
+  /**
+   * @generated from rpc gateway.v1.TunnelService.GetMFAChallenge
+   */
+  getMFAChallenge: {
+    methodKind: "unary";
+    input: typeof GetMFAChallengeRequestSchema;
+    output: typeof GetMFAChallengeResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_gateway_v1_tunnel, 0);

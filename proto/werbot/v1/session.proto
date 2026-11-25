@@ -9,6 +9,8 @@ service SessionService {
   // GetSessionRequest/Response belong to AuthService, hence the service prefix.
   rpc GetSession(SessionServiceGetSessionRequest) returns (SessionServiceGetSessionResponse);
   rpc VerifyRecording(VerifyRecordingRequest) returns (VerifyRecordingResponse);
+  // Owner and admin terminate any session of the organization, a member only their own.
+  rpc TerminateSession(TerminateSessionRequest) returns (TerminateSessionResponse);
 }
 
 enum SessionStatus {
@@ -42,6 +44,11 @@ message Session {
   int64 bytes_down = 15;
   int64 datagrams_up = 16;
   int64 datagrams_down = 17;
+  string command = 18; // exec only; cut at 64 KiB
+  repeated string classes = 19; // exec only: read | write | destructive | privilege | secrets | egress | opaque
+  string front = 20; // ssh | web
+  bool live = 21; // an open terminal session that can be watched or terminated
+  repeated string paths = 25; // paths the command touched; output only
 }
 
 message ListSessionsRequest {
@@ -72,3 +79,12 @@ message VerifyRecordingResponse {
   bool verified = 1;
   string reason = 2;
 }
+
+message TerminateSessionRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  string reason = 2 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 256
+  }];
+}
+message TerminateSessionResponse {}

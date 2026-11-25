@@ -41,7 +41,7 @@ func init() {
 			return ep
 		}})
 	connector.Register(connector.Type{Name: "hnoendpoint", NewConfig: func() proto.Message { return &wrapperspb.StringValue{} },
-		Validate: func(proto.Message) error { return nil }, Actions: []string{"hnoendpoint.connect"},
+		Validate: func(proto.Message) error { return nil }, Actions: []string{"hnoendpoint.connect", "hnoendpoint.shell"},
 		Kinds: []connector.Kind{connector.KindTerminal}})
 }
 

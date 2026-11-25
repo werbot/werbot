@@ -7,15 +7,14 @@ import (
 	"crypto/rand"
 	"crypto/tls"
 	"encoding/json"
-	"errors"
 	"log/slog"
+	"maps"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -26,7 +25,6 @@ import (
 	"github.com/stretchr/testify/require"
 	gossh "golang.org/x/crypto/ssh"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/werbot/werbot/gen/gateway/v1/gatewayv1connect"
@@ -68,17 +66,29 @@ type stack struct {
 }
 
 // startStack runs the stack on a fresh database with 127.0.0.1 ports only;
-// everything stops at the test cleanup.
-func startStack(t *testing.T) *stack {
+// opts go to the SSH target. Everything stops at the test cleanup.
+func startStack(t *testing.T, opts ...sshtest.Option) *stack {
+	t.Helper()
+	s, _ := startStackEnv(t, nil, opts...)
+	return s
+}
+
+// startStackEnv is startStack with the server variables extra gives for the
+// HTTP address (nil: none); it also returns alice's cookie client.
+func startStackEnv(t *testing.T, extra func(httpAddr string) map[string]string, opts ...sshtest.Option) (*stack, *http.Client) {
 	t.Helper()
 	pool, dbURL := dbtest.New(t)
 	httpAddr := freeAddr(t)
-	r := startRun(t, []string{"server"}, env(map[string]string{
+	vars := map[string]string{
 		"WERBOT_DATABASE_URL": dbURL, "WERBOT_HTTP_ADDR": httpAddr, "WERBOT_PUBLIC_URL": "http://" + httpAddr,
 		"WERBOT_SECRET_KEY": testSecretKey, "WERBOT_GATEWAY_ADDR": freeAddr(t), "WERBOT_DATA_DIR": t.TempDir(),
 		"WERBOT_ENV": "development",
-	})).healthy(t)
-	s := &stack{pool: pool, url: r.api, target: sshtest.StartTarget(t, "target-secret", nil)}
+	}
+	if extra != nil {
+		maps.Copy(vars, extra(httpAddr))
+	}
+	r := startRun(t, []string{"server"}, env(vars)).healthy(t)
+	s := &stack{pool: pool, url: r.api, target: sshtest.StartTarget(t, "target-secret", nil, opts...)}
 	ctx := context.Background()
 
 	hc, _ := jarClient(t, http.DefaultTransport)
@@ -96,10 +106,7 @@ func startStack(t *testing.T) *stack {
 		gws: werbotv1connect.NewGatewayServiceClient(hc, s.url),
 	}
 
-	s.key = newSigner(t)
-	_, err = s.api.keys.AddSSHKey(ctx, connect.NewRequest(&werbotv1.AddSSHKeyRequest{
-		PublicKey: string(gossh.MarshalAuthorizedKey(s.key.PublicKey()))}))
-	require.NoError(t, err)
+	s.key = s.addKey(t)
 	gw, err := s.api.gws.CreateGateway(ctx, connect.NewRequest(&werbotv1.CreateGatewayRequest{Name: "gw"}))
 	require.NoError(t, err)
 	s.gatewayID = uuid.MustParse(gw.Msg.GetGateway().GetId())
@@ -109,7 +116,17 @@ func startStack(t *testing.T) *stack {
 	s.token = tok.Msg.GetToken()
 	s.gwSSH, s.gwData, err = s.startGateway(t, s.token)
 	require.NoError(t, err)
-	return s
+	return s, hc
+}
+
+// addKey registers a new SSH key of alice.
+func (s *stack) addKey(t *testing.T) gossh.Signer {
+	t.Helper()
+	key := newSigner(t)
+	_, err := s.api.keys.AddSSHKey(context.Background(), connect.NewRequest(&werbotv1.AddSSHKeyRequest{
+		PublicKey: string(gossh.MarshalAuthorizedKey(key.PublicKey()))}))
+	require.NoError(t, err)
+	return key
 }
 
 func newSigner(t *testing.T) gossh.Signer {
@@ -144,15 +161,28 @@ func (s *stack) startGateway(t *testing.T, token string) (sshAddr, dataDir strin
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 	dataDir = t.TempDir()
+	err = runUntilUp(t, func(ctx context.Context, reg *metrics.Registry) error {
+		cfg := gateway.Config{ServerURL: s.url, JoinToken: token, DataDir: dataDir, Name: "gw-test",
+			IdleTimeout: time.Minute, DrainTimeout: time.Second, MaxSessions: 100, Metrics: reg}
+		return gateway.Serve(ctx, cfg, countingListener{ln, &s.accepted}, slog.New(slog.DiscardHandler))
+	})
+	if err != nil {
+		return "", dataDir, err
+	}
+	return ln.Addr().String(), dataDir, nil
+}
+
+// runUntilUp runs the gateway instance of run (metrics in reg) until the test
+// cleanup and waits until its tunnel has a snapshot or run returned (its error).
+func runUntilUp(t *testing.T, run func(ctx context.Context, reg *metrics.Registry) error) error {
+	t.Helper()
 	reg := metrics.NewRegistry()
-	cfg := gateway.Config{ServerURL: s.url, JoinToken: token, DataDir: dataDir, Name: "gw-test",
-		IdleTimeout: time.Minute, DrainTimeout: time.Second, MaxSessions: 100, Metrics: reg}
 	ctx, cancel := context.WithCancel(context.Background())
 	var serveErr error
 	stopped := make(chan struct{})
 	go func() {
 		defer close(stopped)
-		serveErr = gateway.Serve(ctx, cfg, countingListener{ln, &s.accepted}, slog.New(slog.DiscardHandler))
+		serveErr = run(ctx, reg)
 	}()
 	t.Cleanup(func() {
 		cancel()
@@ -174,9 +204,9 @@ func (s *stack) startGateway(t *testing.T, token string) (sshAddr, dataDir strin
 	}, 15*time.Second, 20*time.Millisecond)
 	select {
 	case <-stopped:
-		return "", dataDir, serveErr
+		return serveErr
 	default:
-		return ln.Addr().String(), dataDir, nil
+		return nil
 	}
 }
 
@@ -184,28 +214,12 @@ func (s *stack) startGateway(t *testing.T, token string) (sshAddr, dataDir strin
 // password and binds it to alice. An ssh resource points at the target.
 func (s *stack) addResource(t *testing.T, name, typ string) uuid.UUID {
 	t.Helper()
-	ctx := context.Background()
-	host, port, err := net.SplitHostPort(s.target.Addr)
-	require.NoError(t, err)
-	p, err := strconv.ParseUint(port, 10, 16)
-	require.NoError(t, err)
-	var cfg proto.Message = &sshv1.Config{Host: host, Port: uint32(p), Login: "root", PortForwarding: true}
+	host, port := hostPort(t, s.target.Addr)
+	var cfg proto.Message = &sshv1.Config{Host: host, Port: port, Login: "root", PortForwarding: true}
 	if typ == "echo" {
 		cfg = &wrapperspb.StringValue{Value: "echo"} // the echo type requires a non-empty value
 	}
-	a, err := anypb.New(cfg)
-	require.NoError(t, err)
-	res, err := s.api.res.CreateResource(ctx, connect.NewRequest(&werbotv1.CreateResourceRequest{
-		Name: name, Type: typ, GatewayId: s.gatewayID.String(), Config: a}))
-	require.NoError(t, err)
-	id := res.Msg.GetResource().GetId()
-	_, err = s.api.res.SetCredential(ctx, connect.NewRequest(&werbotv1.SetCredentialRequest{
-		ResourceId: id, Kind: "password", Value: []byte(s.target.Password)}))
-	require.NoError(t, err)
-	_, err = s.api.acc.CreateBinding(ctx, connect.NewRequest(&werbotv1.CreateBindingRequest{
-		SubjectType: "user", SubjectId: s.alice, ResourceId: id}))
-	require.NoError(t, err)
-	return uuid.MustParse(id)
+	return s.createResource(t, s.gatewayID, name, typ, cfg, s.target.Password, true)
 }
 
 // dial opens an SSH connection to addr as user with key and returns the host
@@ -218,33 +232,10 @@ func (s *stack) dial(addr, user string, key gossh.Signer) (*gossh.Client, gossh.
 	return c, host, err
 }
 
-// exec runs cmd as alice without a PTY and returns stdout+stderr and the exit
-// code. A connection or channel failure returns its text and -1, so exec is
-// safe in an Eventually condition.
+// exec runs cmd as alice without a PTY (execKey).
 func (s *stack) exec(t *testing.T, addr, user, cmd string) (out string, code int) {
 	t.Helper()
-	c, _, err := s.dial(addr, user, s.key)
-	if err != nil {
-		return err.Error(), -1
-	}
-	defer c.Close() //nolint:errcheck // test client
-	// a hung session returns -1 instead of waiting for the global timeout
-	hung := time.AfterFunc(15*time.Second, func() { _ = c.Close() })
-	defer hung.Stop()
-	sess, err := c.NewSession()
-	if err != nil {
-		return err.Error(), -1
-	}
-	defer sess.Close() //nolint:errcheck // closed by the server after exit
-	b, err := sess.CombinedOutput(cmd)
-	var ee *gossh.ExitError
-	switch {
-	case err == nil:
-		return string(b), 0
-	case errors.As(err, &ee):
-		return string(b), ee.ExitStatus()
-	}
-	return string(b) + err.Error(), -1
+	return s.execKey(t, s.key, addr, user, cmd)
 }
 
 // instanceIdentity reads the gateway and instance ids an instance saved in dataDir.
@@ -283,7 +274,7 @@ func instanceClient(t *testing.T, dataDir string) gatewayv1connect.TunnelService
 func (s *stack) services(t *testing.T) *services {
 	t.Helper()
 	o := testServeOpts(t, config.Config{SecretKey: bytes.Repeat([]byte{1}, 32)}, s.pool)
-	svc, err := newServices(context.Background(), config.Config{DataDir: t.TempDir()}, s.pool, o.Box, o.CA, o.Signer, slog.New(slog.DiscardHandler))
+	svc, err := newServices(context.Background(), config.Config{DataDir: t.TempDir()}, s.pool, o.Box, o.CA, o.Signer, metrics.NewRegistry(), slog.New(slog.DiscardHandler))
 	require.NoError(t, err)
 	return svc
 }

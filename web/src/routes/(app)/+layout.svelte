@@ -1,5 +1,5 @@
 <script lang="ts">
-		import { goto } from '$app/navigation';
+	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { Avatar, Toaster } from '#lib/ui/index.js';
 	import { auth } from '#lib/api.js';
@@ -7,6 +7,9 @@
 	import { itemFor, navSections, sectionFor } from '#lib/shell/nav.js';
 	import PrimaryMenu from '#lib/shell/PrimaryMenu.svelte';
 	import ContextColumn from '#lib/shell/ContextColumn.svelte';
+	import StepUpDialog from '#lib/StepUpDialog.svelte';
+	import { stepUp } from '#lib/stepup.svelte.js';
+	import { rowOpen } from '#lib/rowOpen.js';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
@@ -21,6 +24,8 @@
 		await goto('/login');
 	}
 </script>
+
+<svelte:document onclick={rowOpen} />
 
 {#snippet profileHeader()}
 	<div class="profile wb-me">
@@ -43,6 +48,8 @@
 		<div class="work">{@render children()}</div>
 	</main>
 </div>
+<!-- the dialog mounts per step-up, so each one asks the server for its factors afresh -->
+{#if stepUp.open}<StepUpDialog />{/if}
 <Toaster />
 
 <style>
@@ -108,6 +115,11 @@
 		cursor: pointer;
 		color: inherit;
 		text-decoration: none;
+	}
+
+	/* the whole row opens it (rowOpen) */
+	:global(tbody tr:has(.row-name)) {
+		cursor: pointer;
 	}
 
 	:global(.row-name:focus-visible) {

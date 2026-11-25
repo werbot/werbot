@@ -17,6 +17,7 @@ const messages: Partial<Record<Code, () => string>> = {
 	[Code.NotFound]: m.error_not_found,
 	[Code.AlreadyExists]: m.error_already_exists,
 	[Code.FailedPrecondition]: m.error_failed_precondition,
+	[Code.ResourceExhausted]: m.error_resource_exhausted,
 	[Code.Unavailable]: m.error_unavailable
 };
 
@@ -27,4 +28,10 @@ export function errorMessage(e: unknown): string {
 /** Toasts a server error: an error object goes through errorMessage, a string shows as is. */
 export function failToast(e: unknown): void {
 	toast({ tone: 'alert', text: typeof e === 'string' ? e : errorMessage(e) });
+}
+
+/** An InvalidArgument error keeps its full server text (for example a glob or a Cedar position); any other error passes unchanged to failToast. */
+export function serverText(e: unknown): unknown {
+	const c = ConnectError.from(e);
+	return c.code === Code.InvalidArgument && c.rawMessage ? c.rawMessage : e;
 }

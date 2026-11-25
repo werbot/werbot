@@ -73,12 +73,32 @@ type Connector interface {
 
 | Type | Level | Kinds | Recorded | Notes |
 | --- | --- | --- | --- | --- |
-| `ssh` | L2 | `terminal`, `exec`, `stream` | `terminal`, `exec` | `port_forwarding` is off by default; `stream` is `ssh -L`. |
+| `ssh` | L2 | `terminal`, `exec`, `stream` | `terminal`, `exec` | `port_forwarding` is off by default; `stream` is `ssh -L`. `remote_forwarding` is off by default; with it, `ssh -R` is a `stream` (see below). |
 | `telnet` | L2 | `terminal`, `stream` | `terminal`, `stream` | Auto-login and recording. The gateway to target leg is plain text: run the gateway next to the equipment. |
 | `tcp` | L1 | `stream` | none | Several ports, RBAC per port; only bytes are counted. |
 | `udp` | L1 | `datagram` | none | Request-response protocols only: DNS, SNMP, syslog, NTP, RADIUS. RTP and VoIP do not fit: UDP rides over TCP. `flow_idle` (default `2m`), up to 32 flows per session, 8192 bytes per datagram. |
 
 `Endpoint` sets the host and ports a `stream` or `datagram` session may reach (and the TCP health check); `Recorded` sets the kinds whose payload is recorded as asciicast. The health check is a TCP connect from two instances of the pool; `udp` has none.
+
+## Remote forwarding (`ssh -R`)
+
+A resource of type `ssh` with `remote_forwarding` on accepts remote forwards on a direct login (`<login>+<resource>`). The gateway asks the target to listen on the bind address and opens a `forwarded-tcpip` channel to the client for every connection that arrives there.
+
+- Policy: the request is decided as `ssh.connect` (with the MFA rules, so the second factor comes from the login) and then as `ssh.remote_forward`, both with the bind port as `context.port`. Bindings and JIT grants already cover `ssh.remote_forward`; narrow it with a custom Cedar `forbid` on the action. Agents never get it: their baseline permits only `exec`.
+- Bind address: only `localhost`, `127.0.0.1`, `::1` or an empty host (the target's `localhost`). Any other host, `0.0.0.0` included, and port `0` are refused, as is a second forward of the same address on the connection. The client gets back the bind host it sent.
+- Session: one `stream` session per forward, target `<bind_host>:<bind_port>` (an empty host is `localhost`), not recorded; only bytes are counted. Port-bound bindings limit the bind port.
+- End: `cancel-tcpip-forward` or closing the connection ends the session as `closed`. When the gateway ends it (`access_revoked`, `terminated`, `idle_timeout`, `max_duration`, a target failure), it closes the whole SSH connection, its other channels included, so the client learns that the forward is gone.
+- Idle timeout: a forward without traffic idles out like any `stream`. Raise the resource `idle_timeout` (up to 24 h) for long-lived forwards.
+- Run `ssh -R` as a separate `ssh` with `-N -o ExitOnForwardFailure=yes`: a refused forward then fails the command, and a gateway-ended forward does not take other sessions with it.
+
+## Presets
+
+A preset is a resource type without code: a name on top of the `tcp` or `udp` connector. Owners and admins manage presets in the web UI (Access, Presets) or through `ResourcePresetService`; every member sees them in the resource type list next to the built-in types.
+
+- Fields: `name` (`^[a-z][a-z0-9-]{0,31}$`, cannot be a built-in type name), `base_type` (`tcp` or `udp`), `display_name`, `icon` (a name from the web icon registry, empty for the base type icon), `default_ports` (1 to 16 ranges), `category` and `launch_hint`. `name` and `base_type` never change after creation.
+- `launch_hint` is shown as text on the resource page. `{host}` becomes `127.0.0.1` and `{port}` the local port of `werbot connect`, for example `psql -h {host} -p {port}`.
+- A resource made from a preset is stored with the base type and the `preset_id`. The connector, the config and the policy are those of the base type; the preset only supplies default ports, the category and the hint in the UI.
+- A preset that resources still use cannot be deleted (`FailedPrecondition`); delete or move the resources first.
 
 ## Heavy and third-party connectors
 

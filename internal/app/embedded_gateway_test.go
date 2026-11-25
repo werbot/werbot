@@ -1,6 +1,7 @@
 package app
 
 import (
+	"cmp"
 	"context"
 	"io"
 	"net/http"
@@ -52,9 +53,22 @@ func startReplica(t *testing.T, dbURL, dataDir string) replica {
 }
 
 // startRun runs `werbot <args>` with getenv in a goroutine; it does not wait
-// for the server (see healthy).
+// for the server (see healthy). A server without WERBOT_INTERNAL_ADDR gets a
+// free loopback one: the default :8444 is shared by every replica.
 func startRun(t *testing.T, args []string, getenv func(string) string) replica {
 	t.Helper()
+	if args[0] == "server" && getenv("WERBOT_INTERNAL_ADDR") == "" {
+		base, internal := getenv, freeAddr(t)
+		getenv = func(k string) string {
+			switch k {
+			case "WERBOT_INTERNAL_ADDR":
+				return internal
+			case "WERBOT_INTERNAL_URL":
+				return cmp.Or(base(k), "https://"+internal)
+			}
+			return base(k)
+		}
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
 	go func() { done <- Run(ctx, args, getenv, io.Discard) }()

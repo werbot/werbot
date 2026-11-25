@@ -1,9 +1,8 @@
 import { expect, test } from '@playwright/test';
 import en from '../messages/en.json' with { type: 'json' };
-import { OWNER, loginAsOwner } from './support/auth';
+import { choose } from './support/select';
+import { BOB as bob, OWNER, loginAsOwner } from './support/auth';
 import { latestEmailLink } from './support/mail';
-
-const bob = { email: 'bob@example.com', login: 'bob', name: 'Bob', password: 'another long password' };
 
 test.describe.serial('identity', () => {
 	test('setup, logout, login', async ({ page }) => {
@@ -60,7 +59,7 @@ test.describe.serial('identity', () => {
 		await expect(page.getByRole('button', { name: 'ops', exact: true })).toBeVisible();
 		await page.getByRole('button', { name: 'ops', exact: true }).click();
 
-		await page.getByLabel(en.teams_add_member).selectOption({ label: bob.name });
+		await choose(page.getByLabel(en.teams_add_member), bob.name);
 		await expect(page.locator('.miso-chip', { hasText: bob.name })).toBeVisible();
 		await page.keyboard.press('Escape');
 
@@ -68,6 +67,6 @@ test.describe.serial('identity', () => {
 		await page.getByRole('menuitem', { name: en.auth_logout }).click();
 		await expect(page).toHaveURL(/\/login$/);
 		await page.goto('/teams');
-		await expect(page).toHaveURL(/\/login$/);
+		await expect(page).toHaveURL(/\/login\?next=%2Fteams$/);
 	});
 });

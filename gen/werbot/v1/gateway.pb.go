@@ -32,6 +32,9 @@ type Gateway struct {
 	Connectors    []string               `protobuf:"bytes,4,rep,name=connectors,proto3" json:"connectors,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	Instances     []*GatewayInstance     `protobuf:"bytes,6,rep,name=instances,proto3" json:"instances,omitempty"`
+	SshAddress    string                 `protobuf:"bytes,7,opt,name=ssh_address,json=sshAddress,proto3" json:"ssh_address,omitempty"` // host:port clients dial; empty until set
+	HostKey       string                 `protobuf:"bytes,8,opt,name=host_key,json=hostKey,proto3" json:"host_key,omitempty"`          // pool host key in authorized_keys format
+	WsUrl         string                 `protobuf:"bytes,9,opt,name=ws_url,json=wsUrl,proto3" json:"ws_url,omitempty"`                // WebSocket endpoint clients dial; empty until set
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -106,6 +109,27 @@ func (x *Gateway) GetInstances() []*GatewayInstance {
 		return x.Instances
 	}
 	return nil
+}
+
+func (x *Gateway) GetSshAddress() string {
+	if x != nil {
+		return x.SshAddress
+	}
+	return ""
+}
+
+func (x *Gateway) GetHostKey() string {
+	if x != nil {
+		return x.HostKey
+	}
+	return ""
+}
+
+func (x *Gateway) GetWsUrl() string {
+	if x != nil {
+		return x.WsUrl
+	}
+	return ""
 }
 
 type GatewayInstance struct {
@@ -476,6 +500,112 @@ func (x *ListGatewaysResponse) GetGateways() []*Gateway {
 	return nil
 }
 
+type UpdateGatewayRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// "" resets; otherwise host:port.
+	SshAddress string `protobuf:"bytes,2,opt,name=ssh_address,json=sshAddress,proto3" json:"ssh_address,omitempty"`
+	// "" resets; otherwise ws:// or wss:// URL. Both addresses are replaced on every call.
+	WsUrl         string `protobuf:"bytes,3,opt,name=ws_url,json=wsUrl,proto3" json:"ws_url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateGatewayRequest) Reset() {
+	*x = UpdateGatewayRequest{}
+	mi := &file_werbot_v1_gateway_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateGatewayRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateGatewayRequest) ProtoMessage() {}
+
+func (x *UpdateGatewayRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_gateway_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateGatewayRequest.ProtoReflect.Descriptor instead.
+func (*UpdateGatewayRequest) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_gateway_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *UpdateGatewayRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UpdateGatewayRequest) GetSshAddress() string {
+	if x != nil {
+		return x.SshAddress
+	}
+	return ""
+}
+
+func (x *UpdateGatewayRequest) GetWsUrl() string {
+	if x != nil {
+		return x.WsUrl
+	}
+	return ""
+}
+
+type UpdateGatewayResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Gateway       *Gateway               `protobuf:"bytes,1,opt,name=gateway,proto3" json:"gateway,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateGatewayResponse) Reset() {
+	*x = UpdateGatewayResponse{}
+	mi := &file_werbot_v1_gateway_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateGatewayResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateGatewayResponse) ProtoMessage() {}
+
+func (x *UpdateGatewayResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_gateway_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateGatewayResponse.ProtoReflect.Descriptor instead.
+func (*UpdateGatewayResponse) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_gateway_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *UpdateGatewayResponse) GetGateway() *Gateway {
+	if x != nil {
+		return x.Gateway
+	}
+	return nil
+}
+
 type DeleteGatewayRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -485,7 +615,7 @@ type DeleteGatewayRequest struct {
 
 func (x *DeleteGatewayRequest) Reset() {
 	*x = DeleteGatewayRequest{}
-	mi := &file_werbot_v1_gateway_proto_msgTypes[7]
+	mi := &file_werbot_v1_gateway_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -497,7 +627,7 @@ func (x *DeleteGatewayRequest) String() string {
 func (*DeleteGatewayRequest) ProtoMessage() {}
 
 func (x *DeleteGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_werbot_v1_gateway_proto_msgTypes[7]
+	mi := &file_werbot_v1_gateway_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -510,7 +640,7 @@ func (x *DeleteGatewayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteGatewayRequest.ProtoReflect.Descriptor instead.
 func (*DeleteGatewayRequest) Descriptor() ([]byte, []int) {
-	return file_werbot_v1_gateway_proto_rawDescGZIP(), []int{7}
+	return file_werbot_v1_gateway_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *DeleteGatewayRequest) GetId() string {
@@ -528,7 +658,7 @@ type DeleteGatewayResponse struct {
 
 func (x *DeleteGatewayResponse) Reset() {
 	*x = DeleteGatewayResponse{}
-	mi := &file_werbot_v1_gateway_proto_msgTypes[8]
+	mi := &file_werbot_v1_gateway_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -540,7 +670,7 @@ func (x *DeleteGatewayResponse) String() string {
 func (*DeleteGatewayResponse) ProtoMessage() {}
 
 func (x *DeleteGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_werbot_v1_gateway_proto_msgTypes[8]
+	mi := &file_werbot_v1_gateway_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -553,7 +683,7 @@ func (x *DeleteGatewayResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteGatewayResponse.ProtoReflect.Descriptor instead.
 func (*DeleteGatewayResponse) Descriptor() ([]byte, []int) {
-	return file_werbot_v1_gateway_proto_rawDescGZIP(), []int{8}
+	return file_werbot_v1_gateway_proto_rawDescGZIP(), []int{10}
 }
 
 type CreateJoinTokenRequest struct {
@@ -569,7 +699,7 @@ type CreateJoinTokenRequest struct {
 
 func (x *CreateJoinTokenRequest) Reset() {
 	*x = CreateJoinTokenRequest{}
-	mi := &file_werbot_v1_gateway_proto_msgTypes[9]
+	mi := &file_werbot_v1_gateway_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -581,7 +711,7 @@ func (x *CreateJoinTokenRequest) String() string {
 func (*CreateJoinTokenRequest) ProtoMessage() {}
 
 func (x *CreateJoinTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_werbot_v1_gateway_proto_msgTypes[9]
+	mi := &file_werbot_v1_gateway_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -594,7 +724,7 @@ func (x *CreateJoinTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateJoinTokenRequest.ProtoReflect.Descriptor instead.
 func (*CreateJoinTokenRequest) Descriptor() ([]byte, []int) {
-	return file_werbot_v1_gateway_proto_rawDescGZIP(), []int{9}
+	return file_werbot_v1_gateway_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *CreateJoinTokenRequest) GetGatewayId() string {
@@ -630,7 +760,7 @@ type CreateJoinTokenResponse struct {
 
 func (x *CreateJoinTokenResponse) Reset() {
 	*x = CreateJoinTokenResponse{}
-	mi := &file_werbot_v1_gateway_proto_msgTypes[10]
+	mi := &file_werbot_v1_gateway_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -642,7 +772,7 @@ func (x *CreateJoinTokenResponse) String() string {
 func (*CreateJoinTokenResponse) ProtoMessage() {}
 
 func (x *CreateJoinTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_werbot_v1_gateway_proto_msgTypes[10]
+	mi := &file_werbot_v1_gateway_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -655,7 +785,7 @@ func (x *CreateJoinTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateJoinTokenResponse.ProtoReflect.Descriptor instead.
 func (*CreateJoinTokenResponse) Descriptor() ([]byte, []int) {
-	return file_werbot_v1_gateway_proto_rawDescGZIP(), []int{10}
+	return file_werbot_v1_gateway_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *CreateJoinTokenResponse) GetId() string {
@@ -688,7 +818,7 @@ type ListJoinTokensRequest struct {
 
 func (x *ListJoinTokensRequest) Reset() {
 	*x = ListJoinTokensRequest{}
-	mi := &file_werbot_v1_gateway_proto_msgTypes[11]
+	mi := &file_werbot_v1_gateway_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -700,7 +830,7 @@ func (x *ListJoinTokensRequest) String() string {
 func (*ListJoinTokensRequest) ProtoMessage() {}
 
 func (x *ListJoinTokensRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_werbot_v1_gateway_proto_msgTypes[11]
+	mi := &file_werbot_v1_gateway_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -713,7 +843,7 @@ func (x *ListJoinTokensRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListJoinTokensRequest.ProtoReflect.Descriptor instead.
 func (*ListJoinTokensRequest) Descriptor() ([]byte, []int) {
-	return file_werbot_v1_gateway_proto_rawDescGZIP(), []int{11}
+	return file_werbot_v1_gateway_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ListJoinTokensRequest) GetGatewayId() string {
@@ -732,7 +862,7 @@ type ListJoinTokensResponse struct {
 
 func (x *ListJoinTokensResponse) Reset() {
 	*x = ListJoinTokensResponse{}
-	mi := &file_werbot_v1_gateway_proto_msgTypes[12]
+	mi := &file_werbot_v1_gateway_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -744,7 +874,7 @@ func (x *ListJoinTokensResponse) String() string {
 func (*ListJoinTokensResponse) ProtoMessage() {}
 
 func (x *ListJoinTokensResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_werbot_v1_gateway_proto_msgTypes[12]
+	mi := &file_werbot_v1_gateway_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -757,7 +887,7 @@ func (x *ListJoinTokensResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListJoinTokensResponse.ProtoReflect.Descriptor instead.
 func (*ListJoinTokensResponse) Descriptor() ([]byte, []int) {
-	return file_werbot_v1_gateway_proto_rawDescGZIP(), []int{12}
+	return file_werbot_v1_gateway_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ListJoinTokensResponse) GetTokens() []*JoinToken {
@@ -776,7 +906,7 @@ type RevokeJoinTokenRequest struct {
 
 func (x *RevokeJoinTokenRequest) Reset() {
 	*x = RevokeJoinTokenRequest{}
-	mi := &file_werbot_v1_gateway_proto_msgTypes[13]
+	mi := &file_werbot_v1_gateway_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -788,7 +918,7 @@ func (x *RevokeJoinTokenRequest) String() string {
 func (*RevokeJoinTokenRequest) ProtoMessage() {}
 
 func (x *RevokeJoinTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_werbot_v1_gateway_proto_msgTypes[13]
+	mi := &file_werbot_v1_gateway_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -801,7 +931,7 @@ func (x *RevokeJoinTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeJoinTokenRequest.ProtoReflect.Descriptor instead.
 func (*RevokeJoinTokenRequest) Descriptor() ([]byte, []int) {
-	return file_werbot_v1_gateway_proto_rawDescGZIP(), []int{13}
+	return file_werbot_v1_gateway_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *RevokeJoinTokenRequest) GetId() string {
@@ -819,7 +949,7 @@ type RevokeJoinTokenResponse struct {
 
 func (x *RevokeJoinTokenResponse) Reset() {
 	*x = RevokeJoinTokenResponse{}
-	mi := &file_werbot_v1_gateway_proto_msgTypes[14]
+	mi := &file_werbot_v1_gateway_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -831,7 +961,7 @@ func (x *RevokeJoinTokenResponse) String() string {
 func (*RevokeJoinTokenResponse) ProtoMessage() {}
 
 func (x *RevokeJoinTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_werbot_v1_gateway_proto_msgTypes[14]
+	mi := &file_werbot_v1_gateway_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -844,7 +974,7 @@ func (x *RevokeJoinTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeJoinTokenResponse.ProtoReflect.Descriptor instead.
 func (*RevokeJoinTokenResponse) Descriptor() ([]byte, []int) {
-	return file_werbot_v1_gateway_proto_rawDescGZIP(), []int{14}
+	return file_werbot_v1_gateway_proto_rawDescGZIP(), []int{16}
 }
 
 type DeleteGatewayInstanceRequest struct {
@@ -856,7 +986,7 @@ type DeleteGatewayInstanceRequest struct {
 
 func (x *DeleteGatewayInstanceRequest) Reset() {
 	*x = DeleteGatewayInstanceRequest{}
-	mi := &file_werbot_v1_gateway_proto_msgTypes[15]
+	mi := &file_werbot_v1_gateway_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -868,7 +998,7 @@ func (x *DeleteGatewayInstanceRequest) String() string {
 func (*DeleteGatewayInstanceRequest) ProtoMessage() {}
 
 func (x *DeleteGatewayInstanceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_werbot_v1_gateway_proto_msgTypes[15]
+	mi := &file_werbot_v1_gateway_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -881,7 +1011,7 @@ func (x *DeleteGatewayInstanceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteGatewayInstanceRequest.ProtoReflect.Descriptor instead.
 func (*DeleteGatewayInstanceRequest) Descriptor() ([]byte, []int) {
-	return file_werbot_v1_gateway_proto_rawDescGZIP(), []int{15}
+	return file_werbot_v1_gateway_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *DeleteGatewayInstanceRequest) GetId() string {
@@ -899,7 +1029,7 @@ type DeleteGatewayInstanceResponse struct {
 
 func (x *DeleteGatewayInstanceResponse) Reset() {
 	*x = DeleteGatewayInstanceResponse{}
-	mi := &file_werbot_v1_gateway_proto_msgTypes[16]
+	mi := &file_werbot_v1_gateway_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -911,7 +1041,7 @@ func (x *DeleteGatewayInstanceResponse) String() string {
 func (*DeleteGatewayInstanceResponse) ProtoMessage() {}
 
 func (x *DeleteGatewayInstanceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_werbot_v1_gateway_proto_msgTypes[16]
+	mi := &file_werbot_v1_gateway_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -924,7 +1054,7 @@ func (x *DeleteGatewayInstanceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteGatewayInstanceResponse.ProtoReflect.Descriptor instead.
 func (*DeleteGatewayInstanceResponse) Descriptor() ([]byte, []int) {
-	return file_werbot_v1_gateway_proto_rawDescGZIP(), []int{16}
+	return file_werbot_v1_gateway_proto_rawDescGZIP(), []int{18}
 }
 
 type EnrollRequest struct {
@@ -940,7 +1070,7 @@ type EnrollRequest struct {
 
 func (x *EnrollRequest) Reset() {
 	*x = EnrollRequest{}
-	mi := &file_werbot_v1_gateway_proto_msgTypes[17]
+	mi := &file_werbot_v1_gateway_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -952,7 +1082,7 @@ func (x *EnrollRequest) String() string {
 func (*EnrollRequest) ProtoMessage() {}
 
 func (x *EnrollRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_werbot_v1_gateway_proto_msgTypes[17]
+	mi := &file_werbot_v1_gateway_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -965,7 +1095,7 @@ func (x *EnrollRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnrollRequest.ProtoReflect.Descriptor instead.
 func (*EnrollRequest) Descriptor() ([]byte, []int) {
-	return file_werbot_v1_gateway_proto_rawDescGZIP(), []int{17}
+	return file_werbot_v1_gateway_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *EnrollRequest) GetJoinToken() string {
@@ -1017,7 +1147,7 @@ type EnrollResponse struct {
 
 func (x *EnrollResponse) Reset() {
 	*x = EnrollResponse{}
-	mi := &file_werbot_v1_gateway_proto_msgTypes[18]
+	mi := &file_werbot_v1_gateway_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1029,7 +1159,7 @@ func (x *EnrollResponse) String() string {
 func (*EnrollResponse) ProtoMessage() {}
 
 func (x *EnrollResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_werbot_v1_gateway_proto_msgTypes[18]
+	mi := &file_werbot_v1_gateway_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1042,7 +1172,7 @@ func (x *EnrollResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnrollResponse.ProtoReflect.Descriptor instead.
 func (*EnrollResponse) Descriptor() ([]byte, []int) {
-	return file_werbot_v1_gateway_proto_rawDescGZIP(), []int{18}
+	return file_werbot_v1_gateway_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *EnrollResponse) GetGatewayId() string {
@@ -1091,7 +1221,7 @@ var File_werbot_v1_gateway_proto protoreflect.FileDescriptor
 
 const file_werbot_v1_gateway_proto_rawDesc = "" +
 	"\n" +
-	"\x17werbot/v1/gateway.proto\x12\twerbot.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xda\x01\n" +
+	"\x17werbot/v1/gateway.proto\x12\twerbot.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xad\x02\n" +
 	"\aGateway\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x16\n" +
@@ -1101,7 +1231,11 @@ const file_werbot_v1_gateway_proto_rawDesc = "" +
 	"connectors\x129\n" +
 	"\n" +
 	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x128\n" +
-	"\tinstances\x18\x06 \x03(\v2\x1a.werbot.v1.GatewayInstanceR\tinstances\"\xe9\x02\n" +
+	"\tinstances\x18\x06 \x03(\v2\x1a.werbot.v1.GatewayInstanceR\tinstances\x12\x1f\n" +
+	"\vssh_address\x18\a \x01(\tR\n" +
+	"sshAddress\x12\x19\n" +
+	"\bhost_key\x18\b \x01(\tR\ahostKey\x12\x15\n" +
+	"\x06ws_url\x18\t \x01(\tR\x05wsUrl\"\xe9\x02\n" +
 	"\x0fGatewayInstance\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
 	"\bhostname\x18\x02 \x01(\tR\bhostname\x12\x18\n" +
@@ -1134,7 +1268,14 @@ const file_werbot_v1_gateway_proto_rawDesc = "" +
 	"\agateway\x18\x01 \x01(\v2\x12.werbot.v1.GatewayR\agateway\"\x15\n" +
 	"\x13ListGatewaysRequest\"F\n" +
 	"\x14ListGatewaysResponse\x12.\n" +
-	"\bgateways\x18\x01 \x03(\v2\x12.werbot.v1.GatewayR\bgateways\"0\n" +
+	"\bgateways\x18\x01 \x03(\v2\x12.werbot.v1.GatewayR\bgateways\"|\n" +
+	"\x14UpdateGatewayRequest\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\x12)\n" +
+	"\vssh_address\x18\x02 \x01(\tB\b\xbaH\x05r\x03(\xac\x02R\n" +
+	"sshAddress\x12\x1f\n" +
+	"\x06ws_url\x18\x03 \x01(\tB\b\xbaH\x05r\x03(\x80\x10R\x05wsUrl\"E\n" +
+	"\x15UpdateGatewayResponse\x12,\n" +
+	"\agateway\x18\x01 \x01(\v2\x12.werbot.v1.GatewayR\agateway\"0\n" +
 	"\x14DeleteGatewayRequest\x12\x18\n" +
 	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"\x17\n" +
 	"\x15DeleteGatewayResponse\"\xb6\x01\n" +
@@ -1184,10 +1325,11 @@ const file_werbot_v1_gateway_proto_rawDesc = "" +
 	"\n" +
 	"tunnel_url\x18\x05 \x01(\tR\ttunnelUrl\x12 \n" +
 	"\fhost_key_pem\x18\x06 \x01(\tR\n" +
-	"hostKeyPem2\x80\x05\n" +
+	"hostKeyPem2\xd4\x05\n" +
 	"\x0eGatewayService\x12R\n" +
 	"\rCreateGateway\x12\x1f.werbot.v1.CreateGatewayRequest\x1a .werbot.v1.CreateGatewayResponse\x12O\n" +
 	"\fListGateways\x12\x1e.werbot.v1.ListGatewaysRequest\x1a\x1f.werbot.v1.ListGatewaysResponse\x12R\n" +
+	"\rUpdateGateway\x12\x1f.werbot.v1.UpdateGatewayRequest\x1a .werbot.v1.UpdateGatewayResponse\x12R\n" +
 	"\rDeleteGateway\x12\x1f.werbot.v1.DeleteGatewayRequest\x1a .werbot.v1.DeleteGatewayResponse\x12X\n" +
 	"\x0fCreateJoinToken\x12!.werbot.v1.CreateJoinTokenRequest\x1a\".werbot.v1.CreateJoinTokenResponse\x12U\n" +
 	"\x0eListJoinTokens\x12 .werbot.v1.ListJoinTokensRequest\x1a!.werbot.v1.ListJoinTokensResponse\x12X\n" +
@@ -1210,7 +1352,7 @@ func file_werbot_v1_gateway_proto_rawDescGZIP() []byte {
 	return file_werbot_v1_gateway_proto_rawDescData
 }
 
-var file_werbot_v1_gateway_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
+var file_werbot_v1_gateway_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_werbot_v1_gateway_proto_goTypes = []any{
 	(*Gateway)(nil),                       // 0: werbot.v1.Gateway
 	(*GatewayInstance)(nil),               // 1: werbot.v1.GatewayInstance
@@ -1219,56 +1361,61 @@ var file_werbot_v1_gateway_proto_goTypes = []any{
 	(*CreateGatewayResponse)(nil),         // 4: werbot.v1.CreateGatewayResponse
 	(*ListGatewaysRequest)(nil),           // 5: werbot.v1.ListGatewaysRequest
 	(*ListGatewaysResponse)(nil),          // 6: werbot.v1.ListGatewaysResponse
-	(*DeleteGatewayRequest)(nil),          // 7: werbot.v1.DeleteGatewayRequest
-	(*DeleteGatewayResponse)(nil),         // 8: werbot.v1.DeleteGatewayResponse
-	(*CreateJoinTokenRequest)(nil),        // 9: werbot.v1.CreateJoinTokenRequest
-	(*CreateJoinTokenResponse)(nil),       // 10: werbot.v1.CreateJoinTokenResponse
-	(*ListJoinTokensRequest)(nil),         // 11: werbot.v1.ListJoinTokensRequest
-	(*ListJoinTokensResponse)(nil),        // 12: werbot.v1.ListJoinTokensResponse
-	(*RevokeJoinTokenRequest)(nil),        // 13: werbot.v1.RevokeJoinTokenRequest
-	(*RevokeJoinTokenResponse)(nil),       // 14: werbot.v1.RevokeJoinTokenResponse
-	(*DeleteGatewayInstanceRequest)(nil),  // 15: werbot.v1.DeleteGatewayInstanceRequest
-	(*DeleteGatewayInstanceResponse)(nil), // 16: werbot.v1.DeleteGatewayInstanceResponse
-	(*EnrollRequest)(nil),                 // 17: werbot.v1.EnrollRequest
-	(*EnrollResponse)(nil),                // 18: werbot.v1.EnrollResponse
-	(*timestamppb.Timestamp)(nil),         // 19: google.protobuf.Timestamp
-	(*durationpb.Duration)(nil),           // 20: google.protobuf.Duration
+	(*UpdateGatewayRequest)(nil),          // 7: werbot.v1.UpdateGatewayRequest
+	(*UpdateGatewayResponse)(nil),         // 8: werbot.v1.UpdateGatewayResponse
+	(*DeleteGatewayRequest)(nil),          // 9: werbot.v1.DeleteGatewayRequest
+	(*DeleteGatewayResponse)(nil),         // 10: werbot.v1.DeleteGatewayResponse
+	(*CreateJoinTokenRequest)(nil),        // 11: werbot.v1.CreateJoinTokenRequest
+	(*CreateJoinTokenResponse)(nil),       // 12: werbot.v1.CreateJoinTokenResponse
+	(*ListJoinTokensRequest)(nil),         // 13: werbot.v1.ListJoinTokensRequest
+	(*ListJoinTokensResponse)(nil),        // 14: werbot.v1.ListJoinTokensResponse
+	(*RevokeJoinTokenRequest)(nil),        // 15: werbot.v1.RevokeJoinTokenRequest
+	(*RevokeJoinTokenResponse)(nil),       // 16: werbot.v1.RevokeJoinTokenResponse
+	(*DeleteGatewayInstanceRequest)(nil),  // 17: werbot.v1.DeleteGatewayInstanceRequest
+	(*DeleteGatewayInstanceResponse)(nil), // 18: werbot.v1.DeleteGatewayInstanceResponse
+	(*EnrollRequest)(nil),                 // 19: werbot.v1.EnrollRequest
+	(*EnrollResponse)(nil),                // 20: werbot.v1.EnrollResponse
+	(*timestamppb.Timestamp)(nil),         // 21: google.protobuf.Timestamp
+	(*durationpb.Duration)(nil),           // 22: google.protobuf.Duration
 }
 var file_werbot_v1_gateway_proto_depIdxs = []int32{
-	19, // 0: werbot.v1.Gateway.created_at:type_name -> google.protobuf.Timestamp
+	21, // 0: werbot.v1.Gateway.created_at:type_name -> google.protobuf.Timestamp
 	1,  // 1: werbot.v1.Gateway.instances:type_name -> werbot.v1.GatewayInstance
-	19, // 2: werbot.v1.GatewayInstance.last_seen_at:type_name -> google.protobuf.Timestamp
-	19, // 3: werbot.v1.GatewayInstance.cert_expires_at:type_name -> google.protobuf.Timestamp
-	19, // 4: werbot.v1.GatewayInstance.created_at:type_name -> google.protobuf.Timestamp
-	19, // 5: werbot.v1.JoinToken.expires_at:type_name -> google.protobuf.Timestamp
-	19, // 6: werbot.v1.JoinToken.revoked_at:type_name -> google.protobuf.Timestamp
-	19, // 7: werbot.v1.JoinToken.created_at:type_name -> google.protobuf.Timestamp
+	21, // 2: werbot.v1.GatewayInstance.last_seen_at:type_name -> google.protobuf.Timestamp
+	21, // 3: werbot.v1.GatewayInstance.cert_expires_at:type_name -> google.protobuf.Timestamp
+	21, // 4: werbot.v1.GatewayInstance.created_at:type_name -> google.protobuf.Timestamp
+	21, // 5: werbot.v1.JoinToken.expires_at:type_name -> google.protobuf.Timestamp
+	21, // 6: werbot.v1.JoinToken.revoked_at:type_name -> google.protobuf.Timestamp
+	21, // 7: werbot.v1.JoinToken.created_at:type_name -> google.protobuf.Timestamp
 	0,  // 8: werbot.v1.CreateGatewayResponse.gateway:type_name -> werbot.v1.Gateway
 	0,  // 9: werbot.v1.ListGatewaysResponse.gateways:type_name -> werbot.v1.Gateway
-	20, // 10: werbot.v1.CreateJoinTokenRequest.expires_in:type_name -> google.protobuf.Duration
-	19, // 11: werbot.v1.CreateJoinTokenResponse.expires_at:type_name -> google.protobuf.Timestamp
-	2,  // 12: werbot.v1.ListJoinTokensResponse.tokens:type_name -> werbot.v1.JoinToken
-	3,  // 13: werbot.v1.GatewayService.CreateGateway:input_type -> werbot.v1.CreateGatewayRequest
-	5,  // 14: werbot.v1.GatewayService.ListGateways:input_type -> werbot.v1.ListGatewaysRequest
-	7,  // 15: werbot.v1.GatewayService.DeleteGateway:input_type -> werbot.v1.DeleteGatewayRequest
-	9,  // 16: werbot.v1.GatewayService.CreateJoinToken:input_type -> werbot.v1.CreateJoinTokenRequest
-	11, // 17: werbot.v1.GatewayService.ListJoinTokens:input_type -> werbot.v1.ListJoinTokensRequest
-	13, // 18: werbot.v1.GatewayService.RevokeJoinToken:input_type -> werbot.v1.RevokeJoinTokenRequest
-	15, // 19: werbot.v1.GatewayService.DeleteGatewayInstance:input_type -> werbot.v1.DeleteGatewayInstanceRequest
-	17, // 20: werbot.v1.GatewayEnrollService.Enroll:input_type -> werbot.v1.EnrollRequest
-	4,  // 21: werbot.v1.GatewayService.CreateGateway:output_type -> werbot.v1.CreateGatewayResponse
-	6,  // 22: werbot.v1.GatewayService.ListGateways:output_type -> werbot.v1.ListGatewaysResponse
-	8,  // 23: werbot.v1.GatewayService.DeleteGateway:output_type -> werbot.v1.DeleteGatewayResponse
-	10, // 24: werbot.v1.GatewayService.CreateJoinToken:output_type -> werbot.v1.CreateJoinTokenResponse
-	12, // 25: werbot.v1.GatewayService.ListJoinTokens:output_type -> werbot.v1.ListJoinTokensResponse
-	14, // 26: werbot.v1.GatewayService.RevokeJoinToken:output_type -> werbot.v1.RevokeJoinTokenResponse
-	16, // 27: werbot.v1.GatewayService.DeleteGatewayInstance:output_type -> werbot.v1.DeleteGatewayInstanceResponse
-	18, // 28: werbot.v1.GatewayEnrollService.Enroll:output_type -> werbot.v1.EnrollResponse
-	21, // [21:29] is the sub-list for method output_type
-	13, // [13:21] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	0,  // 10: werbot.v1.UpdateGatewayResponse.gateway:type_name -> werbot.v1.Gateway
+	22, // 11: werbot.v1.CreateJoinTokenRequest.expires_in:type_name -> google.protobuf.Duration
+	21, // 12: werbot.v1.CreateJoinTokenResponse.expires_at:type_name -> google.protobuf.Timestamp
+	2,  // 13: werbot.v1.ListJoinTokensResponse.tokens:type_name -> werbot.v1.JoinToken
+	3,  // 14: werbot.v1.GatewayService.CreateGateway:input_type -> werbot.v1.CreateGatewayRequest
+	5,  // 15: werbot.v1.GatewayService.ListGateways:input_type -> werbot.v1.ListGatewaysRequest
+	7,  // 16: werbot.v1.GatewayService.UpdateGateway:input_type -> werbot.v1.UpdateGatewayRequest
+	9,  // 17: werbot.v1.GatewayService.DeleteGateway:input_type -> werbot.v1.DeleteGatewayRequest
+	11, // 18: werbot.v1.GatewayService.CreateJoinToken:input_type -> werbot.v1.CreateJoinTokenRequest
+	13, // 19: werbot.v1.GatewayService.ListJoinTokens:input_type -> werbot.v1.ListJoinTokensRequest
+	15, // 20: werbot.v1.GatewayService.RevokeJoinToken:input_type -> werbot.v1.RevokeJoinTokenRequest
+	17, // 21: werbot.v1.GatewayService.DeleteGatewayInstance:input_type -> werbot.v1.DeleteGatewayInstanceRequest
+	19, // 22: werbot.v1.GatewayEnrollService.Enroll:input_type -> werbot.v1.EnrollRequest
+	4,  // 23: werbot.v1.GatewayService.CreateGateway:output_type -> werbot.v1.CreateGatewayResponse
+	6,  // 24: werbot.v1.GatewayService.ListGateways:output_type -> werbot.v1.ListGatewaysResponse
+	8,  // 25: werbot.v1.GatewayService.UpdateGateway:output_type -> werbot.v1.UpdateGatewayResponse
+	10, // 26: werbot.v1.GatewayService.DeleteGateway:output_type -> werbot.v1.DeleteGatewayResponse
+	12, // 27: werbot.v1.GatewayService.CreateJoinToken:output_type -> werbot.v1.CreateJoinTokenResponse
+	14, // 28: werbot.v1.GatewayService.ListJoinTokens:output_type -> werbot.v1.ListJoinTokensResponse
+	16, // 29: werbot.v1.GatewayService.RevokeJoinToken:output_type -> werbot.v1.RevokeJoinTokenResponse
+	18, // 30: werbot.v1.GatewayService.DeleteGatewayInstance:output_type -> werbot.v1.DeleteGatewayInstanceResponse
+	20, // 31: werbot.v1.GatewayEnrollService.Enroll:output_type -> werbot.v1.EnrollResponse
+	23, // [23:32] is the sub-list for method output_type
+	14, // [14:23] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_werbot_v1_gateway_proto_init() }
@@ -1282,7 +1429,7 @@ func file_werbot_v1_gateway_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_werbot_v1_gateway_proto_rawDesc), len(file_werbot_v1_gateway_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   19,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

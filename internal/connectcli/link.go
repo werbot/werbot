@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
 	"strings"
 	"sync"
 	"time"
@@ -32,7 +31,7 @@ var errNotConnected = errors.New("the gateway is unreachable")
 // link is the SSH connection of one resource. It is dialed again after a drop
 // while the local listener stays open.
 type link struct {
-	addr     string
+	ep       Endpoint
 	conf     *ssh.ClientConfig
 	resource string
 	stderr   io.Writer
@@ -42,23 +41,23 @@ type link struct {
 	up     chan struct{} // closed while client is set
 }
 
-func newLink(c *ssh.Client, addr string, conf *ssh.ClientConfig, resource string, stderr io.Writer) *link {
+func newLink(c *ssh.Client, ep Endpoint, conf *ssh.ClientConfig, resource string, stderr io.Writer) *link {
 	up := make(chan struct{})
 	close(up)
-	return &link{addr: addr, conf: conf, resource: resource, stderr: stderr, client: c, up: up}
+	return &link{ep: ep, conf: conf, resource: resource, stderr: stderr, client: c, up: up}
 }
 
-// dial opens an SSH connection to addr; a cancel of ctx aborts it.
-func dial(ctx context.Context, addr string, conf *ssh.ClientConfig) (*ssh.Client, error) {
-	d := net.Dialer{Timeout: 10 * time.Second}
-	conn, err := d.DialContext(ctx, "tcp", addr)
+// DialSSH opens an SSH connection to ep, checking the host key for
+// HostKeyAddr(ep) on either transport; a cancel of ctx aborts it.
+func DialSSH(ctx context.Context, ep Endpoint, conf *ssh.ClientConfig) (*ssh.Client, error) {
+	conn, err := Dial(ctx, ep)
 	if err != nil {
 		return nil, err
 	}
 	stop := context.AfterFunc(ctx, func() { _ = conn.Close() })
 	defer stop()
 	_ = conn.SetDeadline(time.Now().Add(handshakeTimeout))
-	c, chans, reqs, err := ssh.NewClientConn(conn, addr, conf)
+	c, chans, reqs, err := ssh.NewClientConn(conn, HostKeyAddr(ep), conf)
 	if err != nil {
 		_ = conn.Close()
 		if ctx.Err() != nil {
@@ -117,7 +116,7 @@ func (l *link) run(ctx context.Context) error {
 		kctx, kstop := context.WithCancel(ctx)
 		dropped := make(chan struct{})
 		go func() { _ = c.Wait(); kstop(); close(dropped) }()
-		keepalive(kctx, c)
+		Keepalive(kctx, c, keepaliveInterval)
 		if ctx.Err() != nil {
 			_ = c.Close()
 			<-dropped
@@ -140,7 +139,7 @@ func (l *link) run(ctx context.Context) error {
 func (l *link) redial(ctx context.Context) (*ssh.Client, error) {
 	wait, last := backoffFirst, ""
 	for {
-		c, err := dial(ctx, l.addr, l.conf)
+		c, err := DialSSH(ctx, l.ep, l.conf)
 		switch {
 		case err == nil:
 			return c, nil
@@ -171,10 +170,10 @@ func final(err error) bool {
 	return errors.Is(err, errHostKeyMismatch) || strings.Contains(err.Error(), "ssh: unable to authenticate")
 }
 
-// keepalive sends keepalive@openssh.com every keepaliveInterval until ctx ends
-// and closes c when keepaliveMisses intervals in a row pass without a reply.
-func keepalive(ctx context.Context, c *ssh.Client) {
-	t := time.NewTicker(keepaliveInterval)
+// Keepalive sends keepalive@openssh.com every interval until ctx ends and
+// closes c when keepaliveMisses intervals in a row pass without a reply.
+func Keepalive(ctx context.Context, c *ssh.Client, every time.Duration) {
+	t := time.NewTicker(every)
 	defer t.Stop()
 	reply := make(chan error, 1)
 	pending, misses := false, 0

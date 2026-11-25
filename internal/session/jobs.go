@@ -36,14 +36,40 @@ func (w *endLostWorker) Work(ctx context.Context, _ *river.Job[EndLostArgs]) err
 	return err
 }
 
-// RegisterJobs adds the session.end_lost worker and returns its periodic job
-// for jobs.NewClient. started is the process start: after a restart the
-// instances need EndLostStartupGrace to heartbeat before sessions can be lost.
+// StreamTicketGCArgs is the stream_ticket.gc job.
+type StreamTicketGCArgs struct{}
+
+// Kind implements river.JobArgs.
+func (StreamTicketGCArgs) Kind() string { return "stream_ticket.gc" }
+
+// InsertOpts runs the job in the maintenance queue.
+func (StreamTicketGCArgs) InsertOpts() river.InsertOpts {
+	return river.InsertOpts{Queue: jobs.QueueMaintenance}
+}
+
+type ticketGCWorker struct {
+	river.WorkerDefaults[StreamTicketGCArgs]
+	s *Service
+}
+
+func (w *ticketGCWorker) Work(ctx context.Context, _ *river.Job[StreamTicketGCArgs]) error {
+	_, err := w.s.GCStreamTickets(ctx)
+	return err
+}
+
+// RegisterJobs adds the session.end_lost and stream_ticket.gc workers and
+// returns their periodic jobs for jobs.NewClient. started is the process
+// start: after a restart the instances need EndLostStartupGrace to heartbeat
+// before sessions can be lost.
 func RegisterJobs(workers *river.Workers, s *Service, started time.Time) []*river.PeriodicJob {
 	river.AddWorker(workers, &endLostWorker{s: s, started: started})
+	river.AddWorker(workers, &ticketGCWorker{s: s})
 	return []*river.PeriodicJob{
 		river.NewPeriodicJob(endLostSchedule,
 			func() (river.JobArgs, *river.InsertOpts) { return EndLostArgs{}, nil },
 			&river.PeriodicJobOpts{ID: "session.end_lost"}),
+		river.NewPeriodicJob(river.PeriodicInterval(StreamTicketGCInterval),
+			func() (river.JobArgs, *river.InsertOpts) { return StreamTicketGCArgs{}, nil },
+			&river.PeriodicJobOpts{ID: "stream_ticket.gc"}),
 	}
 }

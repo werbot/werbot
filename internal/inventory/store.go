@@ -23,6 +23,12 @@ type Store interface {
 	DeleteHostKey(ctx context.Context, arg dbq.DeleteHostKeyParams) (int64, error)
 	NotifyHostKeyChanged(ctx context.Context, orgID uuid.UUID) error
 
+	ListResourcePresets(ctx context.Context, orgID uuid.UUID) ([]dbq.ResourcePreset, error)
+	GetResourcePreset(ctx context.Context, arg dbq.GetResourcePresetParams) (dbq.ResourcePreset, error)
+	CreateResourcePreset(ctx context.Context, arg dbq.CreateResourcePresetParams) (dbq.ResourcePreset, error)
+	UpdateResourcePreset(ctx context.Context, arg dbq.UpdateResourcePresetParams) (dbq.ResourcePreset, error)
+	DeleteResourcePreset(ctx context.Context, arg dbq.DeleteResourcePresetParams) (int64, error)
+
 	OrgGatewayIDs(ctx context.Context, orgID uuid.UUID) ([]uuid.UUID, error)
 	LockOrgPools(ctx context.Context, orgID uuid.UUID) error
 	LockOrgPoolsShared(ctx context.Context, orgID uuid.UUID) error
@@ -31,6 +37,7 @@ type Store interface {
 	GetGatewayIDByName(ctx context.Context, arg dbq.GetGatewayIDByNameParams) (uuid.UUID, error)
 	AssignUnpooledResources(ctx context.Context, arg dbq.AssignUnpooledResourcesParams) (int64, error)
 	ListGateways(ctx context.Context, orgID uuid.UUID) ([]dbq.ListGatewaysRow, error)
+	UpdateGatewayAddresses(ctx context.Context, arg dbq.UpdateGatewayAddressesParams) (int64, error)
 	DeleteGateway(ctx context.Context, arg dbq.DeleteGatewayParams) (int64, error)
 	GetGatewayHostKey(ctx context.Context, arg dbq.GetGatewayHostKeyParams) (dbq.GetGatewayHostKeyRow, error)
 

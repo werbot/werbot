@@ -152,6 +152,11 @@ type Session struct {
 	BytesDown     int64                  `protobuf:"varint,15,opt,name=bytes_down,json=bytesDown,proto3" json:"bytes_down,omitempty"`
 	DatagramsUp   int64                  `protobuf:"varint,16,opt,name=datagrams_up,json=datagramsUp,proto3" json:"datagrams_up,omitempty"`
 	DatagramsDown int64                  `protobuf:"varint,17,opt,name=datagrams_down,json=datagramsDown,proto3" json:"datagrams_down,omitempty"`
+	Command       string                 `protobuf:"bytes,18,opt,name=command,proto3" json:"command,omitempty"` // exec only; cut at 64 KiB
+	Classes       []string               `protobuf:"bytes,19,rep,name=classes,proto3" json:"classes,omitempty"` // exec only: read | write | destructive | privilege | secrets | egress | opaque
+	Front         string                 `protobuf:"bytes,20,opt,name=front,proto3" json:"front,omitempty"`     // ssh | web
+	Live          bool                   `protobuf:"varint,21,opt,name=live,proto3" json:"live,omitempty"`      // an open terminal session that can be watched or terminated
+	Paths         []string               `protobuf:"bytes,25,rep,name=paths,proto3" json:"paths,omitempty"`     // paths the command touched; output only
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -303,6 +308,41 @@ func (x *Session) GetDatagramsDown() int64 {
 		return x.DatagramsDown
 	}
 	return 0
+}
+
+func (x *Session) GetCommand() string {
+	if x != nil {
+		return x.Command
+	}
+	return ""
+}
+
+func (x *Session) GetClasses() []string {
+	if x != nil {
+		return x.Classes
+	}
+	return nil
+}
+
+func (x *Session) GetFront() string {
+	if x != nil {
+		return x.Front
+	}
+	return ""
+}
+
+func (x *Session) GetLive() bool {
+	if x != nil {
+		return x.Live
+	}
+	return false
+}
+
+func (x *Session) GetPaths() []string {
+	if x != nil {
+		return x.Paths
+	}
+	return nil
 }
 
 type ListSessionsRequest struct {
@@ -633,6 +673,94 @@ func (x *VerifyRecordingResponse) GetReason() string {
 	return ""
 }
 
+type TerminateSessionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TerminateSessionRequest) Reset() {
+	*x = TerminateSessionRequest{}
+	mi := &file_werbot_v1_session_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TerminateSessionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TerminateSessionRequest) ProtoMessage() {}
+
+func (x *TerminateSessionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_session_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TerminateSessionRequest.ProtoReflect.Descriptor instead.
+func (*TerminateSessionRequest) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_session_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *TerminateSessionRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *TerminateSessionRequest) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+type TerminateSessionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TerminateSessionResponse) Reset() {
+	*x = TerminateSessionResponse{}
+	mi := &file_werbot_v1_session_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TerminateSessionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TerminateSessionResponse) ProtoMessage() {}
+
+func (x *TerminateSessionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_werbot_v1_session_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TerminateSessionResponse.ProtoReflect.Descriptor instead.
+func (*TerminateSessionResponse) Descriptor() ([]byte, []int) {
+	return file_werbot_v1_session_proto_rawDescGZIP(), []int{9}
+}
+
 var File_werbot_v1_session_proto protoreflect.FileDescriptor
 
 const file_werbot_v1_session_proto_rawDesc = "" +
@@ -641,7 +769,7 @@ const file_werbot_v1_session_proto_rawDesc = "" +
 	"\tRecording\x12\x16\n" +
 	"\x06chunks\x18\x01 \x01(\x05R\x06chunks\x12\x14\n" +
 	"\x05bytes\x18\x02 \x01(\x03R\x05bytes\x12\x1a\n" +
-	"\bfinished\x18\x03 \x01(\bR\bfinished\"\xc8\x04\n" +
+	"\bfinished\x18\x03 \x01(\bR\bfinished\"\xbc\x05\n" +
 	"\aSession\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x1d\n" +
@@ -666,7 +794,12 @@ const file_werbot_v1_session_proto_rawDesc = "" +
 	"\n" +
 	"bytes_down\x18\x0f \x01(\x03R\tbytesDown\x12!\n" +
 	"\fdatagrams_up\x18\x10 \x01(\x03R\vdatagramsUp\x12%\n" +
-	"\x0edatagrams_down\x18\x11 \x01(\x03R\rdatagramsDown\"\xc9\x02\n" +
+	"\x0edatagrams_down\x18\x11 \x01(\x03R\rdatagramsDown\x12\x18\n" +
+	"\acommand\x18\x12 \x01(\tR\acommand\x12\x18\n" +
+	"\aclasses\x18\x13 \x03(\tR\aclasses\x12\x14\n" +
+	"\x05front\x18\x14 \x01(\tR\x05front\x12\x12\n" +
+	"\x04live\x18\x15 \x01(\bR\x04live\x12\x14\n" +
+	"\x05paths\x18\x19 \x03(\tR\x05paths\"\xc9\x02\n" +
 	"\x13ListSessionsRequest\x12$\n" +
 	"\auser_id\x18\x01 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\x06userId\x12,\n" +
 	"\vresource_id\x18\x02 \x01(\tB\v\xbaH\b\xd8\x01\x01r\x03\xb0\x01\x01R\n" +
@@ -688,16 +821,22 @@ const file_werbot_v1_session_proto_rawDesc = "" +
 	"session_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\tsessionId\"M\n" +
 	"\x17VerifyRecordingResponse\x12\x1a\n" +
 	"\bverified\x18\x01 \x01(\bR\bverified\x12\x16\n" +
-	"\x06reason\x18\x02 \x01(\tR\x06reason*d\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\"W\n" +
+	"\x17TerminateSessionRequest\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\x12\"\n" +
+	"\x06reason\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\x06reason\"\x1a\n" +
+	"\x18TerminateSessionResponse*d\n" +
 	"\rSessionStatus\x12\x1e\n" +
 	"\x1aSESSION_STATUS_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15SESSION_STATUS_ACTIVE\x10\x01\x12\x18\n" +
-	"\x14SESSION_STATUS_ENDED\x10\x022\xa2\x02\n" +
+	"\x14SESSION_STATUS_ENDED\x10\x022\xff\x02\n" +
 	"\x0eSessionService\x12O\n" +
 	"\fListSessions\x12\x1e.werbot.v1.ListSessionsRequest\x1a\x1f.werbot.v1.ListSessionsResponse\x12e\n" +
 	"\n" +
 	"GetSession\x12*.werbot.v1.SessionServiceGetSessionRequest\x1a+.werbot.v1.SessionServiceGetSessionResponse\x12X\n" +
-	"\x0fVerifyRecording\x12!.werbot.v1.VerifyRecordingRequest\x1a\".werbot.v1.VerifyRecordingResponseB\x93\x01\n" +
+	"\x0fVerifyRecording\x12!.werbot.v1.VerifyRecordingRequest\x1a\".werbot.v1.VerifyRecordingResponse\x12[\n" +
+	"\x10TerminateSession\x12\".werbot.v1.TerminateSessionRequest\x1a#.werbot.v1.TerminateSessionResponseB\x93\x01\n" +
 	"\rcom.werbot.v1B\fSessionProtoP\x01Z/github.com/werbot/werbot/gen/werbot/v1;werbotv1\xa2\x02\x03WXX\xaa\x02\tWerbot.V1\xca\x02\tWerbot\\V1\xe2\x02\x15Werbot\\V1\\GPBMetadata\xea\x02\n" +
 	"Werbot::V1b\x06proto3"
 
@@ -714,7 +853,7 @@ func file_werbot_v1_session_proto_rawDescGZIP() []byte {
 }
 
 var file_werbot_v1_session_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_werbot_v1_session_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_werbot_v1_session_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_werbot_v1_session_proto_goTypes = []any{
 	(SessionStatus)(0),                       // 0: werbot.v1.SessionStatus
 	(*Recording)(nil),                        // 1: werbot.v1.Recording
@@ -725,25 +864,29 @@ var file_werbot_v1_session_proto_goTypes = []any{
 	(*SessionServiceGetSessionResponse)(nil), // 6: werbot.v1.SessionServiceGetSessionResponse
 	(*VerifyRecordingRequest)(nil),           // 7: werbot.v1.VerifyRecordingRequest
 	(*VerifyRecordingResponse)(nil),          // 8: werbot.v1.VerifyRecordingResponse
-	(*timestamppb.Timestamp)(nil),            // 9: google.protobuf.Timestamp
+	(*TerminateSessionRequest)(nil),          // 9: werbot.v1.TerminateSessionRequest
+	(*TerminateSessionResponse)(nil),         // 10: werbot.v1.TerminateSessionResponse
+	(*timestamppb.Timestamp)(nil),            // 11: google.protobuf.Timestamp
 }
 var file_werbot_v1_session_proto_depIdxs = []int32{
-	9,  // 0: werbot.v1.Session.started_at:type_name -> google.protobuf.Timestamp
-	9,  // 1: werbot.v1.Session.ended_at:type_name -> google.protobuf.Timestamp
+	11, // 0: werbot.v1.Session.started_at:type_name -> google.protobuf.Timestamp
+	11, // 1: werbot.v1.Session.ended_at:type_name -> google.protobuf.Timestamp
 	1,  // 2: werbot.v1.Session.recording:type_name -> werbot.v1.Recording
-	9,  // 3: werbot.v1.ListSessionsRequest.from:type_name -> google.protobuf.Timestamp
-	9,  // 4: werbot.v1.ListSessionsRequest.to:type_name -> google.protobuf.Timestamp
+	11, // 3: werbot.v1.ListSessionsRequest.from:type_name -> google.protobuf.Timestamp
+	11, // 4: werbot.v1.ListSessionsRequest.to:type_name -> google.protobuf.Timestamp
 	0,  // 5: werbot.v1.ListSessionsRequest.status:type_name -> werbot.v1.SessionStatus
 	2,  // 6: werbot.v1.ListSessionsResponse.sessions:type_name -> werbot.v1.Session
 	2,  // 7: werbot.v1.SessionServiceGetSessionResponse.session:type_name -> werbot.v1.Session
 	3,  // 8: werbot.v1.SessionService.ListSessions:input_type -> werbot.v1.ListSessionsRequest
 	5,  // 9: werbot.v1.SessionService.GetSession:input_type -> werbot.v1.SessionServiceGetSessionRequest
 	7,  // 10: werbot.v1.SessionService.VerifyRecording:input_type -> werbot.v1.VerifyRecordingRequest
-	4,  // 11: werbot.v1.SessionService.ListSessions:output_type -> werbot.v1.ListSessionsResponse
-	6,  // 12: werbot.v1.SessionService.GetSession:output_type -> werbot.v1.SessionServiceGetSessionResponse
-	8,  // 13: werbot.v1.SessionService.VerifyRecording:output_type -> werbot.v1.VerifyRecordingResponse
-	11, // [11:14] is the sub-list for method output_type
-	8,  // [8:11] is the sub-list for method input_type
+	9,  // 11: werbot.v1.SessionService.TerminateSession:input_type -> werbot.v1.TerminateSessionRequest
+	4,  // 12: werbot.v1.SessionService.ListSessions:output_type -> werbot.v1.ListSessionsResponse
+	6,  // 13: werbot.v1.SessionService.GetSession:output_type -> werbot.v1.SessionServiceGetSessionResponse
+	8,  // 14: werbot.v1.SessionService.VerifyRecording:output_type -> werbot.v1.VerifyRecordingResponse
+	10, // 15: werbot.v1.SessionService.TerminateSession:output_type -> werbot.v1.TerminateSessionResponse
+	12, // [12:16] is the sub-list for method output_type
+	8,  // [8:12] is the sub-list for method input_type
 	8,  // [8:8] is the sub-list for extension type_name
 	8,  // [8:8] is the sub-list for extension extendee
 	0,  // [0:8] is the sub-list for field type_name
@@ -760,7 +903,7 @@ func file_werbot_v1_session_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_werbot_v1_session_proto_rawDesc), len(file_werbot_v1_session_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   8,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

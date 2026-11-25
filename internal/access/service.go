@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -18,19 +19,51 @@ import (
 	"github.com/werbot/werbot/internal/platform/principal"
 )
 
-// Service manages the access bindings of an organization.
-type Service struct{ pool *pgxpool.Pool }
+// Config configures a Service.
+type Config struct {
+	WebURL string // base of links in emails: <WebURL>/requests?id=<id>
+}
 
-// New creates a Service.
-func New(pool *pgxpool.Pool) *Service { return &Service{pool} }
+// EmailQueue queues an email inside the caller's transaction.
+type EmailQueue interface {
+	EnqueueTx(ctx context.Context, tx pgx.Tx, to, template string, data map[string]string) error
+}
+
+// Settings are the organization settings of approvals and grants.
+type Settings struct {
+	GrantDefaultTTL, GrantMaxTTL, RequestPendingTTL, CommandApprovalTTL time.Duration
+}
+
+// SettingsSource reads the Settings of an organization.
+type SettingsSource interface {
+	AccessSettings(ctx context.Context, orgID uuid.UUID) (Settings, error)
+}
+
+// Service manages the access bindings, approvals and grants of an organization.
+type Service struct {
+	pool     *pgxpool.Pool
+	emails   EmailQueue
+	settings SettingsSource
+	cfg      Config
+}
+
+// New creates a Service. Bindings need neither emails nor settings (nil is fine there).
+func New(pool *pgxpool.Pool, emails EmailQueue, settings SettingsSource, cfg Config) *Service {
+	return &Service{pool: pool, emails: emails, settings: settings, cfg: cfg}
+}
 
 func (s *Service) tx(ctx context.Context, orgID, userID uuid.UUID, fn func(Store, pgx.Tx) error) error {
 	return dbx.InOrg(ctx, s.pool, orgID, userID, func(tx pgx.Tx) error { return fn(newStore(tx), tx) })
 }
 
-func audit(ctx context.Context, tx pgx.Tx, orgID, actor uuid.UUID, action string, id uuid.UUID, data map[string]any) error {
-	return auditlog.Write(ctx, tx, auditlog.Event{OrgID: &orgID, ActorUserID: &actor, ActorKind: "user",
-		Action: action, TargetType: "access_binding", TargetID: id.String(), IP: clientip.From(ctx), Data: data})
+func audit(ctx context.Context, tx pgx.Tx, orgID, actor uuid.UUID, action, targetType string, id uuid.UUID, data map[string]any) error {
+	return auditAs(ctx, tx, orgID, "user", &actor, action, targetType, id, data)
+}
+
+// auditAs is audit by an actor of kind ("user", "gateway" or "system"); actor may be nil.
+func auditAs(ctx context.Context, tx pgx.Tx, orgID uuid.UUID, kind string, actor *uuid.UUID, action, targetType string, id uuid.UUID, data map[string]any) error {
+	return auditlog.Write(ctx, tx, auditlog.Event{OrgID: &orgID, ActorUserID: actor, ActorKind: kind,
+		Action: action, TargetType: targetType, TargetID: id.String(), IP: clientip.From(ctx), Data: data})
 }
 
 // Create adds a binding. The subject must belong to orgID, the resource too.
@@ -69,7 +102,7 @@ func (s *Service) Create(ctx context.Context, orgID uuid.UUID, in CreateInput) (
 		if len(out.Ports) > 0 {
 			data["ports"] = out.Ports
 		}
-		return audit(ctx, tx, orgID, p.UserID, "access.binding.create", out.ID, data)
+		return audit(ctx, tx, orgID, p.UserID, "access.binding.create", "access_binding", out.ID, data)
 	})
 	switch {
 	case errors.Is(err, pgx.ErrNoRows): // the guarded INSERT matched no subject
@@ -107,7 +140,7 @@ func (s *Service) Delete(ctx context.Context, orgID, id uuid.UUID) error {
 		if len(ports) > 0 {
 			data["ports"] = ports
 		}
-		return audit(ctx, tx, orgID, p.UserID, "access.binding.delete", id, data)
+		return audit(ctx, tx, orgID, p.UserID, "access.binding.delete", "access_binding", id, data)
 	})
 }
 

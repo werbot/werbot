@@ -32,7 +32,7 @@ func TestStartStoresKindTarget(t *testing.T) {
 	var data string
 	require.NoError(t, e.pool.QueryRow(bg, `SELECT data::text FROM audit_event WHERE action = 'session.start' AND data->>'session_id' = $1`,
 		id.String()).Scan(&data))
-	assert.JSONEq(t, `{"session_id":"`+id.String()+`","kind":"stream","target":"db.internal:5432"}`, data)
+	assert.JSONEq(t, `{"session_id":"`+id.String()+`","kind":"stream","target":"db.internal:5432","transport":"tcp"}`, data)
 
 	st.Kind, st.Target = "", ""
 	id, err = e.svc.Start(bg, st)
@@ -64,7 +64,7 @@ func TestUpdateCountersBatch(t *testing.T) {
 func TestUpdateCountersSkipsEnded(t *testing.T) {
 	e := setup(t)
 	id := e.open(t, &e.a, 0)
-	require.NoError(t, e.svc.End(bg, e.org, e.a, id, "closed", nil))
+	require.NoError(t, e.svc.End(bg, e.org, e.a, id, "closed", nil, nil))
 	require.NoError(t, e.svc.UpdateCounters(bg, e.org, e.a, []Counters{{SessionID: id, BytesUp: 7}}))
 	assert.Equal(t, [4]int64{}, e.counters(t, id))
 }
@@ -73,7 +73,7 @@ func TestEndWithCounters(t *testing.T) {
 	e := setup(t)
 	id := e.open(t, &e.a, 0)
 	require.NoError(t, e.svc.UpdateCounters(bg, e.org, e.a, []Counters{{SessionID: id, BytesUp: 100, BytesDown: 5}}))
-	require.NoError(t, e.svc.End(bg, e.org, e.a, id, "closed", &Counters{BytesUp: 50, BytesDown: 40, DatagramsUp: 3}))
+	require.NoError(t, e.svc.End(bg, e.org, e.a, id, "closed", &Counters{BytesUp: 50, BytesDown: 40, DatagramsUp: 3}, nil))
 	assert.Equal(t, [4]int64{100, 40, 3, 0}, e.counters(t, id), "final counters take the greater value")
 }
 

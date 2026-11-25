@@ -8,6 +8,8 @@ import (
 	"crypto/rand"
 	"errors"
 	"net"
+	"net/http"
+	"net/http/httptest"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -50,6 +52,22 @@ func TestParseVMRSS(t *testing.T) {
 	assert.Equal(t, int64(412345*1024), v)
 	_, err = parseVMRSS(strings.NewReader("Name:\tzombie\nState:\tZ (zombie)\n"))
 	assert.Error(t, err)
+}
+
+func TestReadActive(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("werbot_tunnel_streams 3\nwerbot_relay_streams 4\n"))
+	}))
+	defer srv.Close()
+	addr := strings.TrimPrefix(srv.URL, "http://")
+	n, err := readActive(addr, "werbot_tunnel_streams", "")
+	require.NoError(t, err)
+	assert.Equal(t, int64(3), n)
+	n, err = readActive(addr, "werbot_tunnel_streams", "werbot_relay_streams")
+	require.NoError(t, err)
+	assert.Equal(t, int64(7), n, "server streams are tunnel plus relay streams")
+	_, err = readActive(addr, "werbot_tunnel_streams", "werbot_missing")
+	assert.Error(t, err, "a missing added metric drops the sample")
 }
 
 func TestParseListen(t *testing.T) {

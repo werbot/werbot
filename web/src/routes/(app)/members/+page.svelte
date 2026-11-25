@@ -145,6 +145,7 @@
 							label={m.members_remove()}
 							disabled={locked(member)}
 							onselect={() => (removing = member)}
+							onedit={() => (selected = member.user?.id ?? '')}
 							bind:open={() => menuOpen === member.user?.id, (v) => (menuOpen = v ? (member.user?.id ?? '') : '')}
 						/>
 					</td>

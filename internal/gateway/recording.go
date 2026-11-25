@@ -11,6 +11,7 @@ type RecordingSink interface {
 	Output(p []byte) // target output to the user
 	Input(p []byte)  // user input
 	Resize(cols, rows int)
+	Marker(text string) // a console line as an asciicast "m" event
 	Close(ctx context.Context) error
 }
 
@@ -22,6 +23,7 @@ type nopSink struct{}
 func (nopSink) Output([]byte)               {}
 func (nopSink) Input([]byte)                {}
 func (nopSink) Resize(int, int)             {}
+func (nopSink) Marker(string)               {}
 func (nopSink) Close(context.Context) error { return nil }
 
 // NopRecording discards everything; the default until recording ships.

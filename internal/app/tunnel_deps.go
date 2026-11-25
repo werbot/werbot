@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"slices"
+	"strings"
 
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -12,12 +13,14 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
+	"github.com/werbot/werbot/internal/agentic"
 	"github.com/werbot/werbot/internal/connector"
 	"github.com/werbot/werbot/internal/credential"
 	"github.com/werbot/werbot/internal/identity"
 	"github.com/werbot/werbot/internal/inventory"
 	"github.com/werbot/werbot/internal/platform/apperr"
 	"github.com/werbot/werbot/internal/platform/metrics"
+	"github.com/werbot/werbot/internal/platform/sshca"
 	"github.com/werbot/werbot/internal/policy"
 	"github.com/werbot/werbot/internal/session"
 	"github.com/werbot/werbot/internal/tunnel"
@@ -27,14 +30,18 @@ import (
 func newTunnelDeps(s *services, reg *metrics.Registry, logger *slog.Logger) tunnel.Deps {
 	return tunnel.Deps{
 		Gateways:    tunnelGateways{s.Gateways},
-		Users:       tunnelUsers{s.Identity},
+		Users:       tunnelUsers{s.Identity, s.Agents, s.Sessions},
 		Resources:   tunnelResources{s.Inventory},
 		Credentials: tunnelCredentials{s.Credential},
 		Snapshots:   tunnelSnapshots{s: s, logger: logger},
-		Sessions:    tunnelSessions{s.Sessions},
+		Sessions:    tunnelSessions{s.Sessions, s.Agents},
 		Recordings:  s.Recordings,
 		Health:      tunnelResources{s.Inventory},
 		Pools:       tunnelGateways{s.Gateways},
+		Approvals:   tunnelApprovals{s.Access},
+		Agents:      tunnelAgents{s.Agents},
+		Relay:       bridger{s.Relay},
+		MFA:         tunnelMFA{s.Identity},
 		Country:     s.Policy.Country,
 		Metrics:     reg,
 		Logger:      logger,
@@ -52,8 +59,13 @@ func (g tunnelGateways) Authenticate(ctx context.Context, gatewayID, instanceID 
 	return tunnel.Gateway{ID: in.GatewayID, InstanceID: in.ID, OrgID: in.OrgID, CertSerial: in.CertSerial}, nil
 }
 
-// tunnelUsers resolves SSH clients to members with their teams.
-type tunnelUsers struct{ ids *identity.Service }
+// tunnelUsers resolves SSH clients to members with their teams, and agent
+// certificates to their sponsor with the run.
+type tunnelUsers struct {
+	ids      *identity.Service
+	agents   *agentic.Service
+	sessions *session.Service
+}
 
 func (u tunnelUsers) ByFingerprint(ctx context.Context, orgID uuid.UUID, fingerprint string) (tunnel.User, error) {
 	return tunnelUser(u.ids.LookupSSHKey(ctx, orgID, fingerprint))
@@ -61,6 +73,15 @@ func (u tunnelUsers) ByFingerprint(ctx context.Context, orgID uuid.UUID, fingerp
 
 func (u tunnelUsers) ByLogin(ctx context.Context, orgID uuid.UUID, login string) (tunnel.User, error) {
 	return tunnelUser(u.ids.LookupLogin(ctx, orgID, login))
+}
+
+func (u tunnelUsers) ByCert(ctx context.Context, orgID uuid.UUID, id sshca.Identity) (tunnel.User, error) {
+	usr, err := tunnelUser(u.ids.AuthenticateCert(ctx, orgID, id))
+	if err != nil || id.RunID == nil {
+		return usr, err
+	}
+	usr.Agent, err = agentOf(ctx, u.agents, orgID, usr.ID, id)
+	return usr, err
 }
 
 func tunnelUser(ref identity.UserRef, err error) (tunnel.User, error) {
@@ -102,16 +123,26 @@ func (c tunnelCredentials) Reveal(ctx context.Context, orgID, resourceID uuid.UU
 }
 
 // tunnelSessions adapts session.Service to the tunnel types; Start records
-// sessions only for members of the organization.
-type tunnelSessions struct{ *session.Service }
-
-func (s tunnelSessions) Start(ctx context.Context, st tunnel.SessionStart) (uuid.UUID, error) {
-	return s.Service.Start(ctx, session.Start{OrgID: st.OrgID, UserID: st.UserID, ResourceID: st.ResourceID,
-		GatewayID: st.GatewayID, InstanceID: st.InstanceID, ClientIP: st.ClientIP, Kind: st.Kind, Target: st.Target})
+// sessions only for members of the organization, an agent's only when its run
+// counts the action.
+type tunnelSessions struct {
+	*session.Service
+	agents *agentic.Service
 }
 
-func (s tunnelSessions) End(ctx context.Context, orgID, instanceID, id uuid.UUID, reason string, c *tunnel.Counters) error {
-	return s.Service.End(ctx, orgID, instanceID, id, reason, (*session.Counters)(c))
+func (s tunnelSessions) Start(ctx context.Context, st tunnel.SessionStart) (uuid.UUID, error) {
+	id, err := s.Service.Start(ctx, session.Start{OrgID: st.OrgID, UserID: st.UserID, ResourceID: st.ResourceID,
+		GatewayID: st.GatewayID, InstanceID: st.InstanceID, ClientIP: st.ClientIP, Kind: st.Kind, Front: st.Front, Transport: st.Transport, Target: st.Target,
+		Command: st.Command, Classes: st.Classes, Paths: st.Paths, AgentRunID: st.AgentRunID, ToolCallID: st.ToolCallID,
+		Guard: actionGuard(s.agents, st)})
+	if st.AgentRunID == nil {
+		return id, err
+	}
+	return id, actionError(err)
+}
+
+func (s tunnelSessions) End(ctx context.Context, orgID, instanceID, id uuid.UUID, reason string, c *tunnel.Counters, r *tunnel.SessionResult) error {
+	return s.Service.End(ctx, orgID, instanceID, id, reason, (*session.Counters)(c), (*session.Result)(r))
 }
 
 func (s tunnelSessions) UpdateCounters(ctx context.Context, orgID, instanceID uuid.UUID, cs []tunnel.Counters) error {
@@ -131,7 +162,7 @@ func (s tunnelSessions) Deny(ctx context.Context, orgID uuid.UUID, ds []tunnel.D
 }
 
 // tunnelSnapshots builds a pool's snapshot: the organization's compiled
-// policy, its members with their teams and the blocklist (Org), then the
+// policy with its expiries and lock mode, its members with their teams, the blocklist and the user CA keys (Org), then the
 // pool's resources by name (Pool), sorted, so equal data gives an equal version.
 type tunnelSnapshots struct {
 	s      *services
@@ -153,8 +184,17 @@ func (t tunnelSnapshots) Org(ctx context.Context, orgID uuid.UUID) (*gatewayv1.S
 			return nil, err
 		}
 		out.CedarPolicies = text
+		out.PathRules = pathRules(snap) // only a compiled snapshot: deny-all carries none
 	}
-	// Also in the deny-all snapshot: a membership change must reach the gateway.
+	// Also in the deny-all snapshot: expiries, class rules, the lock and mask
+	// modes and a membership change must reach the gateway.
+	out.Expirations = snap.Expirations()
+	out.ClassRules = classRules(snap.ClassRules)
+	set, err := t.s.Identity.Settings(ctx, orgID)
+	if err != nil {
+		return nil, err
+	}
+	out.LockMode, out.MaskOutput = set.LockMode, set.MaskOutput
 	members, err := t.s.Identity.OrgMembers(ctx, orgID)
 	if err != nil {
 		return nil, err
@@ -174,7 +214,32 @@ func (t tunnelSnapshots) Org(ctx context.Context, orgID uuid.UUID) (*gatewayv1.S
 		out.Blocklist = append(out.Blocklist, p.String())
 	}
 	slices.Sort(out.Blocklist)
+	// Creates the CA on the first build, so the first snapshot already trusts it.
+	if out.UserCaKeys, err = t.s.Identity.UserCAPublicKeys(ctx, orgID); err != nil {
+		return nil, err
+	}
 	return out, nil
+}
+
+// classRules are rs by pattern in byte order, not the database collation, so
+// every server replica gives the same version.
+func classRules(rs []policy.SnapshotClassRule) []*gatewayv1.ClassRule {
+	out := make([]*gatewayv1.ClassRule, len(rs))
+	for i, r := range rs {
+		out[i] = &gatewayv1.ClassRule{Pattern: r.Pattern, Classes: r.Classes}
+	}
+	slices.SortFunc(out, func(a, b *gatewayv1.ClassRule) int { return strings.Compare(a.GetPattern(), b.GetPattern()) })
+	return out
+}
+
+// pathRules are the path rules of snap for EvalPaths, by id in byte order.
+func pathRules(snap policy.Snapshot) []*gatewayv1.PathRule {
+	rs := snap.PathEvalRules()
+	out := make([]*gatewayv1.PathRule, len(rs))
+	for i, r := range rs {
+		out[i] = &gatewayv1.PathRule{Id: r.ID, Paths: r.Globs, Access: string(r.Access), Effect: r.Effect}
+	}
+	return out
 }
 
 func (t tunnelSnapshots) Pool(ctx context.Context, org *gatewayv1.Snapshot, orgID, gatewayID uuid.UUID) (*gatewayv1.Snapshot, error) {

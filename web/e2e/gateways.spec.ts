@@ -4,11 +4,16 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 import en from '../messages/en.json' with { type: 'json' };
+import { choose } from './support/select';
 import { loginAsOwner } from './support/auth';
 import { openNew } from './support/resources';
+import { removeNamed } from './support/rpc';
+import { shot } from './support/screens';
 
 const procs: ChildProcess[] = [];
 test.afterAll(() => procs.forEach((p) => p.kill()));
+// a failed step leaves the WebSocket pool behind
+test.afterEach(({ page }) => removeNamed(page, 'GatewayService', 'Gateway', 'gateways', 'e2e-ws-pool'));
 
 async function createPool(page: Page, name: string) {
 	await page.getByRole('button', { name: en.gateways_create }).click();
@@ -26,7 +31,8 @@ test('pool with two instances, join token and revocation', async ({ page, baseUR
 	await page.getByRole('link', { name: en.nav_access }).click();
 	await page.getByRole('link', { name: en.nav_gateways }).click();
 	await createPool(page, 'e2e-pool');
-	await page.getByRole('button', { name: 'e2e-pool', exact: true }).click();
+	// a click anywhere on the row, not only on the name, opens the pool
+	await poolRow(page, 'e2e-pool').getByRole('cell').nth(1).click();
 	const pool = page.getByRole('dialog', { name: 'e2e-pool', exact: true });
 
 	await page.getByRole('button', { name: en.gateways_token_create }).click();
@@ -72,12 +78,18 @@ test('pool with two instances, join token and revocation', async ({ page, baseUR
 	// resource form with two pools: pool select, connect hint, pool change persists
 	await page.keyboard.press('Escape');
 	await expect(pool).toHaveCount(0);
+	// the "…" menu has an Edit item that opens the same drawer
+	await poolRow(page, 'e2e-pool').getByRole('button', { name: en.common_more }).click();
+	await page.getByRole('menuitem', { name: en.common_edit }).click();
+	await expect(pool).toBeVisible();
+	await page.keyboard.press('Escape');
+	await expect(pool).toHaveCount(0);
 	await createPool(page, 'e2e-pool-2');
 	await expect(poolRow(page, 'e2e-pool-2')).toBeVisible();
 
 	const poolSelect = page.getByLabel(en.resources_gateway_label);
 	const pickPool = async (name: string) => {
-		await poolSelect.selectOption({ label: name });
+		await choose(poolSelect, name);
 	};
 	await openNew(page);
 	await expect(poolSelect).toBeVisible();
@@ -95,7 +107,7 @@ test('pool with two instances, join token and revocation', async ({ page, baseUR
 	await page.getByRole('button', { name: en.resources_save, exact: true }).click();
 	expect((await updated).ok()).toBe(true);
 	await page.reload();
-	await expect(poolSelect.locator('option:checked')).toHaveText('e2e-pool-2');
+	await expect(poolSelect).toHaveText('e2e-pool-2');
 
 	await page.getByRole('button', { name: en.resources_delete }).click();
 	await page.getByRole('dialog').getByRole('button', { name: en.resources_delete }).click();
@@ -111,6 +123,8 @@ test('pool with two instances, join token and revocation', async ({ page, baseUR
 
 async function deletePoolFromRow(page: Page, name: string) {
 	await poolRow(page, name).getByRole('button', { name: en.common_more }).click();
+	// the "…" menu opens without the pool drawer
+	await expect(page.getByRole('dialog', { name, exact: true })).toHaveCount(0);
 	await page.getByRole('menuitem', { name: en.gateways_delete }).click();
 	await page.getByRole('dialog', { name: en.gateways_delete, exact: true }).getByRole('button', { name: en.gateways_delete }).click();
 }
@@ -139,4 +153,33 @@ test('delete pool from drawer', async ({ page }) => {
 	await confirm.getByRole('button', { name: en.gateways_delete }).click();
 	await expect(drawer).toHaveCount(0);
 	await expect(poolRow(page, 'e2e-drawer-pool')).toHaveCount(0);
+});
+
+test('pool WebSocket URL is saved and a bad scheme is refused', async ({ page }) => {
+	await loginAsOwner(page);
+	await page.goto('/gateways');
+	await createPool(page, 'e2e-ws-pool');
+	await page.getByRole('button', { name: 'e2e-ws-pool', exact: true }).click();
+	const drawer = page.getByRole('dialog', { name: 'e2e-ws-pool', exact: true });
+	const field = drawer.getByLabel(en.gateways_ws_url_label);
+
+	await field.fill('http://x');
+	await drawer.getByRole('button', { name: en.gateways_ssh_address_save }).click();
+	await expect(page.getByText(/ws_url must be a ws:\/\/ or wss:\/\/ URL/)).toBeVisible();
+
+	await field.fill('wss://gw.example.com/v1/ssh');
+	await drawer.getByRole('button', { name: en.gateways_ssh_address_save }).click();
+	await expect(page.getByText(en.common_saved).first()).toBeVisible();
+	await shot(page, 'sdd/stage15-wave1/screens/t12-pool-ws-url.png');
+	await page.reload();
+	await page.getByRole('button', { name: 'e2e-ws-pool', exact: true }).click();
+	await expect(page.getByRole('dialog', { name: 'e2e-ws-pool', exact: true }).getByLabel(en.gateways_ws_url_label)).toHaveValue('wss://gw.example.com/v1/ssh');
+
+	// restore: empty URL, then delete the pool
+	await field.fill('');
+	await drawer.getByRole('button', { name: en.gateways_ssh_address_save }).click();
+	await expect(page.getByText(en.common_saved).first()).toBeVisible();
+	await page.keyboard.press('Escape');
+	await deletePoolFromRow(page, 'e2e-ws-pool');
+	await expect(poolRow(page, 'e2e-ws-pool')).toHaveCount(0);
 });

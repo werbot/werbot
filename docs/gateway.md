@@ -72,19 +72,52 @@ A saved identity whose certificate has expired or no longer loads counts as not 
 
 Put the instances of one pool behind DNS round-robin or an L4 load balancer with PROXY protocol. Users see one host key on every instance. Balancer rules: [scaling.md](scaling.md#load-balancing); Kubernetes: [scaling.md](scaling.md#kubernetes).
 
-The UI does not show the pool host key yet. Add it to `known_hosts` from an instance on a network you trust:
+## SSH address
 
-```sh
-ssh-keyscan -p 2222 gw.example.com | grep -v '^#' >> ~/.ssh/known_hosts
-```
+The SSH address of a pool is the `host:port` that users and the [werbot CLI](cli.md) connect to: the DNS name of the instances or of their load balancer, for example `gw.example.com:2222`. An owner or admin sets it on the Gateways page (pool details, SSH address) or with `GatewayService/UpdateGateway` (`{"id": "<pool id>", "sshAddress": "gw.example.com:2222"}`); an empty value resets it. The port must be 1 to 65535.
+
+The pool details also show the pool host key, and the API returns it with the pool (`host_key`) and with each resource from `ListAccessibleResources`. `werbot ssh`, `werbot ssh-config` and `werbot connect` write it to the profile's `known_hosts` under the SSH address, so `ssh-keyscan` is no longer needed. Until the address is set, the CLI fails for the pool's resources with `gateway address for <resource> is not set`.
 
 ## PROXY protocol
 
 Set `WERBOT_GATEWAY_PROXY_PROTOCOL=true` only behind an L4 balancer that sends the header: HAProxy `send-proxy-v2`, nginx `proxy_protocol on`, AWS NLB with proxy protocol v2. Then every SSH connection must start with the header, and port `2222` must be open to the balancer only. Otherwise a client can forge its IP, and IP and country rules rely on it.
 
+## WebSocket input
+
+The WebSocket input carries SSH over one HTTPS port, so a gateway can sit behind an L7 load balancer that terminates TLS (nginx, Cloudflare, AWS ALB). Clients then need neither the SSH port nor a direct TCP path to the gateway. Set `WERBOT_GATEWAY_WS_ADDR` (for example `:8022`) to enable it; empty (default) opens no listener.
+
+- Only `GET /v1/ssh` upgrades. Any other path answers 404, another method 405, a request without `Upgrade` 426, and a browser `Origin` of another host 403. SSH travels in binary messages; a text message closes the connection.
+- Behind the input runs the same SSH server as on the SSH port: the same host key, public key and certificate login, keyboard-interactive MFA, the menu, `direct-tcpip`, `datagram@werbot.com`, policy and audit. Sessions record the transport `ws`.
+- The SSH host key is checked inside SSH, so a balancer that terminates TLS cannot impersonate the gateway.
+- TLS on the gateway itself: set `WERBOT_GATEWAY_WS_TLS_CERT` and `WERBOT_GATEWAY_WS_TLS_KEY` (PEM files, both or neither; TLS 1.2 or later). The files are read at start; an unreadable file stops the gateway. Without them the input speaks plain HTTP for a balancer that terminates TLS.
+- Client IP: the PROXY protocol never applies to this input. `X-Forwarded-For` counts only when the TCP peer is inside `WERBOT_GATEWAY_TRUSTED_PROXIES`; the client is then the rightmost address that is not a trusted proxy. Any other peer is identified by its TCP address. That IP goes to sessions, audit, denials and IP rules.
+- The gateway pings every connection every 30 s and closes a peer that does not answer within another 30 s. The pings keep the connection open through the idle timeouts of nginx (60 s), Cloudflare (100 s) and AWS ALB (60 s).
+- A connection must authenticate within 30 s, as on the SSH port. On shutdown the input stops taking upgrades and its sessions drain like SSH ones.
+- Health check of the balancer: `GET /readyz` on `WERBOT_GATEWAY_HTTP_ADDR`.
+
+Tell clients the public URL of the input with the pool's `ws_url` (`ws://` or `wss://`, path `/v1/ssh` by default): `GatewayService/UpdateGateway` with `{"id": "<pool id>", "sshAddress": "gw.example.com:2222", "wsUrl": "wss://gw.example.com/v1/ssh"}`. The call replaces both addresses, so send both.
+
+nginx in front of the input:
+
+```nginx
+location /v1/ssh {
+  proxy_pass http://gateway:8022;
+  proxy_http_version 1.1;
+  proxy_set_header Upgrade $http_upgrade;
+  proxy_set_header Connection "upgrade";
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_read_timeout 1h;
+  proxy_send_timeout 1h;
+}
+```
+
+Put the nginx address in `WERBOT_GATEWAY_TRUSTED_PROXIES`, for example `10.0.0.5/32`.
+
+Cloudflare: use a proxied DNS record with WebSockets on, and an origin port from Cloudflare's list of HTTP(S) ports. Set `WERBOT_GATEWAY_TRUSTED_PROXIES` to the Cloudflare IP ranges, or to `127.0.0.1/32` when `cloudflared` runs on the gateway host.
+
 ## Connect
 
-Users log in with their SSH key:
+Users log in with their SSH key or with the short-lived certificate of `werbot login` ([cli.md](cli.md)):
 
 - `ssh -p 2222 <login>+<resource>@<gateway>` runs a shell or a command on the resource.
 - `ssh -p 2222 <login>@<gateway>` shows a menu of the resources the user may open (interactive terminal only).
@@ -120,7 +153,15 @@ Each session counts bytes and datagrams both ways (`up` is client to target). Ev
 
 Every 5 s the gateway ends sessions without traffic for their idle timeout (`idle_timeout`) or older than their maximum duration (`max_duration`); a terminal first prints `Session closed: idle timeout` or `Session closed: max duration reached`. On each new policy snapshot and every 60 s it re-evaluates every running session against bindings, resources and their targets, network, country and schedule rules, the IP blocklist, and organization and team membership. It ends refused sessions with `access_revoked` and applies changed resource timeouts.
 
-Refused connections (`denied`, `target_not_allowed`, `unsupported_type`, `unsupported_kind`, `busy`, `spool_full`, and `auth_failed` once per SSH connection that offered only refused keys) go to the server with the next heartbeat and become `session.deny` audit events. `not_ready` is not reported. Per-heartbeat limits: [security.md](security.md#threat-model-summary).
+Refused connections (`denied`, `target_not_allowed`, `unsupported_type`, `unsupported_kind`, `busy`, `spool_full`, `approval_denied` and `approval_timeout` for a command whose approval was refused or not decided in time, and `auth_failed` once per SSH connection that offered only refused keys) go to the server with the next heartbeat and become `session.deny` audit events; the target of a refused command is the command (its first 1024 bytes). A refused console line becomes `session.command_denied` on its session ([policies.md](policies.md#command-console)). `not_ready` is not reported. Per-heartbeat limits: [security.md](security.md#threat-model-summary).
+
+## Lock mode and clock
+
+The gateway checks every open session again when a new snapshot arrives and when a grant or lock of the snapshot expires ([jit.md](jit.md#ending-sessions)).
+
+- **Clock.** Expiry is measured by the clock of the gateway host, not of the server. Run NTP (chrony, systemd-timesyncd) on every gateway host: a clock that runs behind keeps sessions open past their grant, one that runs ahead ends them early.
+- **Without the server.** Expiry needs no server: the timer works from the last snapshot. Revokes and new locks reach the gateway only through the tunnel.
+- **Lock mode** is an organization setting (Settings, `lock_mode`). With `best_effort` (default) open sessions keep running while the tunnel is down. With `strict` the gateway ends every session with `policy_stale` (log line `policy is stale, sessions terminated`) once the tunnel has been down for more than 60 seconds (checked every 5 seconds, so 60 to 65 seconds after the loss); a reconnect resets the wait. Use `strict` when a lock must win over availability.
 
 ## Recordings
 

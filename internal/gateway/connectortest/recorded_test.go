@@ -16,7 +16,7 @@ import (
 func init() {
 	connector.Register(connector.Type{
 		Name: "ctfake", NewConfig: func() proto.Message { return &emptypb.Empty{} },
-		Validate: func(proto.Message) error { return nil }, Actions: []string{"ctfake.connect"},
+		Validate: func(proto.Message) error { return nil }, Actions: []string{"ctfake.connect", "ctfake.shell"},
 		Kinds:    []connector.Kind{connector.KindTerminal, connector.KindStream},
 		Recorded: []connector.Kind{connector.KindTerminal},
 		Endpoint: func(proto.Message) connector.Endpoint {

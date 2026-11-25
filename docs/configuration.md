@@ -30,6 +30,8 @@ Variables that are `required` make the process refuse to start when they are emp
 | `WERBOT_RECORDINGS_S3_REGION` | `us-east-1` when the bucket is set | S3 region. |
 | `WERBOT_RECORDINGS_S3_ACCESS_KEY`, `WERBOT_RECORDINGS_S3_SECRET_KEY` | empty | S3 credentials; set both or neither. |
 | `WERBOT_GATEWAY_ADDR` | `:8443` | mTLS listener of the gateway tunnel (TLS 1.3, HTTP/2). Its port is the port in the tunnel URL given to gateways. |
+| `WERBOT_INTERNAL_ADDR` | `:8444` | mTLS listener between server replicas (TLS 1.3, HTTP/2 only), port 1-65535. It accepts only client certificates of the internal CA with the common name of a registered replica. Keep it on the private network. |
+| `WERBOT_INTERNAL_URL` | `https://<hostname>:<WERBOT_INTERNAL_ADDR port>` | `https://` address other replicas use to reach this one; its host is in the listener certificate. Set it when the OS hostname does not resolve from the other replicas. |
 | `WERBOT_LOCAL_POOL_ALLOW_LOOPBACK` | `false` | See [Embedded gateway](#embedded-gateway). |
 | `WERBOT_GEOIP_URL` | `https://download.db-ip.com/free/dbip-country-lite-%s.mmdb.gz` | Country database for country rules; see [GeoIP database](#geoip-database). |
 
@@ -59,8 +61,12 @@ An instance of a gateway pool. `WERBOT_LOG_LEVEL` and `WERBOT_LOG_FORMAT` apply 
 | `WERBOT_GATEWAY_SPOOL_MAX` | `--spool-max` | `1GiB` | Size cap of the recording spool: bytes or a `KiB`, `MiB`, `GiB` suffix (powers of 1024); must be above 0. |
 | `WERBOT_GATEWAY_MAX_SESSIONS` | `--max-sessions` | `10000` | Concurrent session limit, 1-10000; above it users get `Gateway is busy, try again later`. |
 | `WERBOT_GATEWAY_MAX_DURATION` | `--max-duration` | `12h` | Ends a session after this long (`max_duration`) unless its resource sets `max_duration`; `0` means no limit, a negative value fails the start. |
+| `WERBOT_GATEWAY_WS_ADDR` | `--ws-addr` | empty (disabled) | Listen address of the WebSocket input (`GET /v1/ssh`), an SSH-over-WebSocket path for clients behind an HTTP proxy. |
+| `WERBOT_GATEWAY_WS_TLS_CERT` | `--ws-tls-cert` | empty | PEM certificate file for the WebSocket input; set together with `WERBOT_GATEWAY_WS_TLS_KEY`, or leave both empty to serve plain HTTP behind a TLS-terminating proxy. |
+| `WERBOT_GATEWAY_WS_TLS_KEY` | `--ws-tls-key` | empty | PEM private key file for the WebSocket input; set together with `WERBOT_GATEWAY_WS_TLS_CERT`. |
+| `WERBOT_GATEWAY_TRUSTED_PROXIES` | `--trusted-proxies` | empty | Comma-separated CIDRs whose `X-Forwarded-For` the WebSocket input trusts for the client address; any other source is identified by its TCP address. It does not affect the SSH port. |
 
-The gateway listens only on the SSH port and, when set, `WERBOT_GATEWAY_HTTP_ADDR`; it connects out to the server tunnel. The flag `--insecure-enroll` has no variable.
+The gateway listens only on the SSH port and, when set, `WERBOT_GATEWAY_HTTP_ADDR` and `WERBOT_GATEWAY_WS_ADDR`; it connects out to the server tunnel. The flag `--insecure-enroll` has no variable. WebSocket input: see [gateway.md](gateway.md#websocket-input).
 
 ### Readiness, drain and limits
 
@@ -86,14 +92,16 @@ No database access. Its four shared variables follow the same rules as on the se
 
 `werbot web` does not read `WERBOT_DATABASE_URL` or `WERBOT_SECRET_KEY`. Details: [web.md](web.md).
 
-## Client (`werbot connect`)
+## Client (`werbot connect`, `werbot login`)
 
 | Variable | Flag | Default | Description |
 | --- | --- | --- | --- |
 | `WERBOT_CONNECT_GATEWAY` | `--gateway` | required | Gateway SSH address `host[:port]`; the port defaults to `2222`. |
 | `WERBOT_CONNECT_LOGIN` | `--login` | required | Werbot login. |
+| `WERBOT_SERVER` | — | server of the last `werbot login` (`<home>/current`) | Server whose profile the client commands use, `http(s)://host[:port]`. |
+| `WERBOT_HOME` | — | `~/.werbot` (Windows: `%USERPROFILE%\.werbot`) | Client profiles: one `0700` directory per server with `profile.json`, the key and the certificate (`0600`). |
 
-Other flags: `-i <key>` and `--known-hosts <path>`. Details: [connect.md](connect.md).
+Other flags: `-i <key>` and `--known-hosts <path>`. Details: [connect.md](connect.md) and [cli.md](cli.md).
 
 ## Docker Compose
 
@@ -128,6 +136,8 @@ The connection formula for several replicas and PgBouncer: [scaling.md](scaling.
 
 Set `WERBOT_TRUSTED_PROXIES` to the CIDRs of the proxies, so the client IP in sessions and audit comes from `X-Forwarded-For`. Set `WERBOT_PUBLIC_URL` with `https://`. The host of `WERBOT_PUBLIC_URL` and the port of `WERBOT_GATEWAY_ADDR` form the tunnel address `https://<host>:<port>` that gateways receive at enrollment. The tunnel uses mTLS that ends on the replica: put an L4 (TCP passthrough) load balancer in front of it with the same external port; a TLS-terminating proxy breaks the tunnel. The API port works behind any HTTP load balancer.
 
+Without a trusted proxy the server sees the address of the proxy as the client IP, so every user shares one IP. Then the [login and token rate limits](mfa.md#rate-limits) per IP count all users together and sessions and audit show the proxy address. Set `WERBOT_TRUSTED_PROXIES` whenever a proxy sits in front.
+
 ## Separate web UI
 
 Run `werbot server` with `WERBOT_WEB_EMBEDDED=false`: it serves only the API, and `werbot web` serves the UI and proxies the API (`WERBOT_WEB_API_URL`). Set `WERBOT_WEB_URL` on the server to the UI address (links in emails; default `WERBOT_PUBLIC_URL`) and `WERBOT_TRUSTED_PROXIES` of the server to the subnet of `werbot web` (client IPs in sessions and audit). See [web.md](web.md).
@@ -135,6 +145,8 @@ Run `werbot server` with `WERBOT_WEB_EMBEDDED=false`: it serves only the API, an
 ## Email
 
 An empty `WERBOT_SMTP_HOST` writes emails to the log. With `WERBOT_ENV=development` the log has the full text with links; in production it does not.
+
+On any port but 465 the server requires STARTTLS. With `WERBOT_ENV=development` it uses STARTTLS only when the SMTP server offers it, so a local server such as Mailpit (`make dev-db`, SMTP `localhost:27025`, inbox http://localhost:27825) works without TLS.
 
 `WERBOT_ENV=development` is for local plain-http runs: the session cookie is `werbot_session` without `Secure`. The production cookie and remote access over plain http: [install.md](install.md#remote-access).
 

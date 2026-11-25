@@ -1,0 +1,42 @@
+syntax = "proto3";
+package werbot.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// CLI sessions (werbot login). Members see and revoke their own; owners and
+// admins those of any member of the organization.
+service CLISessionService {
+  rpc ListCLISessions(ListCLISessionsRequest) returns (ListCLISessionsResponse);
+  // The next request with the session's access token is refused.
+  rpc RevokeCLISession(RevokeCLISessionRequest) returns (RevokeCLISessionResponse);
+}
+
+message CLISession {
+  string id = 1;
+  string user_id = 2;
+  string client_id = 3;
+  // As reported by the CLI (werbot_hostname); not verified.
+  string hostname = 4;
+  string ip = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp last_used_at = 7;
+  google.protobuf.Timestamp expires_at = 8;
+  google.protobuf.Timestamp absolute_expires_at = 9;
+  // The session of the calling access token.
+  bool current = 10;
+}
+
+message ListCLISessionsRequest {
+  // Unset: the caller's own sessions; another member needs owner or admin.
+  optional string user_id = 1 [(buf.validate.field).string.uuid = true];
+}
+message ListCLISessionsResponse {
+  // Live sessions only, newest first.
+  repeated CLISession sessions = 1;
+}
+
+message RevokeCLISessionRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message RevokeCLISessionResponse {}

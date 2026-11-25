@@ -105,7 +105,8 @@ func (s *Service) checkEmailChange(ctx context.Context, p principal.Principal, e
 }
 
 // ChangePassword sets a new password after checking the current one and
-// signs the user out everywhere except the current session.
+// signs the user out everywhere except the current session: other cookie
+// sessions end and CLI sessions are revoked (password_reset).
 func (s *Service) ChangePassword(ctx context.Context, current, next string) error {
 	p, err := principal.Require(ctx)
 	if err != nil {
@@ -130,6 +131,9 @@ func (s *Service) ChangePassword(ctx context.Context, current, next string) erro
 			return err
 		}
 		if err := st.DeleteOtherUserSessions(ctx, dbq.DeleteOtherUserSessionsParams{UserID: p.UserID, KeepID: p.SessionID}); err != nil {
+			return err
+		}
+		if err := st.RevokeUserCLISessions(ctx, dbq.RevokeUserCLISessionsParams{UserID: p.UserID, KeepID: p.CLISessionID}); err != nil {
 			return err
 		}
 		return writeAudit(ctx, tx, "profile.password_change", p.OrgID, p.UserID)

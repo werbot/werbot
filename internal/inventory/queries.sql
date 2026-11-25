@@ -1,6 +1,6 @@
 -- name: CreateResource :one
-INSERT INTO resource (org_id, name, type, category, gateway_id, config, idle_timeout, max_duration)
-VALUES (@org_id, @name, @type, @category, @gateway_id, @config,
+INSERT INTO resource (org_id, name, type, category, gateway_id, config, preset_id, idle_timeout, max_duration)
+VALUES (@org_id, @name, @type, @category, @gateway_id, @config, @preset_id,
         make_interval(secs => sqlc.narg(idle_secs)::bigint), make_interval(secs => sqlc.narg(max_secs)::bigint))
 RETURNING id;
 
@@ -17,7 +17,7 @@ DELETE FROM resource WHERE id = @id AND org_id = @org_id;
 -- name: GetResource :one
 -- idle_secs and max_secs are 0 when unset (the valid minimum is 60);
 -- health_checked_at is the epoch while the health is unknown.
-SELECT r.id, r.org_id, r.name, r.type, r.category, r.gateway_id, r.config, r.created_at, r.updated_at,
+SELECT r.id, r.org_id, r.name, r.type, r.category, r.gateway_id, r.config, r.preset_id, r.created_at, r.updated_at,
        coalesce((SELECT jsonb_object_agg(l.key, l.value) FROM resource_label l WHERE l.resource_id = r.id), '{}')::jsonb AS labels,
        h.key_type, h.public_key, h.fingerprint_sha256, h.created_at AS host_key_created_at,
        coalesce(extract(epoch FROM r.idle_timeout), 0)::bigint AS idle_secs,
@@ -41,7 +41,7 @@ WHERE r.id = @id AND r.org_id = @org_id;
 
 -- name: ListResources :many
 -- An empty label_filter matches everything; a NULL gateway_id means any gateway.
-SELECT r.id, r.org_id, r.name, r.type, r.category, r.gateway_id, r.config, r.created_at, r.updated_at,
+SELECT r.id, r.org_id, r.name, r.type, r.category, r.gateway_id, r.config, r.preset_id, r.created_at, r.updated_at,
        coalesce((SELECT jsonb_object_agg(l.key, l.value) FROM resource_label l WHERE l.resource_id = r.id), '{}')::jsonb AS labels,
        h.key_type, h.public_key, h.fingerprint_sha256, h.created_at AS host_key_created_at,
        coalesce(extract(epoch FROM r.idle_timeout), 0)::bigint AS idle_secs,
@@ -132,7 +132,11 @@ WHERE r.org_id = @org_id AND r.gateway_id IS NULL
   AND (SELECT count(*) FROM gateway g WHERE g.org_id = @org_id) = 1;
 
 -- name: ListGateways :many
-SELECT id, org_id, name, created_at FROM gateway WHERE org_id = @org_id ORDER BY name;
+SELECT id, org_id, name, created_at, ssh_address, ws_url, host_key_ciphertext, host_key_key_id
+FROM gateway WHERE org_id = @org_id ORDER BY name;
+
+-- name: UpdateGatewayAddresses :execrows
+UPDATE gateway SET ssh_address = @ssh_address, ws_url = @ws_url WHERE id = @id AND org_id = @org_id;
 
 -- name: DeleteGateway :execrows
 DELETE FROM gateway WHERE id = @id AND org_id = @org_id;
@@ -228,3 +232,25 @@ WHERE resource_health.checked_at <= EXCLUDED.checked_at;
 SELECT id FROM gateway_instance
 WHERE gateway_id = @gateway_id AND last_seen_at > now() - interval '45 seconds'
 ORDER BY id;
+
+-- name: ListResourcePresets :many
+SELECT id, org_id, name, base_type, display_name, icon, default_ports, category, launch_hint, created_by, created_at
+FROM resource_preset WHERE org_id = @org_id ORDER BY name;
+
+-- name: GetResourcePreset :one
+SELECT id, org_id, name, base_type, display_name, icon, default_ports, category, launch_hint, created_by, created_at
+FROM resource_preset WHERE id = @id AND org_id = @org_id;
+
+-- name: CreateResourcePreset :one
+INSERT INTO resource_preset (org_id, name, base_type, display_name, icon, default_ports, category, launch_hint, created_by)
+VALUES (@org_id, @name, @base_type, @display_name, @icon, @default_ports, @category, @launch_hint, @created_by)
+RETURNING id, org_id, name, base_type, display_name, icon, default_ports, category, launch_hint, created_by, created_at;
+
+-- name: UpdateResourcePreset :one
+UPDATE resource_preset
+SET display_name = @display_name, icon = @icon, default_ports = @default_ports, category = @category, launch_hint = @launch_hint
+WHERE id = @id AND org_id = @org_id
+RETURNING id, org_id, name, base_type, display_name, icon, default_ports, category, launch_hint, created_by, created_at;
+
+-- name: DeleteResourcePreset :execrows
+DELETE FROM resource_preset WHERE id = @id AND org_id = @org_id;

@@ -13,15 +13,16 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/werbot/werbot/internal/gateway/recorder"
+	"github.com/werbot/werbot/internal/gateway/wsfront"
 	"github.com/werbot/werbot/internal/platform/metrics"
 )
 
 // Serve runs the gateway with the SSH front on ln and no HTTP endpoint.
 func Serve(ctx context.Context, cfg Config, ln net.Listener, logger *slog.Logger) error {
-	return serve(ctx, cfg, ln, nil, logger)
+	return serve(ctx, cfg, ln, nil, nil, logger)
 }
 
-// Run listens on cfg.SSHAddr and, when set, cfg.HTTPAddr, then serves until ctx ends.
+// Run listens on cfg.SSHAddr and, when set, cfg.HTTPAddr and cfg.WSAddr, then serves until ctx ends.
 func Run(ctx context.Context, cfg Config, logger *slog.Logger) error {
 	sshLn, err := net.Listen("tcp", cfg.SSHAddr)
 	if err != nil {
@@ -34,21 +35,40 @@ func Run(ctx context.Context, cfg Config, logger *slog.Logger) error {
 			return fmt.Errorf("gateway http listen: %w", err)
 		}
 	}
-	return serve(ctx, cfg, sshLn, httpLn, logger)
+	wsLn, err := listenWS(cfg)
+	if err != nil {
+		closeAll(sshLn, httpLn)
+		return err
+	}
+	return serve(ctx, cfg, sshLn, httpLn, wsLn, logger)
+}
+
+// newWSListener opens the WebSocket input; tests count its calls.
+var newWSListener = wsfront.Listener
+
+// listenWS opens the WebSocket input of cfg, or none (nil) when cfg.WSAddr is
+// empty. A bind error keeps its *net.OpError.
+func listenWS(cfg Config) (net.Listener, error) {
+	if cfg.WSAddr == "" {
+		return nil, nil
+	}
+	ln, err := newWSListener(cfg.WSAddr, cfg.WSTLSCert, cfg.WSTLSKey, cfg.TrustedProxies)
+	if err != nil {
+		return nil, fmt.Errorf("gateway ws listen: %w", err)
+	}
+	return ln, nil
 }
 
 // serve enrolls (or loads the identity), keeps the tunnel and serves SSH on sshLn
-// and /readyz, /metrics on httpLn (nil: off) until ctx ends or the tunnel stops for
-// good (expired certificate). Session ends and recordings go through the spool in
+// and wsLn (nil: off; never behind the PROXY protocol), /readyz, /metrics on httpLn
+// (nil: off) until ctx ends, a listener fails or the tunnel stops for good
+// (expired certificate). Session ends and recordings go through the spool in
 // DataDir/spool. On stop it drains: new sessions are refused at once, running ones
 // get cfg.DrainTimeout, and the spool gets up to 10s to deliver their ends; what is
 // left stays on disk for the next start. The tunnel error, if any, is returned after
 // the drain.
-func serve(ctx context.Context, cfg Config, sshLn, httpLn net.Listener, logger *slog.Logger) error {
-	defer sshLn.Close() //nolint:errcheck // closed twice on the normal path
-	if httpLn != nil {
-		defer httpLn.Close() //nolint:errcheck // closed twice on the normal path
-	}
+func serve(ctx context.Context, cfg Config, sshLn, httpLn, wsLn net.Listener, logger *slog.Logger) error {
+	defer closeAll(sshLn, httpLn, wsLn) // closed twice on the normal path
 	if cfg.Metrics == nil {
 		cfg.Metrics = metrics.NewRegistry() // shared by the pipeline and the tunnel
 	}
@@ -75,6 +95,8 @@ func serve(ctx context.Context, cfg Config, sshLn, httpLn net.Listener, logger *
 	}
 	p = newPipeline(tc, cfg, logger)
 	p.spool = sp
+	tc.onTerminate = func(id uuid.UUID) { p.active.Terminate(id, "terminated") } // a gateway cut: no exit status
+	startWebFront(tc, p, logger)
 	spoolCtx, stopSpool := context.WithCancel(context.WithoutCancel(ctx))
 	spoolDone := make(chan struct{})
 	go func() {
@@ -116,11 +138,11 @@ func serve(ctx context.Context, cfg Config, sshLn, httpLn net.Listener, logger *
 	// the front stops only after /readyz turned 503, so balancers see it first
 	frontCtx, stopFront := context.WithCancel(context.WithoutCancel(ctx))
 	defer stopFront()
-	frontDone, drained := make(chan struct{}), make(chan struct{})
+	drained := make(chan struct{})
 	go func() {
 		select {
 		case <-ctx.Done():
-		case <-frontDone: // a failed front drains too
+		case <-p.active.drained: // a failed listener drains too (serveFronts)
 		case <-tunnelDone: // so does a tunnel that cannot reconnect
 		}
 		p.active.startDrain()
@@ -129,8 +151,7 @@ func serve(ctx context.Context, cfg Config, sshLn, httpLn net.Listener, logger *
 		close(drained)
 	}()
 	logger.Info("gateway: serving", "ssh_addr", sshLn.Addr().String(), "instance_id", st.InstanceID)
-	err = newSSHFront(cfg, hostKey, logger).Serve(frontCtx, wrapListener(sshLn, cfg.ProxyProtocol), p)
-	close(frontDone)
+	err = serveFronts(frontCtx, newSSHFront(cfg, hostKey, logger), p, wrapListener(sshLn, cfg.ProxyProtocol), wsLn)
 	<-drained
 	stopSweep()
 	<-sweepDone
@@ -156,6 +177,37 @@ func serve(ctx context.Context, cfg Config, sshLn, httpLn net.Listener, logger *
 	return errors.Join(err, tunnelErr)
 }
 
+// serveFronts serves front on every non-nil listener of lns until ctx ends. The
+// first listener to fail starts the drain (which ends ctx in serve); serveFronts
+// waits for every listener and returns their errors.
+func serveFronts(ctx context.Context, front Front, p *Pipeline, lns ...net.Listener) error {
+	errs := make(chan error, len(lns))
+	n := 0
+	for _, ln := range lns {
+		if ln != nil {
+			n++
+			go func() { errs <- front.Serve(ctx, ln, p) }()
+		}
+	}
+	var failed []error
+	for range n {
+		if err := <-errs; err != nil {
+			p.active.startDrain()
+			failed = append(failed, err)
+		}
+	}
+	return errors.Join(failed...)
+}
+
+// closeAll closes every non-nil listener of lns.
+func closeAll(lns ...net.Listener) {
+	for _, ln := range lns {
+		if ln != nil {
+			_ = ln.Close()
+		}
+	}
+}
+
 // waitEnds waits up to d for the spool to deliver every pending session end.
 func waitEnds(sp *recorder.Spool, d time.Duration) {
 	deadline := time.Now().Add(d)
@@ -164,4 +216,14 @@ func waitEnds(sp *recorder.Spool, d time.Duration) {
 	for len(sp.PendingEnds()) > 0 && time.Now().Before(deadline) {
 		<-tick.C
 	}
+}
+
+// startWebFront serves the browser streams the server announces on tc until
+// the pipeline stops: through the drain a new ticket is refused (ErrNotReady),
+// running web sessions end like SSH ones. Its sessions end before the spool
+// closes: the drain waits for them.
+func startWebFront(tc *tunnelClient, p *Pipeline, logger *slog.Logger) {
+	wf := newWebFront(tc, logger)
+	tc.onOpenStream = wf.enqueue
+	go func() { _ = wf.Serve(p.stop, nil, p) }()
 }

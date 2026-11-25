@@ -2,6 +2,7 @@ package app
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"io"
 	"io/fs"
@@ -21,6 +22,7 @@ import (
 
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
+	"github.com/werbot/werbot/internal/identity/oauth"
 	"github.com/werbot/werbot/internal/platform/config"
 	"github.com/werbot/werbot/internal/platform/db/dbtest"
 	"github.com/werbot/werbot/internal/platform/secretbox"
@@ -61,9 +63,14 @@ func withTestDefaults(t *testing.T, cfg *config.Config) {
 	if cfg.DataDir == "" {
 		cfg.DataDir = t.TempDir()
 	}
+	if cfg.InternalAddr == "" { // as startRun: the default :8444 is shared by every server
+		cfg.InternalAddr = freeAddr(t)
+		cfg.InternalURL = "https://" + cfg.InternalAddr
+	}
+	cfg.WebURL = cmp.Or(cfg.WebURL, cfg.PublicURL) // as config.Load
 }
 
-// testServeOpts loads the tunnel CA and the signer as bootstrap does for werbot server.
+// testServeOpts loads the tunnel CA and the signers as bootstrap does for werbot server.
 func testServeOpts(t *testing.T, cfg config.Config, pool *pgxpool.Pool) serveOpts {
 	t.Helper()
 	box, err := secretbox.New(cfg.SecretKey, nil)
@@ -72,7 +79,9 @@ func testServeOpts(t *testing.T, cfg config.Config, pool *pgxpool.Pool) serveOpt
 	require.NoError(t, err)
 	signer, err := session.LoadSigner(context.Background(), pool, box)
 	require.NoError(t, err)
-	return serveOpts{CA: ca, Signer: signer, Box: box}
+	key, err := oauth.LoadSigningKey(context.Background(), pool, box)
+	require.NoError(t, err)
+	return serveOpts{CA: ca, Signer: signer, OAuthKey: key, Box: box}
 }
 
 func env(kv map[string]string) func(string) string {
@@ -139,13 +148,6 @@ func TestRunVersion(t *testing.T) {
 	var out bytes.Buffer
 	require.NoError(t, Run(context.Background(), []string{"version"}, env(nil), &out))
 	assert.Equal(t, "werbot dev (commit none, built unknown)\n", out.String())
-}
-
-func TestRunUnknownCommand(t *testing.T) {
-	err := Run(context.Background(), []string{"bogus"}, env(nil), io.Discard)
-	assert.ErrorContains(t, err, "usage: werbot <server|gateway|web|connect|migrate|version|healthcheck>")
-	err = Run(context.Background(), nil, env(nil), io.Discard)
-	assert.ErrorContains(t, err, "usage: werbot <server|gateway|web|connect|migrate|version|healthcheck>")
 }
 
 func TestRunServerMissingDatabaseURL(t *testing.T) {

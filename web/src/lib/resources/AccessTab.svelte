@@ -5,6 +5,7 @@
 	import { access, members, teams } from '#lib/api.js';
 	import { failToast } from '#lib/errors.js';
 	import LoadFailed from '#lib/LoadFailed.svelte';
+	import { userOptions } from '#lib/members/options.js';
 	import type { Binding } from '#lib/gen/werbot/v1/access_pb.js';
 	import type { Resource } from '#lib/gen/werbot/v1/resource_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
@@ -51,7 +52,7 @@
 		failed = false;
 		try {
 			const [, mem, tm] = await Promise.all([refresh(), members.listMembers({}), teams.listTeams({})]);
-			users = mem.members.flatMap((x) => (x.user ? [{ value: x.user.id, label: `${x.user.name} (${x.user.login})` }] : []));
+			users = userOptions(mem.members);
 			logins = new Map(mem.members.flatMap((x) => (x.user ? [[x.user.id, x.user.login]] : [])));
 			teamOptions = tm.teams.map((t) => ({ value: t.id, label: t.name }));
 		} catch (e) {

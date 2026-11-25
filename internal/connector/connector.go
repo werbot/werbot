@@ -94,11 +94,6 @@ func check(t Type) {
 	case len(t.Kinds) == 0:
 		bad("no kinds")
 	}
-	for _, a := range t.Actions {
-		if !strings.HasPrefix(a, t.Name+".") {
-			bad(fmt.Sprintf("action %q lacks prefix %q", a, t.Name+"."))
-		}
-	}
 	for _, k := range t.Kinds {
 		if !slices.Contains(allowedKinds, k) {
 			bad(fmt.Sprintf("unknown kind %q", k))
@@ -115,6 +110,24 @@ func check(t Type) {
 	if t.Endpoint == nil && (slices.Contains(t.Kinds, KindStream) || slices.Contains(t.Kinds, KindDatagram)) {
 		bad("Endpoint is required for stream and datagram kinds")
 	}
+	if msg := checkActions(t); msg != "" {
+		bad(msg)
+	}
+}
+
+// checkActions returns why the actions of t are invalid; "" if they are
+// valid. Every action has the "<name>." prefix, and a type with the terminal
+// kind declares "<name>.shell".
+func checkActions(t Type) string {
+	for _, a := range t.Actions {
+		if !strings.HasPrefix(a, t.Name+".") {
+			return fmt.Sprintf("action %q lacks prefix %q", a, t.Name+".")
+		}
+	}
+	if slices.Contains(t.Kinds, KindTerminal) && !slices.Contains(t.Actions, t.Name+".shell") {
+		return fmt.Sprintf("terminal kind needs action %q", t.Name+".shell")
+	}
+	return ""
 }
 
 func hasDup(ks []Kind) bool {
@@ -144,4 +157,23 @@ func Types() []Type {
 	}
 	slices.SortFunc(out, func(a, b Type) int { return strings.Compare(a.Name, b.Name) })
 	return out
+}
+
+// ExecAction returns the first action of t that runs a command ("<name>.exec").
+func (t Type) ExecAction() (string, bool) {
+	for _, a := range t.Actions {
+		if strings.HasSuffix(a, ".exec") {
+			return a, true
+		}
+	}
+	return "", false
+}
+
+// ShellAction returns the action of t that opens a terminal without a
+// command ("<name>.shell"); "" and false when t has none.
+func (t Type) ShellAction() (string, bool) {
+	if a := t.Name + ".shell"; slices.Contains(t.Actions, a) {
+		return a, true
+	}
+	return "", false
 }

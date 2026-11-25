@@ -37,7 +37,7 @@ func TestL1(t *testing.T) {
 
 	from := time.Now()
 	ctx, stop := context.WithCancel(t.Context())
-	samples := sampleEvery(ctx, t, st, sampleInterval)
+	samples := sampleEvery(ctx, t, st)
 	mixCtx, stopMix := context.WithCancel(t.Context())
 	mixed := runMix(mixCtx, tcp, udp, *rate)
 	if n := *tcpConns + len(udp); n > 0 { // steady state first: the measured ramp must not overlap the mix ramp
@@ -143,7 +143,7 @@ func TestL4(t *testing.T) {
 	waitTarget(t, gw1, gw2)
 
 	ctx, stop := context.WithCancel(t.Context())
-	samples := sampleEvery(ctx, t, st, sampleInterval)
+	samples := sampleEvery(ctx, t, st)
 	res := runSessions(t.Context(), t, st, []string{gw1, gw2}, *sessions, *rate, *idle, false)
 	stop()
 	all := <-samples

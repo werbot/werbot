@@ -42,6 +42,75 @@ const (
 	// PolicyServiceCheckAccessProcedure is the fully-qualified name of the PolicyService's CheckAccess
 	// RPC.
 	PolicyServiceCheckAccessProcedure = "/werbot.v1.PolicyService/CheckAccess"
+	// PolicyServiceListCommandRulesProcedure is the fully-qualified name of the PolicyService's
+	// ListCommandRules RPC.
+	PolicyServiceListCommandRulesProcedure = "/werbot.v1.PolicyService/ListCommandRules"
+	// PolicyServiceCreateCommandRuleProcedure is the fully-qualified name of the PolicyService's
+	// CreateCommandRule RPC.
+	PolicyServiceCreateCommandRuleProcedure = "/werbot.v1.PolicyService/CreateCommandRule"
+	// PolicyServiceUpdateCommandRuleProcedure is the fully-qualified name of the PolicyService's
+	// UpdateCommandRule RPC.
+	PolicyServiceUpdateCommandRuleProcedure = "/werbot.v1.PolicyService/UpdateCommandRule"
+	// PolicyServiceDeleteCommandRuleProcedure is the fully-qualified name of the PolicyService's
+	// DeleteCommandRule RPC.
+	PolicyServiceDeleteCommandRuleProcedure = "/werbot.v1.PolicyService/DeleteCommandRule"
+	// PolicyServiceListClassRulesProcedure is the fully-qualified name of the PolicyService's
+	// ListClassRules RPC.
+	PolicyServiceListClassRulesProcedure = "/werbot.v1.PolicyService/ListClassRules"
+	// PolicyServiceCreateClassRuleProcedure is the fully-qualified name of the PolicyService's
+	// CreateClassRule RPC.
+	PolicyServiceCreateClassRuleProcedure = "/werbot.v1.PolicyService/CreateClassRule"
+	// PolicyServiceDeleteClassRuleProcedure is the fully-qualified name of the PolicyService's
+	// DeleteClassRule RPC.
+	PolicyServiceDeleteClassRuleProcedure = "/werbot.v1.PolicyService/DeleteClassRule"
+	// PolicyServiceListCustomPoliciesProcedure is the fully-qualified name of the PolicyService's
+	// ListCustomPolicies RPC.
+	PolicyServiceListCustomPoliciesProcedure = "/werbot.v1.PolicyService/ListCustomPolicies"
+	// PolicyServiceCreateCustomPolicyProcedure is the fully-qualified name of the PolicyService's
+	// CreateCustomPolicy RPC.
+	PolicyServiceCreateCustomPolicyProcedure = "/werbot.v1.PolicyService/CreateCustomPolicy"
+	// PolicyServiceUpdateCustomPolicyProcedure is the fully-qualified name of the PolicyService's
+	// UpdateCustomPolicy RPC.
+	PolicyServiceUpdateCustomPolicyProcedure = "/werbot.v1.PolicyService/UpdateCustomPolicy"
+	// PolicyServiceDeleteCustomPolicyProcedure is the fully-qualified name of the PolicyService's
+	// DeleteCustomPolicy RPC.
+	PolicyServiceDeleteCustomPolicyProcedure = "/werbot.v1.PolicyService/DeleteCustomPolicy"
+	// PolicyServiceTestCommandProcedure is the fully-qualified name of the PolicyService's TestCommand
+	// RPC.
+	PolicyServiceTestCommandProcedure = "/werbot.v1.PolicyService/TestCommand"
+	// PolicyServiceListPathRulesProcedure is the fully-qualified name of the PolicyService's
+	// ListPathRules RPC.
+	PolicyServiceListPathRulesProcedure = "/werbot.v1.PolicyService/ListPathRules"
+	// PolicyServiceCreatePathRuleProcedure is the fully-qualified name of the PolicyService's
+	// CreatePathRule RPC.
+	PolicyServiceCreatePathRuleProcedure = "/werbot.v1.PolicyService/CreatePathRule"
+	// PolicyServiceUpdatePathRuleProcedure is the fully-qualified name of the PolicyService's
+	// UpdatePathRule RPC.
+	PolicyServiceUpdatePathRuleProcedure = "/werbot.v1.PolicyService/UpdatePathRule"
+	// PolicyServiceDeletePathRuleProcedure is the fully-qualified name of the PolicyService's
+	// DeletePathRule RPC.
+	PolicyServiceDeletePathRuleProcedure = "/werbot.v1.PolicyService/DeletePathRule"
+	// PolicyServiceListTerminalRulesProcedure is the fully-qualified name of the PolicyService's
+	// ListTerminalRules RPC.
+	PolicyServiceListTerminalRulesProcedure = "/werbot.v1.PolicyService/ListTerminalRules"
+	// PolicyServiceCreateTerminalRuleProcedure is the fully-qualified name of the PolicyService's
+	// CreateTerminalRule RPC.
+	PolicyServiceCreateTerminalRuleProcedure = "/werbot.v1.PolicyService/CreateTerminalRule"
+	// PolicyServiceDeleteTerminalRuleProcedure is the fully-qualified name of the PolicyService's
+	// DeleteTerminalRule RPC.
+	PolicyServiceDeleteTerminalRuleProcedure = "/werbot.v1.PolicyService/DeleteTerminalRule"
+	// PolicyServiceListMFARulesProcedure is the fully-qualified name of the PolicyService's
+	// ListMFARules RPC.
+	PolicyServiceListMFARulesProcedure = "/werbot.v1.PolicyService/ListMFARules"
+	// PolicyServiceCreateMFARuleProcedure is the fully-qualified name of the PolicyService's
+	// CreateMFARule RPC.
+	PolicyServiceCreateMFARuleProcedure = "/werbot.v1.PolicyService/CreateMFARule"
+	// PolicyServiceUpdateMFARuleProcedure is the fully-qualified name of the PolicyService's
+	// UpdateMFARule RPC.
+	PolicyServiceUpdateMFARuleProcedure = "/werbot.v1.PolicyService/UpdateMFARule"
+	// PolicyServiceDeleteMFARuleProcedure is the fully-qualified name of the PolicyService's
+	// DeleteMFARule RPC.
+	PolicyServiceDeleteMFARuleProcedure = "/werbot.v1.PolicyService/DeleteMFARule"
 )
 
 // PolicyServiceClient is a client for the werbot.v1.PolicyService service.
@@ -50,6 +119,36 @@ type PolicyServiceClient interface {
 	SetResourceRules(context.Context, *connect.Request[v1.SetResourceRulesRequest]) (*connect.Response[v1.SetResourceRulesResponse], error)
 	// CheckAccess evaluates the organization policy for one request (probe).
 	CheckAccess(context.Context, *connect.Request[v1.CheckAccessRequest]) (*connect.Response[v1.CheckAccessResponse], error)
+	// Command rules narrow which command classes subjects may run on resources.
+	ListCommandRules(context.Context, *connect.Request[v1.ListCommandRulesRequest]) (*connect.Response[v1.ListCommandRulesResponse], error)
+	CreateCommandRule(context.Context, *connect.Request[v1.CreateCommandRuleRequest]) (*connect.Response[v1.CreateCommandRuleResponse], error)
+	UpdateCommandRule(context.Context, *connect.Request[v1.UpdateCommandRuleRequest]) (*connect.Response[v1.UpdateCommandRuleResponse], error)
+	DeleteCommandRule(context.Context, *connect.Request[v1.DeleteCommandRuleRequest]) (*connect.Response[v1.DeleteCommandRuleResponse], error)
+	// Class rules override the classes of matching commands.
+	ListClassRules(context.Context, *connect.Request[v1.ListClassRulesRequest]) (*connect.Response[v1.ListClassRulesResponse], error)
+	CreateClassRule(context.Context, *connect.Request[v1.CreateClassRuleRequest]) (*connect.Response[v1.CreateClassRuleResponse], error)
+	DeleteClassRule(context.Context, *connect.Request[v1.DeleteClassRuleRequest]) (*connect.Response[v1.DeleteClassRuleResponse], error)
+	// Custom policies are hand-written Cedar; a permit widens access.
+	ListCustomPolicies(context.Context, *connect.Request[v1.ListCustomPoliciesRequest]) (*connect.Response[v1.ListCustomPoliciesResponse], error)
+	CreateCustomPolicy(context.Context, *connect.Request[v1.CreateCustomPolicyRequest]) (*connect.Response[v1.CreateCustomPolicyResponse], error)
+	UpdateCustomPolicy(context.Context, *connect.Request[v1.UpdateCustomPolicyRequest]) (*connect.Response[v1.UpdateCustomPolicyResponse], error)
+	DeleteCustomPolicy(context.Context, *connect.Request[v1.DeleteCustomPolicyRequest]) (*connect.Response[v1.DeleteCustomPolicyResponse], error)
+	// TestCommand classifies a command and decides it for a subject on a resource (probe).
+	TestCommand(context.Context, *connect.Request[v1.TestCommandRequest]) (*connect.Response[v1.TestCommandResponse], error)
+	// Path rules limit the paths a command may touch (messages in policy_paths.proto).
+	ListPathRules(context.Context, *connect.Request[v1.ListPathRulesRequest]) (*connect.Response[v1.ListPathRulesResponse], error)
+	CreatePathRule(context.Context, *connect.Request[v1.CreatePathRuleRequest]) (*connect.Response[v1.CreatePathRuleResponse], error)
+	UpdatePathRule(context.Context, *connect.Request[v1.UpdatePathRuleRequest]) (*connect.Response[v1.UpdatePathRuleResponse], error)
+	DeletePathRule(context.Context, *connect.Request[v1.DeletePathRuleRequest]) (*connect.Response[v1.DeletePathRuleResponse], error)
+	// Terminal rules make a shell a checked command console or deny it.
+	ListTerminalRules(context.Context, *connect.Request[v1.ListTerminalRulesRequest]) (*connect.Response[v1.ListTerminalRulesResponse], error)
+	CreateTerminalRule(context.Context, *connect.Request[v1.CreateTerminalRuleRequest]) (*connect.Response[v1.CreateTerminalRuleResponse], error)
+	DeleteTerminalRule(context.Context, *connect.Request[v1.DeleteTerminalRuleRequest]) (*connect.Response[v1.DeleteTerminalRuleResponse], error)
+	// MFA rules require a fresh second factor to connect (messages in policy_mfa.proto).
+	ListMFARules(context.Context, *connect.Request[v1.ListMFARulesRequest]) (*connect.Response[v1.ListMFARulesResponse], error)
+	CreateMFARule(context.Context, *connect.Request[v1.CreateMFARuleRequest]) (*connect.Response[v1.CreateMFARuleResponse], error)
+	UpdateMFARule(context.Context, *connect.Request[v1.UpdateMFARuleRequest]) (*connect.Response[v1.UpdateMFARuleResponse], error)
+	DeleteMFARule(context.Context, *connect.Request[v1.DeleteMFARuleRequest]) (*connect.Response[v1.DeleteMFARuleResponse], error)
 }
 
 // NewPolicyServiceClient constructs a client for the werbot.v1.PolicyService service. By default,
@@ -81,14 +180,175 @@ func NewPolicyServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(policyServiceMethods.ByName("CheckAccess")),
 			connect.WithClientOptions(opts...),
 		),
+		listCommandRules: connect.NewClient[v1.ListCommandRulesRequest, v1.ListCommandRulesResponse](
+			httpClient,
+			baseURL+PolicyServiceListCommandRulesProcedure,
+			connect.WithSchema(policyServiceMethods.ByName("ListCommandRules")),
+			connect.WithClientOptions(opts...),
+		),
+		createCommandRule: connect.NewClient[v1.CreateCommandRuleRequest, v1.CreateCommandRuleResponse](
+			httpClient,
+			baseURL+PolicyServiceCreateCommandRuleProcedure,
+			connect.WithSchema(policyServiceMethods.ByName("CreateCommandRule")),
+			connect.WithClientOptions(opts...),
+		),
+		updateCommandRule: connect.NewClient[v1.UpdateCommandRuleRequest, v1.UpdateCommandRuleResponse](
+			httpClient,
+			baseURL+PolicyServiceUpdateCommandRuleProcedure,
+			connect.WithSchema(policyServiceMethods.ByName("UpdateCommandRule")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteCommandRule: connect.NewClient[v1.DeleteCommandRuleRequest, v1.DeleteCommandRuleResponse](
+			httpClient,
+			baseURL+PolicyServiceDeleteCommandRuleProcedure,
+			connect.WithSchema(policyServiceMethods.ByName("DeleteCommandRule")),
+			connect.WithClientOptions(opts...),
+		),
+		listClassRules: connect.NewClient[v1.ListClassRulesRequest, v1.ListClassRulesResponse](
+			httpClient,
+			baseURL+PolicyServiceListClassRulesProcedure,
+			connect.WithSchema(policyServiceMethods.ByName("ListClassRules")),
+			connect.WithClientOptions(opts...),
+		),
+		createClassRule: connect.NewClient[v1.CreateClassRuleRequest, v1.CreateClassRuleResponse](
+			httpClient,
+			baseURL+PolicyServiceCreateClassRuleProcedure,
+			connect.WithSchema(policyServiceMethods.ByName("CreateClassRule")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteClassRule: connect.NewClient[v1.DeleteClassRuleRequest, v1.DeleteClassRuleResponse](
+			httpClient,
+			baseURL+PolicyServiceDeleteClassRuleProcedure,
+			connect.WithSchema(policyServiceMethods.ByName("DeleteClassRule")),
+			connect.WithClientOptions(opts...),
+		),
+		listCustomPolicies: connect.NewClient[v1.ListCustomPoliciesRequest, v1.ListCustomPoliciesResponse](
+			httpClient,
+			baseURL+PolicyServiceListCustomPoliciesProcedure,
+			connect.WithSchema(policyServiceMethods.ByName("ListCustomPolicies")),
+			connect.WithClientOptions(opts...),
+		),
+		createCustomPolicy: connect.NewClient[v1.CreateCustomPolicyRequest, v1.CreateCustomPolicyResponse](
+			httpClient,
+			baseURL+PolicyServiceCreateCustomPolicyProcedure,
+			connect.WithSchema(policyServiceMethods.ByName("CreateCustomPolicy")),
+			connect.WithClientOptions(opts...),
+		),
+		updateCustomPolicy: connect.NewClient[v1.UpdateCustomPolicyRequest, v1.UpdateCustomPolicyResponse](
+			httpClient,
+			baseURL+PolicyServiceUpdateCustomPolicyProcedure,
+			connect.WithSchema(policyServiceMethods.ByName("UpdateCustomPolicy")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteCustomPolicy: connect.NewClient[v1.DeleteCustomPolicyRequest, v1.DeleteCustomPolicyResponse](
+			httpClient,
+			baseURL+PolicyServiceDeleteCustomPolicyProcedure,
+			connect.WithSchema(policyServiceMethods.ByName("DeleteCustomPolicy")),
+			connect.WithClientOptions(opts...),
+		),
+		testCommand: connect.NewClient[v1.TestCommandRequest, v1.TestCommandResponse](
+			httpClient,
+			baseURL+PolicyServiceTestCommandProcedure,
+			connect.WithSchema(policyServiceMethods.ByName("TestCommand")),
+			connect.WithClientOptions(opts...),
+		),
+		listPathRules: connect.NewClient[v1.ListPathRulesRequest, v1.ListPathRulesResponse](
+			httpClient,
+			baseURL+PolicyServiceListPathRulesProcedure,
+			connect.WithSchema(policyServiceMethods.ByName("ListPathRules")),
+			connect.WithClientOptions(opts...),
+		),
+		createPathRule: connect.NewClient[v1.CreatePathRuleRequest, v1.CreatePathRuleResponse](
+			httpClient,
+			baseURL+PolicyServiceCreatePathRuleProcedure,
+			connect.WithSchema(policyServiceMethods.ByName("CreatePathRule")),
+			connect.WithClientOptions(opts...),
+		),
+		updatePathRule: connect.NewClient[v1.UpdatePathRuleRequest, v1.UpdatePathRuleResponse](
+			httpClient,
+			baseURL+PolicyServiceUpdatePathRuleProcedure,
+			connect.WithSchema(policyServiceMethods.ByName("UpdatePathRule")),
+			connect.WithClientOptions(opts...),
+		),
+		deletePathRule: connect.NewClient[v1.DeletePathRuleRequest, v1.DeletePathRuleResponse](
+			httpClient,
+			baseURL+PolicyServiceDeletePathRuleProcedure,
+			connect.WithSchema(policyServiceMethods.ByName("DeletePathRule")),
+			connect.WithClientOptions(opts...),
+		),
+		listTerminalRules: connect.NewClient[v1.ListTerminalRulesRequest, v1.ListTerminalRulesResponse](
+			httpClient,
+			baseURL+PolicyServiceListTerminalRulesProcedure,
+			connect.WithSchema(policyServiceMethods.ByName("ListTerminalRules")),
+			connect.WithClientOptions(opts...),
+		),
+		createTerminalRule: connect.NewClient[v1.CreateTerminalRuleRequest, v1.CreateTerminalRuleResponse](
+			httpClient,
+			baseURL+PolicyServiceCreateTerminalRuleProcedure,
+			connect.WithSchema(policyServiceMethods.ByName("CreateTerminalRule")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteTerminalRule: connect.NewClient[v1.DeleteTerminalRuleRequest, v1.DeleteTerminalRuleResponse](
+			httpClient,
+			baseURL+PolicyServiceDeleteTerminalRuleProcedure,
+			connect.WithSchema(policyServiceMethods.ByName("DeleteTerminalRule")),
+			connect.WithClientOptions(opts...),
+		),
+		listMFARules: connect.NewClient[v1.ListMFARulesRequest, v1.ListMFARulesResponse](
+			httpClient,
+			baseURL+PolicyServiceListMFARulesProcedure,
+			connect.WithSchema(policyServiceMethods.ByName("ListMFARules")),
+			connect.WithClientOptions(opts...),
+		),
+		createMFARule: connect.NewClient[v1.CreateMFARuleRequest, v1.CreateMFARuleResponse](
+			httpClient,
+			baseURL+PolicyServiceCreateMFARuleProcedure,
+			connect.WithSchema(policyServiceMethods.ByName("CreateMFARule")),
+			connect.WithClientOptions(opts...),
+		),
+		updateMFARule: connect.NewClient[v1.UpdateMFARuleRequest, v1.UpdateMFARuleResponse](
+			httpClient,
+			baseURL+PolicyServiceUpdateMFARuleProcedure,
+			connect.WithSchema(policyServiceMethods.ByName("UpdateMFARule")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteMFARule: connect.NewClient[v1.DeleteMFARuleRequest, v1.DeleteMFARuleResponse](
+			httpClient,
+			baseURL+PolicyServiceDeleteMFARuleProcedure,
+			connect.WithSchema(policyServiceMethods.ByName("DeleteMFARule")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // policyServiceClient implements PolicyServiceClient.
 type policyServiceClient struct {
-	getResourceRules *connect.Client[v1.GetResourceRulesRequest, v1.GetResourceRulesResponse]
-	setResourceRules *connect.Client[v1.SetResourceRulesRequest, v1.SetResourceRulesResponse]
-	checkAccess      *connect.Client[v1.CheckAccessRequest, v1.CheckAccessResponse]
+	getResourceRules   *connect.Client[v1.GetResourceRulesRequest, v1.GetResourceRulesResponse]
+	setResourceRules   *connect.Client[v1.SetResourceRulesRequest, v1.SetResourceRulesResponse]
+	checkAccess        *connect.Client[v1.CheckAccessRequest, v1.CheckAccessResponse]
+	listCommandRules   *connect.Client[v1.ListCommandRulesRequest, v1.ListCommandRulesResponse]
+	createCommandRule  *connect.Client[v1.CreateCommandRuleRequest, v1.CreateCommandRuleResponse]
+	updateCommandRule  *connect.Client[v1.UpdateCommandRuleRequest, v1.UpdateCommandRuleResponse]
+	deleteCommandRule  *connect.Client[v1.DeleteCommandRuleRequest, v1.DeleteCommandRuleResponse]
+	listClassRules     *connect.Client[v1.ListClassRulesRequest, v1.ListClassRulesResponse]
+	createClassRule    *connect.Client[v1.CreateClassRuleRequest, v1.CreateClassRuleResponse]
+	deleteClassRule    *connect.Client[v1.DeleteClassRuleRequest, v1.DeleteClassRuleResponse]
+	listCustomPolicies *connect.Client[v1.ListCustomPoliciesRequest, v1.ListCustomPoliciesResponse]
+	createCustomPolicy *connect.Client[v1.CreateCustomPolicyRequest, v1.CreateCustomPolicyResponse]
+	updateCustomPolicy *connect.Client[v1.UpdateCustomPolicyRequest, v1.UpdateCustomPolicyResponse]
+	deleteCustomPolicy *connect.Client[v1.DeleteCustomPolicyRequest, v1.DeleteCustomPolicyResponse]
+	testCommand        *connect.Client[v1.TestCommandRequest, v1.TestCommandResponse]
+	listPathRules      *connect.Client[v1.ListPathRulesRequest, v1.ListPathRulesResponse]
+	createPathRule     *connect.Client[v1.CreatePathRuleRequest, v1.CreatePathRuleResponse]
+	updatePathRule     *connect.Client[v1.UpdatePathRuleRequest, v1.UpdatePathRuleResponse]
+	deletePathRule     *connect.Client[v1.DeletePathRuleRequest, v1.DeletePathRuleResponse]
+	listTerminalRules  *connect.Client[v1.ListTerminalRulesRequest, v1.ListTerminalRulesResponse]
+	createTerminalRule *connect.Client[v1.CreateTerminalRuleRequest, v1.CreateTerminalRuleResponse]
+	deleteTerminalRule *connect.Client[v1.DeleteTerminalRuleRequest, v1.DeleteTerminalRuleResponse]
+	listMFARules       *connect.Client[v1.ListMFARulesRequest, v1.ListMFARulesResponse]
+	createMFARule      *connect.Client[v1.CreateMFARuleRequest, v1.CreateMFARuleResponse]
+	updateMFARule      *connect.Client[v1.UpdateMFARuleRequest, v1.UpdateMFARuleResponse]
+	deleteMFARule      *connect.Client[v1.DeleteMFARuleRequest, v1.DeleteMFARuleResponse]
 }
 
 // GetResourceRules calls werbot.v1.PolicyService.GetResourceRules.
@@ -106,12 +366,157 @@ func (c *policyServiceClient) CheckAccess(ctx context.Context, req *connect.Requ
 	return c.checkAccess.CallUnary(ctx, req)
 }
 
+// ListCommandRules calls werbot.v1.PolicyService.ListCommandRules.
+func (c *policyServiceClient) ListCommandRules(ctx context.Context, req *connect.Request[v1.ListCommandRulesRequest]) (*connect.Response[v1.ListCommandRulesResponse], error) {
+	return c.listCommandRules.CallUnary(ctx, req)
+}
+
+// CreateCommandRule calls werbot.v1.PolicyService.CreateCommandRule.
+func (c *policyServiceClient) CreateCommandRule(ctx context.Context, req *connect.Request[v1.CreateCommandRuleRequest]) (*connect.Response[v1.CreateCommandRuleResponse], error) {
+	return c.createCommandRule.CallUnary(ctx, req)
+}
+
+// UpdateCommandRule calls werbot.v1.PolicyService.UpdateCommandRule.
+func (c *policyServiceClient) UpdateCommandRule(ctx context.Context, req *connect.Request[v1.UpdateCommandRuleRequest]) (*connect.Response[v1.UpdateCommandRuleResponse], error) {
+	return c.updateCommandRule.CallUnary(ctx, req)
+}
+
+// DeleteCommandRule calls werbot.v1.PolicyService.DeleteCommandRule.
+func (c *policyServiceClient) DeleteCommandRule(ctx context.Context, req *connect.Request[v1.DeleteCommandRuleRequest]) (*connect.Response[v1.DeleteCommandRuleResponse], error) {
+	return c.deleteCommandRule.CallUnary(ctx, req)
+}
+
+// ListClassRules calls werbot.v1.PolicyService.ListClassRules.
+func (c *policyServiceClient) ListClassRules(ctx context.Context, req *connect.Request[v1.ListClassRulesRequest]) (*connect.Response[v1.ListClassRulesResponse], error) {
+	return c.listClassRules.CallUnary(ctx, req)
+}
+
+// CreateClassRule calls werbot.v1.PolicyService.CreateClassRule.
+func (c *policyServiceClient) CreateClassRule(ctx context.Context, req *connect.Request[v1.CreateClassRuleRequest]) (*connect.Response[v1.CreateClassRuleResponse], error) {
+	return c.createClassRule.CallUnary(ctx, req)
+}
+
+// DeleteClassRule calls werbot.v1.PolicyService.DeleteClassRule.
+func (c *policyServiceClient) DeleteClassRule(ctx context.Context, req *connect.Request[v1.DeleteClassRuleRequest]) (*connect.Response[v1.DeleteClassRuleResponse], error) {
+	return c.deleteClassRule.CallUnary(ctx, req)
+}
+
+// ListCustomPolicies calls werbot.v1.PolicyService.ListCustomPolicies.
+func (c *policyServiceClient) ListCustomPolicies(ctx context.Context, req *connect.Request[v1.ListCustomPoliciesRequest]) (*connect.Response[v1.ListCustomPoliciesResponse], error) {
+	return c.listCustomPolicies.CallUnary(ctx, req)
+}
+
+// CreateCustomPolicy calls werbot.v1.PolicyService.CreateCustomPolicy.
+func (c *policyServiceClient) CreateCustomPolicy(ctx context.Context, req *connect.Request[v1.CreateCustomPolicyRequest]) (*connect.Response[v1.CreateCustomPolicyResponse], error) {
+	return c.createCustomPolicy.CallUnary(ctx, req)
+}
+
+// UpdateCustomPolicy calls werbot.v1.PolicyService.UpdateCustomPolicy.
+func (c *policyServiceClient) UpdateCustomPolicy(ctx context.Context, req *connect.Request[v1.UpdateCustomPolicyRequest]) (*connect.Response[v1.UpdateCustomPolicyResponse], error) {
+	return c.updateCustomPolicy.CallUnary(ctx, req)
+}
+
+// DeleteCustomPolicy calls werbot.v1.PolicyService.DeleteCustomPolicy.
+func (c *policyServiceClient) DeleteCustomPolicy(ctx context.Context, req *connect.Request[v1.DeleteCustomPolicyRequest]) (*connect.Response[v1.DeleteCustomPolicyResponse], error) {
+	return c.deleteCustomPolicy.CallUnary(ctx, req)
+}
+
+// TestCommand calls werbot.v1.PolicyService.TestCommand.
+func (c *policyServiceClient) TestCommand(ctx context.Context, req *connect.Request[v1.TestCommandRequest]) (*connect.Response[v1.TestCommandResponse], error) {
+	return c.testCommand.CallUnary(ctx, req)
+}
+
+// ListPathRules calls werbot.v1.PolicyService.ListPathRules.
+func (c *policyServiceClient) ListPathRules(ctx context.Context, req *connect.Request[v1.ListPathRulesRequest]) (*connect.Response[v1.ListPathRulesResponse], error) {
+	return c.listPathRules.CallUnary(ctx, req)
+}
+
+// CreatePathRule calls werbot.v1.PolicyService.CreatePathRule.
+func (c *policyServiceClient) CreatePathRule(ctx context.Context, req *connect.Request[v1.CreatePathRuleRequest]) (*connect.Response[v1.CreatePathRuleResponse], error) {
+	return c.createPathRule.CallUnary(ctx, req)
+}
+
+// UpdatePathRule calls werbot.v1.PolicyService.UpdatePathRule.
+func (c *policyServiceClient) UpdatePathRule(ctx context.Context, req *connect.Request[v1.UpdatePathRuleRequest]) (*connect.Response[v1.UpdatePathRuleResponse], error) {
+	return c.updatePathRule.CallUnary(ctx, req)
+}
+
+// DeletePathRule calls werbot.v1.PolicyService.DeletePathRule.
+func (c *policyServiceClient) DeletePathRule(ctx context.Context, req *connect.Request[v1.DeletePathRuleRequest]) (*connect.Response[v1.DeletePathRuleResponse], error) {
+	return c.deletePathRule.CallUnary(ctx, req)
+}
+
+// ListTerminalRules calls werbot.v1.PolicyService.ListTerminalRules.
+func (c *policyServiceClient) ListTerminalRules(ctx context.Context, req *connect.Request[v1.ListTerminalRulesRequest]) (*connect.Response[v1.ListTerminalRulesResponse], error) {
+	return c.listTerminalRules.CallUnary(ctx, req)
+}
+
+// CreateTerminalRule calls werbot.v1.PolicyService.CreateTerminalRule.
+func (c *policyServiceClient) CreateTerminalRule(ctx context.Context, req *connect.Request[v1.CreateTerminalRuleRequest]) (*connect.Response[v1.CreateTerminalRuleResponse], error) {
+	return c.createTerminalRule.CallUnary(ctx, req)
+}
+
+// DeleteTerminalRule calls werbot.v1.PolicyService.DeleteTerminalRule.
+func (c *policyServiceClient) DeleteTerminalRule(ctx context.Context, req *connect.Request[v1.DeleteTerminalRuleRequest]) (*connect.Response[v1.DeleteTerminalRuleResponse], error) {
+	return c.deleteTerminalRule.CallUnary(ctx, req)
+}
+
+// ListMFARules calls werbot.v1.PolicyService.ListMFARules.
+func (c *policyServiceClient) ListMFARules(ctx context.Context, req *connect.Request[v1.ListMFARulesRequest]) (*connect.Response[v1.ListMFARulesResponse], error) {
+	return c.listMFARules.CallUnary(ctx, req)
+}
+
+// CreateMFARule calls werbot.v1.PolicyService.CreateMFARule.
+func (c *policyServiceClient) CreateMFARule(ctx context.Context, req *connect.Request[v1.CreateMFARuleRequest]) (*connect.Response[v1.CreateMFARuleResponse], error) {
+	return c.createMFARule.CallUnary(ctx, req)
+}
+
+// UpdateMFARule calls werbot.v1.PolicyService.UpdateMFARule.
+func (c *policyServiceClient) UpdateMFARule(ctx context.Context, req *connect.Request[v1.UpdateMFARuleRequest]) (*connect.Response[v1.UpdateMFARuleResponse], error) {
+	return c.updateMFARule.CallUnary(ctx, req)
+}
+
+// DeleteMFARule calls werbot.v1.PolicyService.DeleteMFARule.
+func (c *policyServiceClient) DeleteMFARule(ctx context.Context, req *connect.Request[v1.DeleteMFARuleRequest]) (*connect.Response[v1.DeleteMFARuleResponse], error) {
+	return c.deleteMFARule.CallUnary(ctx, req)
+}
+
 // PolicyServiceHandler is an implementation of the werbot.v1.PolicyService service.
 type PolicyServiceHandler interface {
 	GetResourceRules(context.Context, *connect.Request[v1.GetResourceRulesRequest]) (*connect.Response[v1.GetResourceRulesResponse], error)
 	SetResourceRules(context.Context, *connect.Request[v1.SetResourceRulesRequest]) (*connect.Response[v1.SetResourceRulesResponse], error)
 	// CheckAccess evaluates the organization policy for one request (probe).
 	CheckAccess(context.Context, *connect.Request[v1.CheckAccessRequest]) (*connect.Response[v1.CheckAccessResponse], error)
+	// Command rules narrow which command classes subjects may run on resources.
+	ListCommandRules(context.Context, *connect.Request[v1.ListCommandRulesRequest]) (*connect.Response[v1.ListCommandRulesResponse], error)
+	CreateCommandRule(context.Context, *connect.Request[v1.CreateCommandRuleRequest]) (*connect.Response[v1.CreateCommandRuleResponse], error)
+	UpdateCommandRule(context.Context, *connect.Request[v1.UpdateCommandRuleRequest]) (*connect.Response[v1.UpdateCommandRuleResponse], error)
+	DeleteCommandRule(context.Context, *connect.Request[v1.DeleteCommandRuleRequest]) (*connect.Response[v1.DeleteCommandRuleResponse], error)
+	// Class rules override the classes of matching commands.
+	ListClassRules(context.Context, *connect.Request[v1.ListClassRulesRequest]) (*connect.Response[v1.ListClassRulesResponse], error)
+	CreateClassRule(context.Context, *connect.Request[v1.CreateClassRuleRequest]) (*connect.Response[v1.CreateClassRuleResponse], error)
+	DeleteClassRule(context.Context, *connect.Request[v1.DeleteClassRuleRequest]) (*connect.Response[v1.DeleteClassRuleResponse], error)
+	// Custom policies are hand-written Cedar; a permit widens access.
+	ListCustomPolicies(context.Context, *connect.Request[v1.ListCustomPoliciesRequest]) (*connect.Response[v1.ListCustomPoliciesResponse], error)
+	CreateCustomPolicy(context.Context, *connect.Request[v1.CreateCustomPolicyRequest]) (*connect.Response[v1.CreateCustomPolicyResponse], error)
+	UpdateCustomPolicy(context.Context, *connect.Request[v1.UpdateCustomPolicyRequest]) (*connect.Response[v1.UpdateCustomPolicyResponse], error)
+	DeleteCustomPolicy(context.Context, *connect.Request[v1.DeleteCustomPolicyRequest]) (*connect.Response[v1.DeleteCustomPolicyResponse], error)
+	// TestCommand classifies a command and decides it for a subject on a resource (probe).
+	TestCommand(context.Context, *connect.Request[v1.TestCommandRequest]) (*connect.Response[v1.TestCommandResponse], error)
+	// Path rules limit the paths a command may touch (messages in policy_paths.proto).
+	ListPathRules(context.Context, *connect.Request[v1.ListPathRulesRequest]) (*connect.Response[v1.ListPathRulesResponse], error)
+	CreatePathRule(context.Context, *connect.Request[v1.CreatePathRuleRequest]) (*connect.Response[v1.CreatePathRuleResponse], error)
+	UpdatePathRule(context.Context, *connect.Request[v1.UpdatePathRuleRequest]) (*connect.Response[v1.UpdatePathRuleResponse], error)
+	DeletePathRule(context.Context, *connect.Request[v1.DeletePathRuleRequest]) (*connect.Response[v1.DeletePathRuleResponse], error)
+	// Terminal rules make a shell a checked command console or deny it.
+	ListTerminalRules(context.Context, *connect.Request[v1.ListTerminalRulesRequest]) (*connect.Response[v1.ListTerminalRulesResponse], error)
+	CreateTerminalRule(context.Context, *connect.Request[v1.CreateTerminalRuleRequest]) (*connect.Response[v1.CreateTerminalRuleResponse], error)
+	DeleteTerminalRule(context.Context, *connect.Request[v1.DeleteTerminalRuleRequest]) (*connect.Response[v1.DeleteTerminalRuleResponse], error)
+	// MFA rules require a fresh second factor to connect (messages in policy_mfa.proto).
+	ListMFARules(context.Context, *connect.Request[v1.ListMFARulesRequest]) (*connect.Response[v1.ListMFARulesResponse], error)
+	CreateMFARule(context.Context, *connect.Request[v1.CreateMFARuleRequest]) (*connect.Response[v1.CreateMFARuleResponse], error)
+	UpdateMFARule(context.Context, *connect.Request[v1.UpdateMFARuleRequest]) (*connect.Response[v1.UpdateMFARuleResponse], error)
+	DeleteMFARule(context.Context, *connect.Request[v1.DeleteMFARuleRequest]) (*connect.Response[v1.DeleteMFARuleResponse], error)
 }
 
 // NewPolicyServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -139,6 +544,144 @@ func NewPolicyServiceHandler(svc PolicyServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(policyServiceMethods.ByName("CheckAccess")),
 		connect.WithHandlerOptions(opts...),
 	)
+	policyServiceListCommandRulesHandler := connect.NewUnaryHandler(
+		PolicyServiceListCommandRulesProcedure,
+		svc.ListCommandRules,
+		connect.WithSchema(policyServiceMethods.ByName("ListCommandRules")),
+		connect.WithHandlerOptions(opts...),
+	)
+	policyServiceCreateCommandRuleHandler := connect.NewUnaryHandler(
+		PolicyServiceCreateCommandRuleProcedure,
+		svc.CreateCommandRule,
+		connect.WithSchema(policyServiceMethods.ByName("CreateCommandRule")),
+		connect.WithHandlerOptions(opts...),
+	)
+	policyServiceUpdateCommandRuleHandler := connect.NewUnaryHandler(
+		PolicyServiceUpdateCommandRuleProcedure,
+		svc.UpdateCommandRule,
+		connect.WithSchema(policyServiceMethods.ByName("UpdateCommandRule")),
+		connect.WithHandlerOptions(opts...),
+	)
+	policyServiceDeleteCommandRuleHandler := connect.NewUnaryHandler(
+		PolicyServiceDeleteCommandRuleProcedure,
+		svc.DeleteCommandRule,
+		connect.WithSchema(policyServiceMethods.ByName("DeleteCommandRule")),
+		connect.WithHandlerOptions(opts...),
+	)
+	policyServiceListClassRulesHandler := connect.NewUnaryHandler(
+		PolicyServiceListClassRulesProcedure,
+		svc.ListClassRules,
+		connect.WithSchema(policyServiceMethods.ByName("ListClassRules")),
+		connect.WithHandlerOptions(opts...),
+	)
+	policyServiceCreateClassRuleHandler := connect.NewUnaryHandler(
+		PolicyServiceCreateClassRuleProcedure,
+		svc.CreateClassRule,
+		connect.WithSchema(policyServiceMethods.ByName("CreateClassRule")),
+		connect.WithHandlerOptions(opts...),
+	)
+	policyServiceDeleteClassRuleHandler := connect.NewUnaryHandler(
+		PolicyServiceDeleteClassRuleProcedure,
+		svc.DeleteClassRule,
+		connect.WithSchema(policyServiceMethods.ByName("DeleteClassRule")),
+		connect.WithHandlerOptions(opts...),
+	)
+	policyServiceListCustomPoliciesHandler := connect.NewUnaryHandler(
+		PolicyServiceListCustomPoliciesProcedure,
+		svc.ListCustomPolicies,
+		connect.WithSchema(policyServiceMethods.ByName("ListCustomPolicies")),
+		connect.WithHandlerOptions(opts...),
+	)
+	policyServiceCreateCustomPolicyHandler := connect.NewUnaryHandler(
+		PolicyServiceCreateCustomPolicyProcedure,
+		svc.CreateCustomPolicy,
+		connect.WithSchema(policyServiceMethods.ByName("CreateCustomPolicy")),
+		connect.WithHandlerOptions(opts...),
+	)
+	policyServiceUpdateCustomPolicyHandler := connect.NewUnaryHandler(
+		PolicyServiceUpdateCustomPolicyProcedure,
+		svc.UpdateCustomPolicy,
+		connect.WithSchema(policyServiceMethods.ByName("UpdateCustomPolicy")),
+		connect.WithHandlerOptions(opts...),
+	)
+	policyServiceDeleteCustomPolicyHandler := connect.NewUnaryHandler(
+		PolicyServiceDeleteCustomPolicyProcedure,
+		svc.DeleteCustomPolicy,
+		connect.WithSchema(policyServiceMethods.ByName("DeleteCustomPolicy")),
+		connect.WithHandlerOptions(opts...),
+	)
+	policyServiceTestCommandHandler := connect.NewUnaryHandler(
+		PolicyServiceTestCommandProcedure,
+		svc.TestCommand,
+		connect.WithSchema(policyServiceMethods.ByName("TestCommand")),
+		connect.WithHandlerOptions(opts...),
+	)
+	policyServiceListPathRulesHandler := connect.NewUnaryHandler(
+		PolicyServiceListPathRulesProcedure,
+		svc.ListPathRules,
+		connect.WithSchema(policyServiceMethods.ByName("ListPathRules")),
+		connect.WithHandlerOptions(opts...),
+	)
+	policyServiceCreatePathRuleHandler := connect.NewUnaryHandler(
+		PolicyServiceCreatePathRuleProcedure,
+		svc.CreatePathRule,
+		connect.WithSchema(policyServiceMethods.ByName("CreatePathRule")),
+		connect.WithHandlerOptions(opts...),
+	)
+	policyServiceUpdatePathRuleHandler := connect.NewUnaryHandler(
+		PolicyServiceUpdatePathRuleProcedure,
+		svc.UpdatePathRule,
+		connect.WithSchema(policyServiceMethods.ByName("UpdatePathRule")),
+		connect.WithHandlerOptions(opts...),
+	)
+	policyServiceDeletePathRuleHandler := connect.NewUnaryHandler(
+		PolicyServiceDeletePathRuleProcedure,
+		svc.DeletePathRule,
+		connect.WithSchema(policyServiceMethods.ByName("DeletePathRule")),
+		connect.WithHandlerOptions(opts...),
+	)
+	policyServiceListTerminalRulesHandler := connect.NewUnaryHandler(
+		PolicyServiceListTerminalRulesProcedure,
+		svc.ListTerminalRules,
+		connect.WithSchema(policyServiceMethods.ByName("ListTerminalRules")),
+		connect.WithHandlerOptions(opts...),
+	)
+	policyServiceCreateTerminalRuleHandler := connect.NewUnaryHandler(
+		PolicyServiceCreateTerminalRuleProcedure,
+		svc.CreateTerminalRule,
+		connect.WithSchema(policyServiceMethods.ByName("CreateTerminalRule")),
+		connect.WithHandlerOptions(opts...),
+	)
+	policyServiceDeleteTerminalRuleHandler := connect.NewUnaryHandler(
+		PolicyServiceDeleteTerminalRuleProcedure,
+		svc.DeleteTerminalRule,
+		connect.WithSchema(policyServiceMethods.ByName("DeleteTerminalRule")),
+		connect.WithHandlerOptions(opts...),
+	)
+	policyServiceListMFARulesHandler := connect.NewUnaryHandler(
+		PolicyServiceListMFARulesProcedure,
+		svc.ListMFARules,
+		connect.WithSchema(policyServiceMethods.ByName("ListMFARules")),
+		connect.WithHandlerOptions(opts...),
+	)
+	policyServiceCreateMFARuleHandler := connect.NewUnaryHandler(
+		PolicyServiceCreateMFARuleProcedure,
+		svc.CreateMFARule,
+		connect.WithSchema(policyServiceMethods.ByName("CreateMFARule")),
+		connect.WithHandlerOptions(opts...),
+	)
+	policyServiceUpdateMFARuleHandler := connect.NewUnaryHandler(
+		PolicyServiceUpdateMFARuleProcedure,
+		svc.UpdateMFARule,
+		connect.WithSchema(policyServiceMethods.ByName("UpdateMFARule")),
+		connect.WithHandlerOptions(opts...),
+	)
+	policyServiceDeleteMFARuleHandler := connect.NewUnaryHandler(
+		PolicyServiceDeleteMFARuleProcedure,
+		svc.DeleteMFARule,
+		connect.WithSchema(policyServiceMethods.ByName("DeleteMFARule")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/werbot.v1.PolicyService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case PolicyServiceGetResourceRulesProcedure:
@@ -147,6 +690,52 @@ func NewPolicyServiceHandler(svc PolicyServiceHandler, opts ...connect.HandlerOp
 			policyServiceSetResourceRulesHandler.ServeHTTP(w, r)
 		case PolicyServiceCheckAccessProcedure:
 			policyServiceCheckAccessHandler.ServeHTTP(w, r)
+		case PolicyServiceListCommandRulesProcedure:
+			policyServiceListCommandRulesHandler.ServeHTTP(w, r)
+		case PolicyServiceCreateCommandRuleProcedure:
+			policyServiceCreateCommandRuleHandler.ServeHTTP(w, r)
+		case PolicyServiceUpdateCommandRuleProcedure:
+			policyServiceUpdateCommandRuleHandler.ServeHTTP(w, r)
+		case PolicyServiceDeleteCommandRuleProcedure:
+			policyServiceDeleteCommandRuleHandler.ServeHTTP(w, r)
+		case PolicyServiceListClassRulesProcedure:
+			policyServiceListClassRulesHandler.ServeHTTP(w, r)
+		case PolicyServiceCreateClassRuleProcedure:
+			policyServiceCreateClassRuleHandler.ServeHTTP(w, r)
+		case PolicyServiceDeleteClassRuleProcedure:
+			policyServiceDeleteClassRuleHandler.ServeHTTP(w, r)
+		case PolicyServiceListCustomPoliciesProcedure:
+			policyServiceListCustomPoliciesHandler.ServeHTTP(w, r)
+		case PolicyServiceCreateCustomPolicyProcedure:
+			policyServiceCreateCustomPolicyHandler.ServeHTTP(w, r)
+		case PolicyServiceUpdateCustomPolicyProcedure:
+			policyServiceUpdateCustomPolicyHandler.ServeHTTP(w, r)
+		case PolicyServiceDeleteCustomPolicyProcedure:
+			policyServiceDeleteCustomPolicyHandler.ServeHTTP(w, r)
+		case PolicyServiceTestCommandProcedure:
+			policyServiceTestCommandHandler.ServeHTTP(w, r)
+		case PolicyServiceListPathRulesProcedure:
+			policyServiceListPathRulesHandler.ServeHTTP(w, r)
+		case PolicyServiceCreatePathRuleProcedure:
+			policyServiceCreatePathRuleHandler.ServeHTTP(w, r)
+		case PolicyServiceUpdatePathRuleProcedure:
+			policyServiceUpdatePathRuleHandler.ServeHTTP(w, r)
+		case PolicyServiceDeletePathRuleProcedure:
+			policyServiceDeletePathRuleHandler.ServeHTTP(w, r)
+		case PolicyServiceListTerminalRulesProcedure:
+			policyServiceListTerminalRulesHandler.ServeHTTP(w, r)
+		case PolicyServiceCreateTerminalRuleProcedure:
+			policyServiceCreateTerminalRuleHandler.ServeHTTP(w, r)
+		case PolicyServiceDeleteTerminalRuleProcedure:
+			policyServiceDeleteTerminalRuleHandler.ServeHTTP(w, r)
+		case PolicyServiceListMFARulesProcedure:
+			policyServiceListMFARulesHandler.ServeHTTP(w, r)
+		case PolicyServiceCreateMFARuleProcedure:
+			policyServiceCreateMFARuleHandler.ServeHTTP(w, r)
+		case PolicyServiceUpdateMFARuleProcedure:
+			policyServiceUpdateMFARuleHandler.ServeHTTP(w, r)
+		case PolicyServiceDeleteMFARuleProcedure:
+			policyServiceDeleteMFARuleHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -166,4 +755,96 @@ func (UnimplementedPolicyServiceHandler) SetResourceRules(context.Context, *conn
 
 func (UnimplementedPolicyServiceHandler) CheckAccess(context.Context, *connect.Request[v1.CheckAccessRequest]) (*connect.Response[v1.CheckAccessResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.PolicyService.CheckAccess is not implemented"))
+}
+
+func (UnimplementedPolicyServiceHandler) ListCommandRules(context.Context, *connect.Request[v1.ListCommandRulesRequest]) (*connect.Response[v1.ListCommandRulesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.PolicyService.ListCommandRules is not implemented"))
+}
+
+func (UnimplementedPolicyServiceHandler) CreateCommandRule(context.Context, *connect.Request[v1.CreateCommandRuleRequest]) (*connect.Response[v1.CreateCommandRuleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.PolicyService.CreateCommandRule is not implemented"))
+}
+
+func (UnimplementedPolicyServiceHandler) UpdateCommandRule(context.Context, *connect.Request[v1.UpdateCommandRuleRequest]) (*connect.Response[v1.UpdateCommandRuleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.PolicyService.UpdateCommandRule is not implemented"))
+}
+
+func (UnimplementedPolicyServiceHandler) DeleteCommandRule(context.Context, *connect.Request[v1.DeleteCommandRuleRequest]) (*connect.Response[v1.DeleteCommandRuleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.PolicyService.DeleteCommandRule is not implemented"))
+}
+
+func (UnimplementedPolicyServiceHandler) ListClassRules(context.Context, *connect.Request[v1.ListClassRulesRequest]) (*connect.Response[v1.ListClassRulesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.PolicyService.ListClassRules is not implemented"))
+}
+
+func (UnimplementedPolicyServiceHandler) CreateClassRule(context.Context, *connect.Request[v1.CreateClassRuleRequest]) (*connect.Response[v1.CreateClassRuleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.PolicyService.CreateClassRule is not implemented"))
+}
+
+func (UnimplementedPolicyServiceHandler) DeleteClassRule(context.Context, *connect.Request[v1.DeleteClassRuleRequest]) (*connect.Response[v1.DeleteClassRuleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.PolicyService.DeleteClassRule is not implemented"))
+}
+
+func (UnimplementedPolicyServiceHandler) ListCustomPolicies(context.Context, *connect.Request[v1.ListCustomPoliciesRequest]) (*connect.Response[v1.ListCustomPoliciesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.PolicyService.ListCustomPolicies is not implemented"))
+}
+
+func (UnimplementedPolicyServiceHandler) CreateCustomPolicy(context.Context, *connect.Request[v1.CreateCustomPolicyRequest]) (*connect.Response[v1.CreateCustomPolicyResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.PolicyService.CreateCustomPolicy is not implemented"))
+}
+
+func (UnimplementedPolicyServiceHandler) UpdateCustomPolicy(context.Context, *connect.Request[v1.UpdateCustomPolicyRequest]) (*connect.Response[v1.UpdateCustomPolicyResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.PolicyService.UpdateCustomPolicy is not implemented"))
+}
+
+func (UnimplementedPolicyServiceHandler) DeleteCustomPolicy(context.Context, *connect.Request[v1.DeleteCustomPolicyRequest]) (*connect.Response[v1.DeleteCustomPolicyResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.PolicyService.DeleteCustomPolicy is not implemented"))
+}
+
+func (UnimplementedPolicyServiceHandler) TestCommand(context.Context, *connect.Request[v1.TestCommandRequest]) (*connect.Response[v1.TestCommandResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.PolicyService.TestCommand is not implemented"))
+}
+
+func (UnimplementedPolicyServiceHandler) ListPathRules(context.Context, *connect.Request[v1.ListPathRulesRequest]) (*connect.Response[v1.ListPathRulesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.PolicyService.ListPathRules is not implemented"))
+}
+
+func (UnimplementedPolicyServiceHandler) CreatePathRule(context.Context, *connect.Request[v1.CreatePathRuleRequest]) (*connect.Response[v1.CreatePathRuleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.PolicyService.CreatePathRule is not implemented"))
+}
+
+func (UnimplementedPolicyServiceHandler) UpdatePathRule(context.Context, *connect.Request[v1.UpdatePathRuleRequest]) (*connect.Response[v1.UpdatePathRuleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.PolicyService.UpdatePathRule is not implemented"))
+}
+
+func (UnimplementedPolicyServiceHandler) DeletePathRule(context.Context, *connect.Request[v1.DeletePathRuleRequest]) (*connect.Response[v1.DeletePathRuleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.PolicyService.DeletePathRule is not implemented"))
+}
+
+func (UnimplementedPolicyServiceHandler) ListTerminalRules(context.Context, *connect.Request[v1.ListTerminalRulesRequest]) (*connect.Response[v1.ListTerminalRulesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.PolicyService.ListTerminalRules is not implemented"))
+}
+
+func (UnimplementedPolicyServiceHandler) CreateTerminalRule(context.Context, *connect.Request[v1.CreateTerminalRuleRequest]) (*connect.Response[v1.CreateTerminalRuleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.PolicyService.CreateTerminalRule is not implemented"))
+}
+
+func (UnimplementedPolicyServiceHandler) DeleteTerminalRule(context.Context, *connect.Request[v1.DeleteTerminalRuleRequest]) (*connect.Response[v1.DeleteTerminalRuleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.PolicyService.DeleteTerminalRule is not implemented"))
+}
+
+func (UnimplementedPolicyServiceHandler) ListMFARules(context.Context, *connect.Request[v1.ListMFARulesRequest]) (*connect.Response[v1.ListMFARulesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.PolicyService.ListMFARules is not implemented"))
+}
+
+func (UnimplementedPolicyServiceHandler) CreateMFARule(context.Context, *connect.Request[v1.CreateMFARuleRequest]) (*connect.Response[v1.CreateMFARuleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.PolicyService.CreateMFARule is not implemented"))
+}
+
+func (UnimplementedPolicyServiceHandler) UpdateMFARule(context.Context, *connect.Request[v1.UpdateMFARuleRequest]) (*connect.Response[v1.UpdateMFARuleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.PolicyService.UpdateMFARule is not implemented"))
+}
+
+func (UnimplementedPolicyServiceHandler) DeleteMFARule(context.Context, *connect.Request[v1.DeleteMFARuleRequest]) (*connect.Response[v1.DeleteMFARuleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.PolicyService.DeleteMFARule is not implemented"))
 }

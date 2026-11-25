@@ -212,9 +212,9 @@ func (q *Queries) CreateJoinToken(ctx context.Context, arg CreateJoinTokenParams
 }
 
 const createResource = `-- name: CreateResource :one
-INSERT INTO resource (org_id, name, type, category, gateway_id, config, idle_timeout, max_duration)
-VALUES ($1, $2, $3, $4, $5, $6,
-        make_interval(secs => $7::bigint), make_interval(secs => $8::bigint))
+INSERT INTO resource (org_id, name, type, category, gateway_id, config, preset_id, idle_timeout, max_duration)
+VALUES ($1, $2, $3, $4, $5, $6, $7,
+        make_interval(secs => $8::bigint), make_interval(secs => $9::bigint))
 RETURNING id
 `
 
@@ -225,6 +225,7 @@ type CreateResourceParams struct {
 	Category  string
 	GatewayID *uuid.UUID
 	Config    []byte
+	PresetID  *uuid.UUID
 	IdleSecs  *int64
 	MaxSecs   *int64
 }
@@ -237,12 +238,60 @@ func (q *Queries) CreateResource(ctx context.Context, arg CreateResourceParams) 
 		arg.Category,
 		arg.GatewayID,
 		arg.Config,
+		arg.PresetID,
 		arg.IdleSecs,
 		arg.MaxSecs,
 	)
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
+}
+
+const createResourcePreset = `-- name: CreateResourcePreset :one
+INSERT INTO resource_preset (org_id, name, base_type, display_name, icon, default_ports, category, launch_hint, created_by)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+RETURNING id, org_id, name, base_type, display_name, icon, default_ports, category, launch_hint, created_by, created_at
+`
+
+type CreateResourcePresetParams struct {
+	OrgID        uuid.UUID
+	Name         string
+	BaseType     string
+	DisplayName  string
+	Icon         string
+	DefaultPorts []byte
+	Category     string
+	LaunchHint   string
+	CreatedBy    *uuid.UUID
+}
+
+func (q *Queries) CreateResourcePreset(ctx context.Context, arg CreateResourcePresetParams) (ResourcePreset, error) {
+	row := q.db.QueryRow(ctx, createResourcePreset,
+		arg.OrgID,
+		arg.Name,
+		arg.BaseType,
+		arg.DisplayName,
+		arg.Icon,
+		arg.DefaultPorts,
+		arg.Category,
+		arg.LaunchHint,
+		arg.CreatedBy,
+	)
+	var i ResourcePreset
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.Name,
+		&i.BaseType,
+		&i.DisplayName,
+		&i.Icon,
+		&i.DefaultPorts,
+		&i.Category,
+		&i.LaunchHint,
+		&i.CreatedBy,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const deleteExpiredInstances = `-- name: DeleteExpiredInstances :execrows
@@ -350,6 +399,23 @@ func (q *Queries) DeleteResource(ctx context.Context, arg DeleteResourceParams) 
 	return result.RowsAffected(), nil
 }
 
+const deleteResourcePreset = `-- name: DeleteResourcePreset :execrows
+DELETE FROM resource_preset WHERE id = $1 AND org_id = $2
+`
+
+type DeleteResourcePresetParams struct {
+	ID    uuid.UUID
+	OrgID uuid.UUID
+}
+
+func (q *Queries) DeleteResourcePreset(ctx context.Context, arg DeleteResourcePresetParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteResourcePreset, arg.ID, arg.OrgID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const getGatewayHostKey = `-- name: GetGatewayHostKey :one
 SELECT host_key_ciphertext, host_key_key_id FROM gateway WHERE id = $1 AND org_id = $2
 `
@@ -415,7 +481,7 @@ func (q *Queries) GetInstanceGatewayID(ctx context.Context, id uuid.UUID) (uuid.
 }
 
 const getResource = `-- name: GetResource :one
-SELECT r.id, r.org_id, r.name, r.type, r.category, r.gateway_id, r.config, r.created_at, r.updated_at,
+SELECT r.id, r.org_id, r.name, r.type, r.category, r.gateway_id, r.config, r.preset_id, r.created_at, r.updated_at,
        coalesce((SELECT jsonb_object_agg(l.key, l.value) FROM resource_label l WHERE l.resource_id = r.id), '{}')::jsonb AS labels,
        h.key_type, h.public_key, h.fingerprint_sha256, h.created_at AS host_key_created_at,
        coalesce(extract(epoch FROM r.idle_timeout), 0)::bigint AS idle_secs,
@@ -450,6 +516,7 @@ type GetResourceRow struct {
 	Category          string
 	GatewayID         *uuid.UUID
 	Config            []byte
+	PresetID          *uuid.UUID
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 	Labels            []byte
@@ -478,6 +545,7 @@ func (q *Queries) GetResource(ctx context.Context, arg GetResourceParams) (GetRe
 		&i.Category,
 		&i.GatewayID,
 		&i.Config,
+		&i.PresetID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Labels,
@@ -490,6 +558,35 @@ func (q *Queries) GetResource(ctx context.Context, arg GetResourceParams) (GetRe
 		&i.HealthState,
 		&i.HealthCheckedAt,
 		&i.HealthError,
+	)
+	return i, err
+}
+
+const getResourcePreset = `-- name: GetResourcePreset :one
+SELECT id, org_id, name, base_type, display_name, icon, default_ports, category, launch_hint, created_by, created_at
+FROM resource_preset WHERE id = $1 AND org_id = $2
+`
+
+type GetResourcePresetParams struct {
+	ID    uuid.UUID
+	OrgID uuid.UUID
+}
+
+func (q *Queries) GetResourcePreset(ctx context.Context, arg GetResourcePresetParams) (ResourcePreset, error) {
+	row := q.db.QueryRow(ctx, getResourcePreset, arg.ID, arg.OrgID)
+	var i ResourcePreset
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.Name,
+		&i.BaseType,
+		&i.DisplayName,
+		&i.Icon,
+		&i.DefaultPorts,
+		&i.Category,
+		&i.LaunchHint,
+		&i.CreatedBy,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -557,14 +654,19 @@ func (q *Queries) InsertLabels(ctx context.Context, arg InsertLabelsParams) erro
 }
 
 const listGateways = `-- name: ListGateways :many
-SELECT id, org_id, name, created_at FROM gateway WHERE org_id = $1 ORDER BY name
+SELECT id, org_id, name, created_at, ssh_address, ws_url, host_key_ciphertext, host_key_key_id
+FROM gateway WHERE org_id = $1 ORDER BY name
 `
 
 type ListGatewaysRow struct {
-	ID        uuid.UUID
-	OrgID     uuid.UUID
-	Name      string
-	CreatedAt time.Time
+	ID                uuid.UUID
+	OrgID             uuid.UUID
+	Name              string
+	CreatedAt         time.Time
+	SshAddress        string
+	WsUrl             string
+	HostKeyCiphertext []byte
+	HostKeyKeyID      string
 }
 
 func (q *Queries) ListGateways(ctx context.Context, orgID uuid.UUID) ([]ListGatewaysRow, error) {
@@ -581,6 +683,10 @@ func (q *Queries) ListGateways(ctx context.Context, orgID uuid.UUID) ([]ListGate
 			&i.OrgID,
 			&i.Name,
 			&i.CreatedAt,
+			&i.SshAddress,
+			&i.WsUrl,
+			&i.HostKeyCiphertext,
+			&i.HostKeyKeyID,
 		); err != nil {
 			return nil, err
 		}
@@ -699,8 +805,45 @@ func (q *Queries) ListJoinTokens(ctx context.Context, arg ListJoinTokensParams) 
 	return items, nil
 }
 
+const listResourcePresets = `-- name: ListResourcePresets :many
+SELECT id, org_id, name, base_type, display_name, icon, default_ports, category, launch_hint, created_by, created_at
+FROM resource_preset WHERE org_id = $1 ORDER BY name
+`
+
+func (q *Queries) ListResourcePresets(ctx context.Context, orgID uuid.UUID) ([]ResourcePreset, error) {
+	rows, err := q.db.Query(ctx, listResourcePresets, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ResourcePreset
+	for rows.Next() {
+		var i ResourcePreset
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrgID,
+			&i.Name,
+			&i.BaseType,
+			&i.DisplayName,
+			&i.Icon,
+			&i.DefaultPorts,
+			&i.Category,
+			&i.LaunchHint,
+			&i.CreatedBy,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listResources = `-- name: ListResources :many
-SELECT r.id, r.org_id, r.name, r.type, r.category, r.gateway_id, r.config, r.created_at, r.updated_at,
+SELECT r.id, r.org_id, r.name, r.type, r.category, r.gateway_id, r.config, r.preset_id, r.created_at, r.updated_at,
        coalesce((SELECT jsonb_object_agg(l.key, l.value) FROM resource_label l WHERE l.resource_id = r.id), '{}')::jsonb AS labels,
        h.key_type, h.public_key, h.fingerprint_sha256, h.created_at AS host_key_created_at,
        coalesce(extract(epoch FROM r.idle_timeout), 0)::bigint AS idle_secs,
@@ -743,6 +886,7 @@ type ListResourcesRow struct {
 	Category          string
 	GatewayID         *uuid.UUID
 	Config            []byte
+	PresetID          *uuid.UUID
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 	Labels            []byte
@@ -776,6 +920,7 @@ func (q *Queries) ListResources(ctx context.Context, arg ListResourcesParams) ([
 			&i.Category,
 			&i.GatewayID,
 			&i.Config,
+			&i.PresetID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Labels,
@@ -962,6 +1107,30 @@ func (q *Queries) SpendJoinToken(ctx context.Context, tokenHash []byte) (SpendJo
 	return i, err
 }
 
+const updateGatewayAddresses = `-- name: UpdateGatewayAddresses :execrows
+UPDATE gateway SET ssh_address = $1, ws_url = $2 WHERE id = $3 AND org_id = $4
+`
+
+type UpdateGatewayAddressesParams struct {
+	SshAddress string
+	WsUrl      string
+	ID         uuid.UUID
+	OrgID      uuid.UUID
+}
+
+func (q *Queries) UpdateGatewayAddresses(ctx context.Context, arg UpdateGatewayAddressesParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateGatewayAddresses,
+		arg.SshAddress,
+		arg.WsUrl,
+		arg.ID,
+		arg.OrgID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const updateResource = `-- name: UpdateResource :execrows
 UPDATE resource
 SET name = $1, gateway_id = $2, config = coalesce($3::jsonb, config),
@@ -994,6 +1163,50 @@ func (q *Queries) UpdateResource(ctx context.Context, arg UpdateResourceParams) 
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const updateResourcePreset = `-- name: UpdateResourcePreset :one
+UPDATE resource_preset
+SET display_name = $1, icon = $2, default_ports = $3, category = $4, launch_hint = $5
+WHERE id = $6 AND org_id = $7
+RETURNING id, org_id, name, base_type, display_name, icon, default_ports, category, launch_hint, created_by, created_at
+`
+
+type UpdateResourcePresetParams struct {
+	DisplayName  string
+	Icon         string
+	DefaultPorts []byte
+	Category     string
+	LaunchHint   string
+	ID           uuid.UUID
+	OrgID        uuid.UUID
+}
+
+func (q *Queries) UpdateResourcePreset(ctx context.Context, arg UpdateResourcePresetParams) (ResourcePreset, error) {
+	row := q.db.QueryRow(ctx, updateResourcePreset,
+		arg.DisplayName,
+		arg.Icon,
+		arg.DefaultPorts,
+		arg.Category,
+		arg.LaunchHint,
+		arg.ID,
+		arg.OrgID,
+	)
+	var i ResourcePreset
+	err := row.Scan(
+		&i.ID,
+		&i.OrgID,
+		&i.Name,
+		&i.BaseType,
+		&i.DisplayName,
+		&i.Icon,
+		&i.DefaultPorts,
+		&i.Category,
+		&i.LaunchHint,
+		&i.CreatedBy,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const upsertResourceHealth = `-- name: UpsertResourceHealth :exec

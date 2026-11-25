@@ -24,22 +24,22 @@ func TestTunnelUnaryCalls(t *testing.T) {
 	e := newTunnelEnv(t, nil, time.Hour)
 	ip := netip.MustParseAddr("192.0.2.7")
 
-	u, err := e.c.AuthenticateUser(t.Context(), "SHA256:known", ip)
+	u, err := e.c.AuthenticateUser(t.Context(), Identity{Method: "ssh-key", Value: "SHA256:known"}, ip)
 	require.NoError(t, err)
 	require.Equal(t, User{ID: testUserID, Login: "alice", TeamIDs: []uuid.UUID{testTeamID}, Country: "NL"}, u)
-	_, err = e.c.AuthenticateUser(t.Context(), "SHA256:other", ip)
+	_, err = e.c.AuthenticateUser(t.Context(), Identity{Method: "ssh-key", Value: "SHA256:other"}, ip)
 	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 	e.f.with(func(f *fakeTunnel) { require.Equal(t, []string{"192.0.2.7", "192.0.2.7"}, f.unaryIP) })
 
-	id, sec, err := e.c.StartSession(t.Context(), testUserID, uuid.New(), ip, KindStream, "db:5432")
+	id, sec, err := e.c.StartSession(t.Context(), testUserID, uuid.New(), ip, KindStream, "db:5432", "", nil, nil, startArgs{})
 	require.NoError(t, err)
 	require.Equal(t, testSessionID, id)
 	require.Equal(t, Secret{Kind: "password", Value: []byte("pw")}, sec)
-	_, _, err = e.c.StartSession(t.Context(), testUserID, uuid.Nil, ip, KindTerminal, "")
+	_, _, err = e.c.StartSession(t.Context(), testUserID, uuid.Nil, ip, KindTerminal, "", "", nil, nil, startArgs{})
 	require.ErrorContains(t, err, "no credential")
 
-	require.NoError(t, e.c.EndSession(t.Context(), id, "closed", nil))
-	require.NoError(t, e.c.EndSession(t.Context(), id, "idle_timeout", &gatewayv1.SessionCounters{BytesUp: 3, DatagramsDown: 1}))
+	require.NoError(t, e.c.EndSession(t.Context(), id, "closed", nil, nil))
+	require.NoError(t, e.c.EndSession(t.Context(), id, "idle_timeout", &gatewayv1.SessionCounters{BytesUp: 3, DatagramsDown: 1}, nil))
 	e.f.with(func(f *fakeTunnel) {
 		require.Equal(t, testSessionID.String(), f.ends[0].GetSessionId())
 		require.Equal(t, "closed", f.ends[0].GetReason())
@@ -53,7 +53,7 @@ func TestTunnelUnaryCalls(t *testing.T) {
 func TestTunnelUnaryDeadline(t *testing.T) {
 	e := newTunnelEnv(t, nil, time.Hour)
 	start := time.Now()
-	_, _, err := e.c.StartSession(t.Context(), uuid.Nil, uuid.New(), netip.MustParseAddr("192.0.2.7"), KindTerminal, "") // the fake hangs
+	_, _, err := e.c.StartSession(t.Context(), uuid.Nil, uuid.New(), netip.MustParseAddr("192.0.2.7"), KindTerminal, "", "", nil, nil, startArgs{}) // the fake hangs
 	require.Less(t, time.Since(start), time.Second)
 	require.Equal(t, connect.CodeDeadlineExceeded, connect.CodeOf(err))
 }

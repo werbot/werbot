@@ -48,18 +48,15 @@ func (s *Service) createSession(ctx context.Context, st Store, userID, orgID uui
 // AuthenticateSession resolves a session token to its principal; an unknown
 // or expired token, or a removed membership, gives ErrUnauthenticated.
 func (s *Service) AuthenticateSession(ctx context.Context, rawToken string) (principal.Principal, error) {
-	p, _, err := s.authenticate(ctx, rawToken)
+	p, _, _, err := s.authenticate(ctx, rawToken)
 	return p, err
 }
 
-// authenticate is AuthenticateSession that also reports whether the session
-// was extended (last seen over a minute ago), so the cookie is set again.
-func (s *Service) authenticate(ctx context.Context, rawToken string) (principal.Principal, bool, error) {
-	var (
-		p        principal.Principal
-		extended bool
-	)
-	err := dbx.System(ctx, s.pool, dbx.ReasonSession, func(tx pgx.Tx) error {
+// authenticate is AuthenticateSession that also returns the caller's MFA
+// state and reports whether the session was extended (last seen over a
+// minute ago), so the cookie is set again.
+func (s *Service) authenticate(ctx context.Context, rawToken string) (p principal.Principal, mfa mfaState, extended bool, err error) {
+	err = dbx.System(ctx, s.pool, dbx.ReasonSession, func(tx pgx.Tx) error {
 		st := newStore(tx)
 		row, err := st.GetSessionByToken(ctx, hashSecret(rawToken))
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -68,7 +65,8 @@ func (s *Service) authenticate(ctx context.Context, rawToken string) (principal.
 		if err != nil {
 			return err
 		}
-		p = principal.Principal{UserID: row.UserID, OrgID: row.OrgID, Role: row.Role, SessionID: row.ID}
+		p = principal.Principal{UserID: row.UserID, OrgID: row.OrgID, Role: row.Role, SessionID: row.ID, AuthMethod: principal.AuthMethodCookie, MFAAt: row.MfaAt}
+		mfa = mfaState{RequireMFA: row.RequireMfa, HasFactor: row.HasFactor, FreshAt: row.MfaAt}
 		if !row.Stale {
 			return nil
 		}
@@ -76,9 +74,9 @@ func (s *Service) authenticate(ctx context.Context, rawToken string) (principal.
 		return st.ExtendSession(ctx, dbq.ExtendSessionParams{ID: row.ID, OrgID: row.OrgID})
 	})
 	if err != nil {
-		return principal.Principal{}, false, err
+		return principal.Principal{}, mfaState{}, false, err
 	}
-	return p, extended, nil
+	return p, mfa, extended, nil
 }
 
 // CurrentSession returns the caller's user, organization and role.
@@ -105,40 +103,61 @@ func (s *Service) CurrentSession(ctx context.Context) (SessionInfo, error) {
 	return info, err
 }
 
-// Middleware puts the principal of a valid session cookie into the request
-// context. A missing or invalid session is not an error: the request goes on
-// without a subject and handlers decide with principal.Require. A failed
-// lookup (database down, pool timeout) is logged and answers Connect calls
-// with Unavailable, so clients retry instead of going to the login page;
-// other paths (the SPA) are served without a subject.
-func Middleware(s *Service) func(http.Handler) http.Handler {
-	secure := s.cfg.SecureCookies
-	name := sessionCookieName(secure)
+// Middleware puts the principal of a valid session cookie or, when bearer is
+// set, of a CLI access token (Authorization: Bearer) into the request
+// context, with the caller's MFA state; a caller who must enroll a second
+// factor first is refused on /api/ paths (mfaGate). With an Authorization
+// header the cookie is never read, even when the token is bad. A missing or
+// invalid credential is not an error: the request goes on without a subject
+// and handlers decide with principal.Require. A failed lookup (database
+// down, pool timeout) is logged and answers Connect calls with Unavailable,
+// so clients retry instead of going to the login page; other paths (the SPA)
+// are served without a subject.
+func Middleware(s *Service, bearer BearerVerifier) func(http.Handler) http.Handler {
 	logger := cmp.Or(s.cfg.Logger, slog.Default())
 	errw := connect.NewErrorWriter()
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if c, err := r.Cookie(name); err == nil {
-				p, extended, err := s.authenticate(r.Context(), c.Value)
-				switch {
-				case err == nil:
-					if extended {
-						http.SetCookie(w, newSessionCookie(c.Value, sessionMaxAge, secure))
-					}
-					r = r.WithContext(principal.With(r.Context(), p))
-				case r.Context().Err() != nil: // client went away: not a store failure
+			p, mfa, found, err := s.credential(w, r, bearer)
+			switch {
+			case !found:
+			case err == nil:
+				r = r.WithContext(withMFAState(principal.With(r.Context(), p), mfa))
+				if !mfaGate(w, r) {
 					return
-				case !errors.Is(err, apperr.ErrUnauthenticated):
-					logger.Warn("session lookup failed", "err", err) // no path: SPA paths carry one-time tokens
-					if strings.HasPrefix(r.URL.Path, "/werbot.v1.") {
-						_ = errw.Write(w, r, apperr.ToConnect(apperr.ErrUnavailable))
-						return
-					}
+				}
+			case r.Context().Err() != nil: // client went away: not a store failure
+				return
+			case !errors.Is(err, apperr.ErrUnauthenticated):
+				logger.Warn("session lookup failed", "err", err) // no path: SPA paths carry one-time tokens
+				if strings.HasPrefix(r.URL.Path, "/werbot.v1.") {
+					_ = errw.Write(w, r, apperr.ToConnect(apperr.ErrUnavailable))
+					return
 				}
 			}
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+// credential resolves the request's Bearer token or, without an
+// Authorization header, its session cookie, set again when the session was
+// extended; found is false when the request carries neither.
+func (s *Service) credential(w http.ResponseWriter, r *http.Request, bearer BearerVerifier) (p principal.Principal, mfa mfaState, found bool, err error) {
+	if authz := r.Header.Get("Authorization"); bearer != nil && authz != "" {
+		p, mfa, err = s.authenticateBearer(r.Context(), bearer, authz)
+		return p, mfa, true, err
+	}
+	secure := s.cfg.SecureCookies
+	c, cerr := r.Cookie(sessionCookieName(secure))
+	if cerr != nil {
+		return p, mfa, false, nil
+	}
+	p, mfa, extended, err := s.authenticate(r.Context(), c.Value)
+	if err == nil && extended {
+		http.SetCookie(w, newSessionCookie(c.Value, sessionMaxAge, secure))
+	}
+	return p, mfa, true, err
 }
 
 // sessionCookieName: "__Host-" requires Secure, so development (plain http) drops the prefix.

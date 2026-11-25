@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { Icon } from '#lib/ui/index.js';
-	import type { NavItem, NavSection } from './nav.js';
+	import { groupHeading, type NavItem, type NavSection } from './nav.js';
 
 	interface Props {
 		section: NavSection;
@@ -20,7 +20,9 @@
 	<h2 class="cc__title">{section.label()}</h2>
 
 	<nav class="cc__menu">
-		{#each section.items as item (item.href)}
+		{#each section.items as item, i (item.href)}
+			{@const heading = groupHeading(section.items, i)}
+			{#if heading}<h3 class="cc__group">{heading}</h3>{/if}
 			<a
 				class={['cc__item', item.href === current?.href && 'cc__item--active']}
 				href={item.href}
@@ -73,6 +75,20 @@
 		flex: 1;
 		padding: 12px 20px 16px;
 		overflow-y: auto;
+	}
+
+	/* a small caps subheading over a group of items; the first one sits right under the title */
+	.cc__group {
+		margin: 16px 0 4px;
+		padding: 0 var(--miso-sp-08);
+		font: var(--miso-font-caption-11-upper);
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+		color: var(--miso-txt-tertiary);
+	}
+
+	.cc__group:first-child {
+		margin-top: 4px;
 	}
 
 	/* as tall as the 40px buttons (miso .sidebar__menu__item is 32px) */

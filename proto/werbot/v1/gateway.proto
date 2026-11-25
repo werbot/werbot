@@ -12,6 +12,9 @@ message Gateway {
   repeated string connectors = 4;
   google.protobuf.Timestamp created_at = 5;
   repeated GatewayInstance instances = 6;
+  string ssh_address = 7; // host:port clients dial; empty until set
+  string host_key = 8;    // pool host key in authorized_keys format
+  string ws_url = 9;      // WebSocket endpoint clients dial; empty until set
 }
 
 message GatewayInstance {
@@ -40,6 +43,7 @@ message JoinToken {
 service GatewayService {
   rpc CreateGateway(CreateGatewayRequest) returns (CreateGatewayResponse);
   rpc ListGateways(ListGatewaysRequest) returns (ListGatewaysResponse);
+  rpc UpdateGateway(UpdateGatewayRequest) returns (UpdateGatewayResponse);
   rpc DeleteGateway(DeleteGatewayRequest) returns (DeleteGatewayResponse);
   rpc CreateJoinToken(CreateJoinTokenRequest) returns (CreateJoinTokenResponse);
   rpc ListJoinTokens(ListJoinTokensRequest) returns (ListJoinTokensResponse);
@@ -62,6 +66,17 @@ message CreateGatewayResponse {
 message ListGatewaysRequest {}
 message ListGatewaysResponse {
   repeated Gateway gateways = 1;
+}
+
+message UpdateGatewayRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  // "" resets; otherwise host:port.
+  string ssh_address = 2 [(buf.validate.field).string.max_bytes = 300];
+  // "" resets; otherwise ws:// or wss:// URL. Both addresses are replaced on every call.
+  string ws_url = 3 [(buf.validate.field).string.max_bytes = 2048];
+}
+message UpdateGatewayResponse {
+  Gateway gateway = 1;
 }
 
 message DeleteGatewayRequest {

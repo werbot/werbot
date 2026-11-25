@@ -1,0 +1,56 @@
+syntax = "proto3";
+package gateway.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// MFAConfirmed hints that challenge_id of the receiving instance was
+// confirmed; the gateway checks it with GetMFAChallenge.
+message MFAConfirmed {
+  string challenge_id = 1;
+}
+
+// CreateMFAChallengeRequest asks the user to confirm an SSH login to a
+// resource of the caller's pool in the browser or with a TOTP code.
+message CreateMFAChallengeRequest {
+  string user_id = 1 [(buf.validate.field).string.uuid = true];
+  string resource_id = 2 [(buf.validate.field).string.uuid = true];
+  bytes ssh_session_id = 3 [(buf.validate.field).bytes = {min_len: 1, max_len: 64}];
+  string client_ip = 4 [(buf.validate.field).string = {ip: true, max_bytes: 64}];
+  // the verified key or certificate the MFA is bound to; web and CLI bindings are the server's own
+  string binding = 5 [(buf.validate.field).string.pattern = "^(key|cert):SHA256:[A-Za-z0-9+/]{43}$"];
+  // "webauthn": only a passkey confirms it
+  string strength = 6 [(buf.validate.field).string = {
+    in: ["any", "webauthn"]
+  }];
+}
+
+message CreateMFAChallengeResponse {
+  string challenge_id = 1;
+  // shown in the terminal and on the confirmation page
+  string code = 2;
+  // the confirmation page
+  string url = 3;
+  google.protobuf.Timestamp expires_at = 4;
+}
+
+// VerifyMFATOTPRequest confirms a challenge of the caller with the user's
+// TOTP code; the attempts count toward the user's MFA limit.
+message VerifyMFATOTPRequest {
+  string challenge_id = 1 [(buf.validate.field).string.uuid = true];
+  string code = 2 [(buf.validate.field).string.pattern = "^[0-9]{6}$"];
+}
+
+message VerifyMFATOTPResponse {
+  // false: a wrong or reused code; the challenge stays pending
+  bool ok = 1;
+}
+
+message GetMFAChallengeRequest {
+  string challenge_id = 1 [(buf.validate.field).string.uuid = true];
+}
+
+message GetMFAChallengeResponse {
+  // "pending", "confirmed", "denied" or "expired"
+  string status = 1;
+}

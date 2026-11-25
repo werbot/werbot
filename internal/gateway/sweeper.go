@@ -19,23 +19,35 @@ const (
 	causeRevoked endCause = "access_revoked"
 )
 
-// sweep ends sessions past their idle timeout or max duration every sweepEvery
-// and re-evaluates access: every session on a new snapshot and every reevalEvery,
-// in between those still allowed on an older snapshot (opened while one arrived).
-// It runs until ctx ends.
+// sweep ends sessions past their idle timeout or max duration, and every session
+// of a strict organization whose policy is stale, every sweepEvery. It
+// re-evaluates access: every session on a new snapshot, at the next grant or lock
+// expiration and every reevalEvery, in between those still allowed on an older
+// snapshot (opened while one arrived). It runs until ctx ends.
 func (p *Pipeline) sweep(ctx context.Context) {
 	tick := time.NewTicker(sweepEvery)
 	defer tick.Stop()
+	expiry := time.NewTimer(0)
+	defer expiry.Stop()
+	p.armExpiry(expiry, time.Now())
 	last := time.Now()
+	reeval := func() {
+		now := time.Now()
+		p.reevaluate(now, true)
+		p.armExpiry(expiry, now)
+	}
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-p.ctl.PolicyChanged():
-			p.reevaluate(time.Now(), true)
+			reeval()
+		case <-expiry.C:
+			reeval()
 		case <-tick.C:
 			now := time.Now()
 			p.active.expire(now)
+			p.checkStale(now)
 			all := now.Sub(last) >= reevalEvery
 			if all {
 				last = now
@@ -53,10 +65,15 @@ func (a *activeSessions) expire(now time.Time) {
 		switch {
 		case t.max > 0 && now.Sub(t.started) >= t.max:
 			a.cancelLocked(id, causeMax)
-		case t.idle > 0 && t.c.idleFor(now) >= t.idle:
+		case t.idledOut(now):
 			a.cancelLocked(id, causeIdle)
 		}
 	}
+}
+
+// idledOut reports whether t has passed its idle limit at now; a held session has not.
+func (t *tracked) idledOut(now time.Time) bool {
+	return t.idle > 0 && t.held == 0 && t.c.idleFor(now) >= t.idle
 }
 
 // evaluation is one session to re-evaluate, copied out of activeSessions so the
@@ -112,7 +129,7 @@ func (a *activeSessions) reevaluated(id uuid.UUID, version string, req AccessReq
 // terminal or exec session; a stream or datagram session opened by the old name
 // fails the target check and ends with access_revoked), the membership and teams
 // of the user (when the snapshot lists them), the stream or datagram target and
-// the PDP at now.
+// the PDP at now, for the connection and then for the command of the session.
 func recheck(pol *Policy, e evaluation, now time.Time) (AccessRequest, bool) {
 	req := e.req
 	res, ok := pol.resourceByID(req.Resource.ID)
@@ -123,14 +140,11 @@ func recheck(pol *Policy, e evaluation, now time.Time) (AccessRequest, bool) {
 	if req.User, ok = pol.withTeams(req.User); !ok {
 		return req, false
 	}
-	if e.kind == KindStream || e.kind == KindDatagram {
-		ep, ok, err := res.Endpoint()
-		if err != nil || !ok || !ep.Allow(res.Name, e.host, req.Port) {
-			return req, false
-		}
+	if !targetAllowed(res, e) {
+		return req, false
 	}
-	allow, _ := pol.Authorize(req)
-	return req, allow
+	allow, _ := pol.Authorize(connectOf(req))
+	return req, allow && commandAllowed(pol, req, e.kind) && forwardAllowed(pol, req)
 }
 
 // limits are the idle timeout and max duration of a session on r.

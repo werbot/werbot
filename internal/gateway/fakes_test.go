@@ -11,6 +11,7 @@ import (
 	"slices"
 	"sync"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
@@ -27,7 +28,7 @@ func init() {
 	all := []connector.Kind{connector.KindTerminal, connector.KindExec, connector.KindStream}
 	for _, n := range []string{"fake", "blocker", "panicky", "streamonly", "nope", "spy"} {
 		connector.Register(connector.Type{Name: n, NewConfig: func() proto.Message { return &emptypb.Empty{} },
-			Validate: func(proto.Message) error { return nil }, Actions: []string{n + ".connect"}, Kinds: all,
+			Validate: func(proto.Message) error { return nil }, Actions: []string{n + ".connect", n + ".shell"}, Kinds: all,
 			Recorded: all, Endpoint: func(proto.Message) connector.Endpoint { return connector.Endpoint{AnyTarget: true, NoHealth: true} }})
 	}
 	// gateway connectors; "nope" stays without one
@@ -90,6 +91,7 @@ type fakeControl struct {
 	mu         sync.Mutex
 	policy     *Policy
 	connected  bool
+	downSince  time.Time // DisconnectedSince
 	user       User
 	authErr    error
 	byKey      map[string]User  // AuthenticateUser by fingerprint when set; unknown → NotFound
@@ -97,22 +99,25 @@ type fakeControl struct {
 	startErr   error
 	upErr      error // returned by every uploader call: the server is down
 	pinErr     error
-	onStart    func() // runs inside StartSession, without the lock
-	onAuth     func() // runs inside AuthenticateUser, under the lock
+	onStart    func(context.Context) // runs inside StartSession, without the lock
+	onAuth     func()                // runs inside AuthenticateUser, under the lock
 	changed    chan struct{}
 	authCalls  []string
+	idents     []Identity // every AuthenticateUser identity
 	startCalls int
-	starts     []string // "<user id> <resource id> <ip>"
+	starts     []string // "<user id> <resource id> <ip>" + startCmd
 	ends       []endCall
 	pins       []string
 	events     []string
 	recs       []string
+	approvals  *fakeApprovals // the approval calls, fakes_approval_test.go
 }
 
-func (f *fakeControl) AuthenticateUser(_ context.Context, fp string, ip netip.Addr) (User, error) {
+func (f *fakeControl) AuthenticateUser(_ context.Context, id Identity, ip netip.Addr) (User, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.authCalls = append(f.authCalls, fp+" "+ip.String())
+	fp := id.Value
+	f.authCalls, f.idents = append(f.authCalls, fp+" "+ip.String()), append(f.idents, id)
 	if f.onAuth != nil {
 		f.onAuth()
 	}
@@ -129,33 +134,21 @@ func (f *fakeControl) AuthenticateUser(_ context.Context, fp string, ip netip.Ad
 	return u, nil
 }
 
-func (f *fakeControl) StartSession(_ context.Context, userID, resourceID uuid.UUID, ip netip.Addr, _ Kind, _ string) (uuid.UUID, Secret, error) {
+func (f *fakeControl) StartSession(ctx context.Context, userID, resourceID uuid.UUID, ip netip.Addr, _ Kind, _, command string, classes, paths []string, agent startArgs) (uuid.UUID, Secret, error) {
 	if f.onStart != nil {
-		f.onStart()
+		f.onStart(ctx)
 	}
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.startCalls++
-	f.starts = append(f.starts, fmt.Sprintf("%s %s %s", userID, resourceID, ip))
+	f.starts = append(f.starts, fmt.Sprintf("%s %s %s", userID, resourceID, ip)+startCmd(command, classes))
 	if f.startErr != nil {
 		return uuid.Nil, Secret{}, f.startErr
 	}
 	if f.byKey == nil && userID != f.user.ID {
 		return uuid.Nil, Secret{}, fmt.Errorf("unexpected user %s", userID)
 	}
-	return uuid.New(), Secret{Kind: "password", Value: []byte("s3cret-value")}, nil
-}
-
-// EndSession records a delivered end.
-func (f *fakeControl) EndSession(_ context.Context, id uuid.UUID, reason string, c *gatewayv1.SessionCounters) error {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	if f.upErr != nil {
-		return f.upErr
-	}
-	f.ends = append(f.ends, endCall{id, reason, c})
-	f.events = append(f.events, "end:"+reason)
-	return nil
+	return startedAs(paths, agent), Secret{Kind: "password", Value: []byte("s3cret-value")}, nil
 }
 
 func (f *fakeControl) PinHostKey(_ context.Context, resourceID uuid.UUID, alg string, key []byte) error {
@@ -196,6 +189,12 @@ func (f *fakeControl) Connected() bool {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return f.connected
+}
+
+func (f *fakeControl) DisconnectedSince() time.Time {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.downSince
 }
 
 func (f *fakeControl) with(fn func(*fakeControl)) {

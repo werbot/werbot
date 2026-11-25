@@ -1,4 +1,4 @@
-//go:build cluster || load
+//go:build cluster || load || redteam
 
 package cluster
 

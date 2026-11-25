@@ -1,0 +1,58 @@
+syntax = "proto3";
+package werbot.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+// Agent profiles: a credential for another OS user or a container that only
+// starts runs of one agent. Only the agent's sponsor creates one; members see
+// and revoke their own, owners and admins any in the organization.
+service AgentProfileService {
+  // The refresh token is returned once.
+  rpc CreateAgentProfile(CreateAgentProfileRequest) returns (CreateAgentProfileResponse);
+  rpc ListAgentProfiles(ListAgentProfilesRequest) returns (ListAgentProfilesResponse);
+  rpc RevokeAgentProfile(RevokeAgentProfileRequest) returns (RevokeAgentProfileResponse);
+}
+
+message AgentProfile {
+  string id = 1;
+  string agent_id = 2;
+  string agent_name = 3;
+  string sponsor_user_id = 4;
+  string label = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp last_used_at = 7;
+  google.protobuf.Timestamp expires_at = 8;
+  google.protobuf.Timestamp absolute_expires_at = 9;
+}
+
+message CreateAgentProfileRequest {
+  string agent_id = 1 [(buf.validate.field).string.uuid = true];
+  // 0 or unset: the organization's cli_session_max; otherwise 1h to
+  // cli_session_max (at most 90 days).
+  google.protobuf.Duration ttl = 2 [(buf.validate.field).cel = {
+    id: "agent_profile.ttl"
+    message: "ttl must be 0 or 1h to 90d"
+    expression: "this == duration('0s') || (this >= duration('3600s') && this <= duration('7776000s'))"
+  }];
+  string label = 3 [(buf.validate.field).string.max_bytes = 255];
+}
+message CreateAgentProfileResponse {
+  AgentProfile profile = 1;
+  string refresh_token = 2;
+}
+
+message ListAgentProfilesRequest {
+  // Empty: every profile the caller sees.
+  string agent_id = 1 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+}
+message ListAgentProfilesResponse {
+  // Live profiles only, newest first.
+  repeated AgentProfile profiles = 1;
+}
+
+message RevokeAgentProfileRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message RevokeAgentProfileResponse {}

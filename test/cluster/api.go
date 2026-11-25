@@ -1,4 +1,4 @@
-//go:build cluster || load
+//go:build cluster || load || redteam
 
 package cluster
 
@@ -39,6 +39,14 @@ type API struct {
 	Policy    werbotv1connect.PolicyServiceClient
 	Sessions  werbotv1connect.SessionServiceClient
 	System    werbotv1connect.SystemServiceClient
+
+	AccessRequests   werbotv1connect.AccessRequestServiceClient
+	ApprovalPolicies werbotv1connect.ApprovalPolicyServiceClient
+	Agents           werbotv1connect.AgentServiceClient
+	Locks            werbotv1connect.LockServiceClient
+	Members          werbotv1connect.MemberServiceClient
+	Settings         werbotv1connect.SettingsServiceClient
+	OAuthConsent     werbotv1connect.OAuthConsentServiceClient
 }
 
 // NewAPI builds clients for baseURL; a non-empty cookie is sent as the session.
@@ -69,6 +77,14 @@ func (*Stand) NewAPI(baseURL, cookie string) API {
 		Policy:    werbotv1connect.NewPolicyServiceClient(hc, baseURL),
 		Sessions:  werbotv1connect.NewSessionServiceClient(hc, baseURL),
 		System:    werbotv1connect.NewSystemServiceClient(hc, baseURL),
+
+		AccessRequests:   werbotv1connect.NewAccessRequestServiceClient(hc, baseURL),
+		ApprovalPolicies: werbotv1connect.NewApprovalPolicyServiceClient(hc, baseURL),
+		Agents:           werbotv1connect.NewAgentServiceClient(hc, baseURL),
+		Locks:            werbotv1connect.NewLockServiceClient(hc, baseURL),
+		Members:          werbotv1connect.NewMemberServiceClient(hc, baseURL),
+		Settings:         werbotv1connect.NewSettingsServiceClient(hc, baseURL),
+		OAuthConsent:     werbotv1connect.NewOAuthConsentServiceClient(hc, baseURL),
 	}
 }
 

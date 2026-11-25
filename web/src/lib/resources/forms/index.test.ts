@@ -1,5 +1,6 @@
 import { anyUnpack } from '@bufbuild/protobuf/wkt';
 import { expect, test } from 'vitest';
+import { ConfigSchema as SshConfigSchema } from '#lib/gen/werbot/connector/ssh/v1/ssh_pb.js';
 import { ConfigSchema as UdpConfigSchema } from '#lib/gen/werbot/connector/udp/v1/udp_pb.js';
 import { ConfigSchema as TcpConfigSchema } from '#lib/gen/werbot/connector/tcp/v1/tcp_pb.js';
 import { configForms, configFormFor, sshConfigValue, tcpConfigValue, telnetConfigValue, udpConfigValue } from './index';
@@ -14,9 +15,15 @@ test('ssh, telnet, tcp and udp have dedicated forms, unknown types fall back to 
 });
 
 test('ssh value is packed as Any of werbot.connector.ssh.v1.Config', () => {
-	expect(sshConfigValue({ host: 'h', port: 22, login: 'root', portForwarding: true }).config?.typeUrl).toBe(
+	expect(sshConfigValue({ host: 'h', port: 22, login: 'root', portForwarding: true, remoteForwarding: false }).config?.typeUrl).toBe(
 		'type.googleapis.com/werbot.connector.ssh.v1.Config'
 	);
+});
+
+test('ssh value carries remote forwarding', () => {
+	const c = anyUnpack(sshConfigValue({ host: 'h', port: 22, login: 'root', portForwarding: false, remoteForwarding: true }).config!, SshConfigSchema);
+	expect(c!.remoteForwarding).toBe(true);
+	expect(c!.portForwarding).toBe(false);
 });
 
 test('telnet value is packed with its type url', () => {

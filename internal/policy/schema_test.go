@@ -52,8 +52,91 @@ func TestCompiledPoliciesTypecheck(t *testing.T) {
 	require.NoError(t, err)
 	list, err := cedar.NewPolicyListFromBytes("werbot.cedar", []byte(text))
 	require.NoError(t, err)
-	require.Len(t, list, 5)
+	require.Len(t, list, 12) // binding, three rules, blocklist, seven agent baseline policies
 	for i, p := range list {
 		assert.NoError(t, v.Policy(fmt.Sprint(i), (*ast.Policy)(p.AST())), i)
 	}
+}
+
+// TestSchemaHasNowAndCLISession validates the compiled grants and every
+// compiled lock target against the schema.
+func TestSchemaHasNowAndCLISession(t *testing.T) {
+	var s schema.Schema
+	require.NoError(t, s.UnmarshalCedar([]byte(policy.Schema())))
+	res, err := s.Resolve()
+	require.NoError(t, err)
+	ctx := res.Actions[cedar.NewEntityUID("Werbot::Action", "ssh.connect")].AppliesTo.Context
+	assert.Equal(t, resolved.LongType{}, ctx["now"].Type)
+	assert.Equal(t, resolved.StringType{}, ctx["cli_session_id"].Type)
+
+	r, g, target := uuid.New(), uuid.New(), uuid.New()
+	snap := policy.Snapshot{
+		Resources: []policy.SnapshotResource{{ID: r, Name: "db", Type: "ssh"}},
+		Grants:    []policy.SnapshotGrant{{ID: g, UserID: uuid.New(), ResourceID: r, ExpiresUnix: 2000}},
+		Locks:     []policy.SnapshotLock{{ID: uuid.New(), TargetType: "grant", TargetID: &g, ExpiresUnix: 1000}},
+	}
+	for _, typ := range []string{"user", "team", "resource", "cli_session"} {
+		snap.Locks = append(snap.Locks, policy.SnapshotLock{ID: uuid.New(), TargetType: typ, TargetID: &target})
+	}
+	_, text, err := policy.Compile(snap)
+	require.NoError(t, err)
+	list, err := cedar.NewPolicyListFromBytes("werbot.cedar", []byte(text))
+	require.NoError(t, err)
+	require.Len(t, list, 13) // grant, four locks, blocklist, seven agent baseline policies
+	v := validate.New(res)
+	for i, p := range list {
+		assert.NoError(t, v.Policy(fmt.Sprint(i), (*ast.Policy)(p.AST())), i)
+	}
+}
+
+// TestSchemaHasExecContext checks the exec action and context and validates
+// compiled command rules against the schema.
+func TestSchemaHasExecContext(t *testing.T) {
+	var s schema.Schema
+	require.NoError(t, s.UnmarshalCedar([]byte(policy.Schema())))
+	res, err := s.Resolve()
+	require.NoError(t, err)
+	a, ok := res.Actions[cedar.NewEntityUID("Werbot::Action", "ssh.exec")]
+	require.True(t, ok)
+	ctx := a.AppliesTo.Context
+	assert.Equal(t, resolved.StringType{}, ctx["command"].Type)
+	assert.Equal(t, resolved.SetType{Element: resolved.StringType{}}, ctx["classes"].Type)
+	assert.Equal(t, resolved.BoolType{}, ctx["approval_granted"].Type)
+
+	r := uuid.New()
+	rule := func(effect string, subj policy.Subjects) policy.SnapshotCommandRule {
+		return policy.SnapshotCommandRule{ID: uuid.New(), Subjects: subj, ResourceIDs: []uuid.UUID{r},
+			Classes: []string{"write"}, Effect: effect, Message: "m"}
+	}
+	_, text, err := policy.Compile(policy.Snapshot{
+		Resources: []policy.SnapshotResource{{ID: r, Name: "db", Type: "ssh"}},
+		CommandRules: []policy.SnapshotCommandRule{
+			rule("deny", policy.Subjects{AllUsers: true}),
+			rule("approval", policy.Subjects{Users: []uuid.UUID{uuid.New()}, Teams: []uuid.UUID{uuid.New()}}),
+		},
+	})
+	require.NoError(t, err)
+	list, err := cedar.NewPolicyListFromBytes("werbot.cedar", []byte(text))
+	require.NoError(t, err)
+	require.Len(t, list, 11) // two rules, the agent permit of the approval rule, blocklist, seven agent baseline policies
+	v := validate.New(res)
+	for i, p := range list {
+		assert.NoError(t, v.Policy(fmt.Sprint(i), (*ast.Policy)(p.AST())), i)
+	}
+}
+
+func TestSchemaHasPathContext(t *testing.T) {
+	var s schema.Schema
+	require.NoError(t, s.UnmarshalCedar([]byte(policy.Schema())))
+	res, err := s.Resolve()
+	require.NoError(t, err)
+	_, ok := res.Actions[cedar.NewEntityUID("Werbot::Action", "ssh.shell")]
+	assert.True(t, ok)
+	_, ok = res.Actions[cedar.NewEntityUID("Werbot::Action", "ssh.remote_forward")]
+	assert.True(t, ok, "contract §3.7: the ssh type declares ssh.remote_forward")
+	ctx := res.Actions[cedar.NewEntityUID("Werbot::Action", "ssh.exec")].AppliesTo.Context
+	for _, key := range []string{"paths", "path_hits", "path_outside"} {
+		assert.Equal(t, resolved.SetType{Element: resolved.StringType{}}, ctx[cedar.String(key)].Type, key)
+	}
+	assert.Equal(t, resolved.BoolType{}, ctx["console"].Type)
 }

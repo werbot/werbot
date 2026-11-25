@@ -77,3 +77,18 @@ func TestLookupCarriesTeams(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, teams, got.TeamIDs)
 }
+
+// Membership is the role of a member in one organization (oauth.Users).
+func TestMembership(t *testing.T) {
+	svc, pool, _ := newTestService(t)
+	org1, org2 := seedOrg(t, pool, "One"), seedOrg(t, pool, "Two")
+	alice := seedUser(t, pool, org1, "alice", principal.RoleAdmin)
+	bg := context.Background()
+	role, err := svc.Membership(bg, org1, alice)
+	require.NoError(t, err)
+	assert.Equal(t, principal.RoleAdmin, role)
+	_, err = svc.Membership(bg, org2, alice)
+	assert.ErrorIs(t, err, apperr.ErrNotFound)
+	_, err = svc.Membership(bg, org1, uuid.New())
+	assert.ErrorIs(t, err, apperr.ErrNotFound)
+}

@@ -106,25 +106,32 @@ func relayResize(sess *gossh.Session, resize <-chan gateway.Window, live *gatewa
 	}
 }
 
-// exitStatus reports the result of Wait; a missing status is 255. After a
-// cancel the session has no status.
+// exitStatus reports the result of Wait. After a cancel the session has no status.
 func (cmd command) exitStatus(ctx context.Context, err error) error {
 	if ctx.Err() != nil {
 		return nil
 	}
+	code, err := exitCode(err)
+	if err != nil {
+		return err
+	}
+	cmd.setExit(code)
+	return nil
+}
+
+// exitCode is the exit code in the result of Wait; a missing status is 255.
+func exitCode(err error) (int, error) {
 	var exitErr *gossh.ExitError
 	var missing *gossh.ExitMissingError
 	switch {
 	case err == nil:
-		cmd.setExit(0)
+		return 0, nil
 	case errors.As(err, &exitErr):
-		cmd.setExit(exitErr.ExitStatus())
+		return exitErr.ExitStatus(), nil
 	case errors.As(err, &missing):
-		cmd.setExit(255)
-	default:
-		return fmt.Errorf("ssh: wait: %w", err)
+		return 255, nil
 	}
-	return nil
+	return 0, fmt.Errorf("ssh: wait: %w", err)
 }
 
 // lockedWriter serializes the stdout and stderr relays writing to one terminal.

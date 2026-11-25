@@ -51,6 +51,7 @@ type spySink struct {
 func (spySink) Output([]byte)   {}
 func (spySink) Input([]byte)    {}
 func (spySink) Resize(int, int) {}
+func (spySink) Marker(string)   {}
 func (s spySink) Close(context.Context) error {
 	ev := "close-before-end"
 	if slices.Contains(s.p.spool.PendingEnds(), s.id) || len(s.f.endsOf(s.id)) > 0 { // delivery records before it leaves PendingEnds

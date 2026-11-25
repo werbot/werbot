@@ -53,6 +53,7 @@ dockers_v2:
       org.opencontainers.image.version: "{{ .Version }}"
       org.opencontainers.image.revision: "{{ .FullCommit }}"
       org.opencontainers.image.created: "{{ .CommitDate }}"
+      io.modelcontextprotocol.server.name: io.github.werbot/werbot
     annotations:
       org.opencontainers.image.description: Open-source access gateway for people and AI agents
       org.opencontainers.image.licenses: AGPL-3.0-only

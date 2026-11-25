@@ -39,6 +39,9 @@ const (
 	// ResourceServiceListResourcesProcedure is the fully-qualified name of the ResourceService's
 	// ListResources RPC.
 	ResourceServiceListResourcesProcedure = "/werbot.v1.ResourceService/ListResources"
+	// ResourceServiceListAccessibleResourcesProcedure is the fully-qualified name of the
+	// ResourceService's ListAccessibleResources RPC.
+	ResourceServiceListAccessibleResourcesProcedure = "/werbot.v1.ResourceService/ListAccessibleResources"
 	// ResourceServiceGetResourceProcedure is the fully-qualified name of the ResourceService's
 	// GetResource RPC.
 	ResourceServiceGetResourceProcedure = "/werbot.v1.ResourceService/GetResource"
@@ -66,6 +69,7 @@ const (
 type ResourceServiceClient interface {
 	ListResourceTypes(context.Context, *connect.Request[v1.ListResourceTypesRequest]) (*connect.Response[v1.ListResourceTypesResponse], error)
 	ListResources(context.Context, *connect.Request[v1.ListResourcesRequest]) (*connect.Response[v1.ListResourcesResponse], error)
+	ListAccessibleResources(context.Context, *connect.Request[v1.ListAccessibleResourcesRequest]) (*connect.Response[v1.ListAccessibleResourcesResponse], error)
 	GetResource(context.Context, *connect.Request[v1.GetResourceRequest]) (*connect.Response[v1.GetResourceResponse], error)
 	CreateResource(context.Context, *connect.Request[v1.CreateResourceRequest]) (*connect.Response[v1.CreateResourceResponse], error)
 	UpdateResource(context.Context, *connect.Request[v1.UpdateResourceRequest]) (*connect.Response[v1.UpdateResourceResponse], error)
@@ -96,6 +100,12 @@ func NewResourceServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			httpClient,
 			baseURL+ResourceServiceListResourcesProcedure,
 			connect.WithSchema(resourceServiceMethods.ByName("ListResources")),
+			connect.WithClientOptions(opts...),
+		),
+		listAccessibleResources: connect.NewClient[v1.ListAccessibleResourcesRequest, v1.ListAccessibleResourcesResponse](
+			httpClient,
+			baseURL+ResourceServiceListAccessibleResourcesProcedure,
+			connect.WithSchema(resourceServiceMethods.ByName("ListAccessibleResources")),
 			connect.WithClientOptions(opts...),
 		),
 		getResource: connect.NewClient[v1.GetResourceRequest, v1.GetResourceResponse](
@@ -145,15 +155,16 @@ func NewResourceServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 
 // resourceServiceClient implements ResourceServiceClient.
 type resourceServiceClient struct {
-	listResourceTypes *connect.Client[v1.ListResourceTypesRequest, v1.ListResourceTypesResponse]
-	listResources     *connect.Client[v1.ListResourcesRequest, v1.ListResourcesResponse]
-	getResource       *connect.Client[v1.GetResourceRequest, v1.GetResourceResponse]
-	createResource    *connect.Client[v1.CreateResourceRequest, v1.CreateResourceResponse]
-	updateResource    *connect.Client[v1.UpdateResourceRequest, v1.UpdateResourceResponse]
-	deleteResource    *connect.Client[v1.DeleteResourceRequest, v1.DeleteResourceResponse]
-	setCredential     *connect.Client[v1.SetCredentialRequest, v1.SetCredentialResponse]
-	clearCredential   *connect.Client[v1.ClearCredentialRequest, v1.ClearCredentialResponse]
-	clearHostKey      *connect.Client[v1.ClearHostKeyRequest, v1.ClearHostKeyResponse]
+	listResourceTypes       *connect.Client[v1.ListResourceTypesRequest, v1.ListResourceTypesResponse]
+	listResources           *connect.Client[v1.ListResourcesRequest, v1.ListResourcesResponse]
+	listAccessibleResources *connect.Client[v1.ListAccessibleResourcesRequest, v1.ListAccessibleResourcesResponse]
+	getResource             *connect.Client[v1.GetResourceRequest, v1.GetResourceResponse]
+	createResource          *connect.Client[v1.CreateResourceRequest, v1.CreateResourceResponse]
+	updateResource          *connect.Client[v1.UpdateResourceRequest, v1.UpdateResourceResponse]
+	deleteResource          *connect.Client[v1.DeleteResourceRequest, v1.DeleteResourceResponse]
+	setCredential           *connect.Client[v1.SetCredentialRequest, v1.SetCredentialResponse]
+	clearCredential         *connect.Client[v1.ClearCredentialRequest, v1.ClearCredentialResponse]
+	clearHostKey            *connect.Client[v1.ClearHostKeyRequest, v1.ClearHostKeyResponse]
 }
 
 // ListResourceTypes calls werbot.v1.ResourceService.ListResourceTypes.
@@ -164,6 +175,11 @@ func (c *resourceServiceClient) ListResourceTypes(ctx context.Context, req *conn
 // ListResources calls werbot.v1.ResourceService.ListResources.
 func (c *resourceServiceClient) ListResources(ctx context.Context, req *connect.Request[v1.ListResourcesRequest]) (*connect.Response[v1.ListResourcesResponse], error) {
 	return c.listResources.CallUnary(ctx, req)
+}
+
+// ListAccessibleResources calls werbot.v1.ResourceService.ListAccessibleResources.
+func (c *resourceServiceClient) ListAccessibleResources(ctx context.Context, req *connect.Request[v1.ListAccessibleResourcesRequest]) (*connect.Response[v1.ListAccessibleResourcesResponse], error) {
+	return c.listAccessibleResources.CallUnary(ctx, req)
 }
 
 // GetResource calls werbot.v1.ResourceService.GetResource.
@@ -205,6 +221,7 @@ func (c *resourceServiceClient) ClearHostKey(ctx context.Context, req *connect.R
 type ResourceServiceHandler interface {
 	ListResourceTypes(context.Context, *connect.Request[v1.ListResourceTypesRequest]) (*connect.Response[v1.ListResourceTypesResponse], error)
 	ListResources(context.Context, *connect.Request[v1.ListResourcesRequest]) (*connect.Response[v1.ListResourcesResponse], error)
+	ListAccessibleResources(context.Context, *connect.Request[v1.ListAccessibleResourcesRequest]) (*connect.Response[v1.ListAccessibleResourcesResponse], error)
 	GetResource(context.Context, *connect.Request[v1.GetResourceRequest]) (*connect.Response[v1.GetResourceResponse], error)
 	CreateResource(context.Context, *connect.Request[v1.CreateResourceRequest]) (*connect.Response[v1.CreateResourceResponse], error)
 	UpdateResource(context.Context, *connect.Request[v1.UpdateResourceRequest]) (*connect.Response[v1.UpdateResourceResponse], error)
@@ -231,6 +248,12 @@ func NewResourceServiceHandler(svc ResourceServiceHandler, opts ...connect.Handl
 		ResourceServiceListResourcesProcedure,
 		svc.ListResources,
 		connect.WithSchema(resourceServiceMethods.ByName("ListResources")),
+		connect.WithHandlerOptions(opts...),
+	)
+	resourceServiceListAccessibleResourcesHandler := connect.NewUnaryHandler(
+		ResourceServiceListAccessibleResourcesProcedure,
+		svc.ListAccessibleResources,
+		connect.WithSchema(resourceServiceMethods.ByName("ListAccessibleResources")),
 		connect.WithHandlerOptions(opts...),
 	)
 	resourceServiceGetResourceHandler := connect.NewUnaryHandler(
@@ -281,6 +304,8 @@ func NewResourceServiceHandler(svc ResourceServiceHandler, opts ...connect.Handl
 			resourceServiceListResourceTypesHandler.ServeHTTP(w, r)
 		case ResourceServiceListResourcesProcedure:
 			resourceServiceListResourcesHandler.ServeHTTP(w, r)
+		case ResourceServiceListAccessibleResourcesProcedure:
+			resourceServiceListAccessibleResourcesHandler.ServeHTTP(w, r)
 		case ResourceServiceGetResourceProcedure:
 			resourceServiceGetResourceHandler.ServeHTTP(w, r)
 		case ResourceServiceCreateResourceProcedure:
@@ -310,6 +335,10 @@ func (UnimplementedResourceServiceHandler) ListResourceTypes(context.Context, *c
 
 func (UnimplementedResourceServiceHandler) ListResources(context.Context, *connect.Request[v1.ListResourcesRequest]) (*connect.Response[v1.ListResourcesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.ResourceService.ListResources is not implemented"))
+}
+
+func (UnimplementedResourceServiceHandler) ListAccessibleResources(context.Context, *connect.Request[v1.ListAccessibleResourcesRequest]) (*connect.Response[v1.ListAccessibleResourcesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.ResourceService.ListAccessibleResources is not implemented"))
 }
 
 func (UnimplementedResourceServiceHandler) GetResource(context.Context, *connect.Request[v1.GetResourceRequest]) (*connect.Response[v1.GetResourceResponse], error) {

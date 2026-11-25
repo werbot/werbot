@@ -2,7 +2,7 @@ version: "2"
 sql:
   - engine: postgresql
     schema: migrations
-    queries: internal/identity/queries.sql
+    queries: internal/identity/queries
     gen:
       go:
         package: dbq
@@ -47,7 +47,7 @@ sql:
         overrides: *overrides
   - engine: postgresql
     schema: migrations
-    queries: internal/access/queries.sql
+    queries: internal/access/queries
     gen:
       go:
         package: dbq
@@ -82,6 +82,36 @@ sql:
       go:
         package: dbq
         out: internal/audit/dbq
+        sql_package: pgx/v5
+        emit_pointers_for_null_types: true
+        overrides: *overrides
+  - engine: postgresql
+    schema: migrations
+    queries: internal/identity/oauth/queries.sql
+    gen:
+      go:
+        package: dbq
+        out: internal/identity/oauth/dbq
+        sql_package: pgx/v5
+        emit_pointers_for_null_types: true
+        overrides: *overrides
+  - engine: postgresql
+    schema: migrations
+    queries: internal/agentic/queries.sql
+    gen:
+      go:
+        package: dbq
+        out: internal/agentic/dbq
+        sql_package: pgx/v5
+        emit_pointers_for_null_types: true
+        overrides: *overrides
+  - engine: postgresql
+    schema: migrations
+    queries: internal/identity/oidclogin/queries.sql
+    gen:
+      go:
+        package: dbq
+        out: internal/identity/oidclogin/dbq
         sql_package: pgx/v5
         emit_pointers_for_null_types: true
         overrides: *overrides

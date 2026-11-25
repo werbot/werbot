@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -110,4 +111,43 @@ func TestSessionRPCValidation(t *testing.T) {
 	}
 	_, err := c.ListSessions(t.Context(), as("admin", &werbotv1.ListSessionsRequest{PageSize: 500}))
 	assert.NoError(t, err, "page size above the max is clamped, not rejected")
+}
+
+// TerminateSession: the request is validated before the use case, a member
+// reaches only their own session, an agent token never terminates, no
+// principal is Unauthenticated; the session carries front and live.
+func TestTerminateSessionRPC(t *testing.T) {
+	e := newRecEnv(t)
+	other := e.f.StartSession(t, e.pool, e.f.OtherMemberID)
+	agent := e.f.Principal(e.f.MemberID)
+	run := uuid.New()
+	agent.AgentID, agent.RunID = &run, &run
+	c := rpcClient(t, e, map[string]principal.Principal{
+		"member": e.f.Principal(e.f.MemberID), "admin": e.f.Principal(e.f.AdminID), "agent": agent})
+	ctx := t.Context()
+	call := func(user, id, reason string) error {
+		_, err := c.TerminateSession(ctx, as(user, &werbotv1.TerminateSessionRequest{Id: id, Reason: reason}))
+		return err
+	}
+	term := func(user, id, reason string) connect.Code { return connect.CodeOf(call(user, id, reason)) }
+
+	got, err := c.GetSession(ctx, as("member", &werbotv1.SessionServiceGetSessionRequest{Id: e.sid.String()}))
+	require.NoError(t, err)
+	assert.Equal(t, "ssh", got.Msg.GetSession().GetFront())
+	assert.True(t, got.Msg.GetSession().GetLive())
+
+	sid := e.sid.String()
+	assert.Equal(t, connect.CodeInvalidArgument, term("admin", sid, ""))
+	assert.Equal(t, connect.CodeInvalidArgument, term("admin", sid, strings.Repeat("x", 257)))
+	assert.Equal(t, connect.CodeInvalidArgument, term("admin", "x", "maintenance"))
+	assert.Equal(t, connect.CodeNotFound, term("member", other.String(), "maintenance"))
+	assert.Equal(t, connect.CodePermissionDenied, term("agent", sid, "maintenance"))
+	_, err = c.TerminateSession(ctx, connect.NewRequest(&werbotv1.TerminateSessionRequest{Id: sid, Reason: "maintenance"}))
+	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
+
+	require.NoError(t, call("member", sid, "done"))
+	require.NoError(t, call("admin", other.String(), "maintenance"))
+	_, err = e.pool.Exec(ctx, "UPDATE session SET ended_at = now(), end_reason = 'terminated' WHERE id = $1", e.sid)
+	require.NoError(t, err)
+	assert.Equal(t, connect.CodeFailedPrecondition, term("admin", sid, "maintenance"))
 }

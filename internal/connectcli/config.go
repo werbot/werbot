@@ -1,9 +1,10 @@
 // Package connectcli is the werbot connect client: it opens local TCP and UDP
-// ports that reach Werbot resources through the gateway's SSH port. It knows
-// only SSH and the resource@werbot.com answer, not the server or its domains.
+// ports that reach Werbot resources through the gateway (SSH, else WebSocket).
+// It knows only SSH and the resource@werbot.com answer, not the server or its domains.
 package connectcli
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -13,6 +14,10 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"golang.org/x/crypto/ssh"
+
+	"github.com/werbot/werbot/internal/platform/wsurl"
 )
 
 const (
@@ -26,11 +31,19 @@ const (
 // ConfigVars lists the WERBOT_CONNECT_* variables in Config field order.
 func ConfigVars() []string { return []string{envGateway, envLogin} }
 
-// Config is what werbot connect needs: the gateway host:port, the Werbot login,
-// an optional private key file, the known_hosts file and one Spec per resource.
+// Config is what werbot connect needs: the gateway host:port and/or its
+// WebSocket URL, the Werbot login, an optional private key file, the
+// known_hosts file and one Spec per resource.
+// Signer, when set, replaces the agent and the key file; it is called for every
+// connection to the gateway, so a renewed certificate is picked up on a redial.
 type Config struct {
-	Gateway, Login, Identity, KnownHosts string
-	Specs                                []Spec
+	Gateway, WSURL, Login, Identity, KnownHosts string
+	Specs                                       []Spec
+	Signer                                      func(ctx context.Context) (ssh.Signer, error)
+	// OpenBrowser opens an MFA page (nil: the prompt shows the URL only); Stdin
+	// answers MFA prompts (nil: os.Stdin).
+	OpenBrowser func(string) error
+	Stdin       io.Reader
 }
 
 // Spec is one [<local_port>:]<resource>[:<target_port>] argument; 0 means not given.
@@ -84,13 +97,13 @@ func parsePort(spec, s string) (uint16, error) {
 
 // LoadConfig reads the WERBOT_CONNECT_* variables through getenv, then applies
 // args (flags win) and parses the remaining arguments as Specs. The gateway and
-// the login are required; the gateway port defaults to 2222 and known_hosts to
-// ~/.ssh/known_hosts.
+// the login are required; a ws:// or wss:// gateway is the WebSocket URL, a
+// host's port defaults to 2222; known_hosts defaults to ~/.ssh/known_hosts.
 func LoadConfig(args []string, getenv func(string) string) (Config, error) {
 	var c Config
 	fs := flag.NewFlagSet("connect", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
-	fs.StringVar(&c.Gateway, "gateway", getenv(envGateway), "gateway host[:port] (port 2222 by default)")
+	fs.StringVar(&c.Gateway, "gateway", getenv(envGateway), "gateway host[:port] (port 2222 by default) or ws[s]://host[:port][/path]")
 	fs.StringVar(&c.Login, "login", getenv(envLogin), "Werbot login")
 	fs.StringVar(&c.Identity, "i", "", "private key file (default: ssh-agent from SSH_AUTH_SOCK, else ~/.ssh/id_ed25519)")
 	fs.StringVar(&c.KnownHosts, "known-hosts", "", "known_hosts file (default ~/.ssh/known_hosts)")
@@ -110,13 +123,8 @@ func LoadConfig(args []string, getenv func(string) string) (Config, error) {
 	case fs.NArg() == 0:
 		return c, errors.New(usageText) //nolint:staticcheck // a usage line ends with "..."
 	}
-	if _, _, err := net.SplitHostPort(c.Gateway); err != nil {
-		c.Gateway = net.JoinHostPort(strings.Trim(c.Gateway, "[]"), defaultGatewayPort)
-	}
-	if _, port, err := net.SplitHostPort(c.Gateway); err != nil {
-		return c, fmt.Errorf("gateway %q: %w", c.Gateway, err)
-	} else if _, err := parsePort(c.Gateway, port); err != nil {
-		return c, fmt.Errorf("gateway: %w", err)
+	if err := c.parseGateway(); err != nil {
+		return c, err
 	}
 	for _, a := range fs.Args() {
 		sp, err := ParseSpec(a)
@@ -133,4 +141,25 @@ func LoadConfig(args []string, getenv func(string) string) (Config, error) {
 		c.KnownHosts = filepath.Join(home, ".ssh", "known_hosts")
 	}
 	return c, nil
+}
+
+// parseGateway moves a ws:// or wss:// gateway to WSURL; a host[:port] gets
+// port 2222 when it has none.
+func (c *Config) parseGateway() error {
+	if strings.Contains(c.Gateway, "://") {
+		if !wsurl.Valid(c.Gateway) {
+			return errors.New("gateway: want ws://host[:port][/path] or wss://host[:port][/path]")
+		}
+		c.WSURL, c.Gateway = c.Gateway, ""
+		return nil
+	}
+	c.Gateway = withPort(c.Gateway, defaultGatewayPort)
+	_, port, err := net.SplitHostPort(c.Gateway)
+	if err != nil {
+		return fmt.Errorf("gateway %q: %w", c.Gateway, err)
+	}
+	if _, err := parsePort(c.Gateway, port); err != nil {
+		return fmt.Errorf("gateway: %w", err)
+	}
+	return nil
 }

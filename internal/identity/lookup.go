@@ -42,3 +42,18 @@ func (s *Service) LookupLogin(ctx context.Context, orgID uuid.UUID, login string
 		return st.LookupLoginUser(ctx, dbq.LookupLoginUserParams{OrgID: orgID, Login: login})
 	})
 }
+
+// Membership returns the role of userID in orgID; no member row is
+// ErrNotFound. It implements oauth.Users.
+func (s *Service) Membership(ctx context.Context, orgID, userID uuid.UUID) (string, error) {
+	var role string
+	err := dbx.ReadInOrg(s.pool, orgID, userID, func(rd *dbx.Read) error {
+		var err error
+		role, err = newStore(rd).GetMemberRole(ctx, dbq.GetMemberRoleParams{OrgID: orgID, UserID: userID})
+		return err
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", fmt.Errorf("member not found: %w", apperr.ErrNotFound)
+	}
+	return role, err
+}

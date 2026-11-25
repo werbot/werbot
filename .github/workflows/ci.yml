@@ -6,9 +6,16 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   go:
     runs-on: ubuntu-latest
+    env:
+      # ./cmd/werbot for linux/amd64 without the web build: 87 695 590 bytes
+      # after --vnet linked gVisor (+4.9 MB), plus 2 MiB of headroom
+      MAX_BINARY_BYTES: 89792742
     services:
       postgres:
         image: postgres:18-alpine
@@ -40,8 +47,20 @@ jobs:
       - run: go mod tidy -diff
       - run: go mod tidy -modfile=tools/go.mod -diff
       - run: GOOS=windows go build ./...
-      - run: go test -count=1 ./...
+      # The latency budget runs alone: the other packages' tests would share its CPU.
+      - run: go test -count=1 -skip '^TestExecDecisionP99$' ./...
+      - run: go test -count=1 -run '^TestExecDecisionP99$' -v ./internal/gateway/
       - run: go test -race -tags load -short ./test/load/
+      - name: Binary size
+        run: CGO_ENABLED=0 go build -o werbot ./cmd/werbot && test "$(stat -c %s werbot)" -le "$MAX_BINARY_BYTES"
+      # The privilege drop of --vnet needs root: a test binary built as the
+      # runner user runs under sudo (never go itself under sudo).
+      - name: vnet privilege drop as root
+        run: |
+          set -o pipefail
+          go test -c -o "$RUNNER_TEMP/vnet.test" ./internal/vnet
+          sudo "$RUNNER_TEMP/vnet.test" -test.run DropPrivileges -test.v | tee "$RUNNER_TEMP/vnet.out"
+          grep -q -- '--- PASS: TestDropPrivilegesKeepsOwnership' "$RUNNER_TEMP/vnet.out"
       - uses: golangci/golangci-lint-action@v9
         with:
           version: v2.15.0
@@ -54,7 +73,9 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-      - run: go test -count=1 ./internal/connectcli/...
+      - run: go test -count=1 ./internal/connectcli/... ./internal/clientauth/... ./internal/cli/... ./internal/mcpserver/... ./internal/vnet/...
+      - run: go build -o werbot.exe ./cmd/werbot
+      - run: ./werbot.exe login --help
 
   web:
     runs-on: ubuntu-latest
@@ -70,6 +91,24 @@ jobs:
       - run: bun run check
       - run: bun run test:unit
       - run: bun run build
+      - run: make site
+        working-directory: .
+
+  fuzz:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: make fuzz
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fuzz-crashers
+          path: "**/testdata/fuzz/**"
+          if-no-files-found: ignore
 
   e2e:
     runs-on: ubuntu-latest
@@ -113,9 +152,34 @@ jobs:
           go-version-file: go.mod
       - run: make e2e-network
 
+  # SSO against Keycloak (owner decision O5: every PR); make e2e-sso brings
+  # the stand up and down, the last step removes it after a cancelled run
+  e2e-sso:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_PASSWORD: password
+        ports:
+          - 27432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: make e2e-sso
+      - if: always()
+        run: docker compose -f deploy/e2e/keycloak.yaml down -v
+
   e2e-cluster:
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    timeout-minutes: 60
     # one run per ref: a newer push cancels the cluster run it supersedes
     concurrency:
       group: e2e-cluster-${{ github.ref }}
@@ -131,6 +195,38 @@ jobs:
         with:
           name: e2e-cluster-logs
           path: test/cluster/compose.log
+          if-no-files-found: ignore
+
+  # red-team scenarios (owner decision O3: every PR); make redteam brings the
+  # stand up and removes it; the dev DB serves the Playwright step
+  redteam:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # one run per ref: a newer push cancels the red-team run it supersedes
+    concurrency:
+      group: redteam-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.x
+      - run: make dev-db
+      # the browser's system libraries need root: install them here, as the
+      # e2e job does; make redteam-sso then finds Chromium installed
+      - run: cd web && bun install --frozen-lockfile && bunx playwright install --with-deps chromium
+      - run: make redteam
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: redteam-logs
+          path: |
+            test/redteam/compose.log
+            web/playwright-report
+            web/e2e/.server.log
           if-no-files-found: ignore
 
   release-snapshot:
@@ -170,3 +266,5 @@ jobs:
           docker compose -f docker-compose.gateway.yaml config -q
           docker compose -f docker-compose.cluster.yaml --profile gateways config -q
           docker compose -f docker-compose.cluster.yaml run --rm --no-deps lb nginx -t
+          docker compose -f docker-compose.yaml -f demo/docker-compose.yaml config -q
+          bash -n demo/demo.sh

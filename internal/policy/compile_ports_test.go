@@ -19,7 +19,7 @@ permit (principal == Werbot::User::"019a0000-0000-7000-8000-000000000001", actio
 when { [Werbot::Resource::"019a0000-0000-7000-8000-000000000003"].contains(resource) }
 when { context.port == 0 || (context.port >= 5432 && context.port <= 5432) || (context.port >= 8000 && context.port <= 8100) };
 
-`+blocklistPolicy, text)
+`+blocklistPolicy+"\n"+baselineText(), text)
 
 	_, text, err = Compile(snap())
 	require.NoError(t, err)

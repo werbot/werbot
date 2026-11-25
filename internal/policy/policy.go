@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/werbot/werbot/internal/connector"
+	"github.com/werbot/werbot/internal/platform/rpcid"
 )
 
 // Effect of a network or country rule.
@@ -57,6 +58,8 @@ type SnapshotResource struct {
 	Name   string            `json:"name"`
 	Type   string            `json:"type"`
 	Labels map[string]string `json:"labels"`
+	// Host is the endpoint host: the resource host of the egress class.
+	Host string `json:"host,omitempty"`
 }
 
 // Binding is an access binding as stored: one resource or a label selector.
@@ -85,11 +88,25 @@ type Snapshot struct {
 	Resources []SnapshotResource `json:"resources"`
 	Bindings  []SnapshotBinding  `json:"bindings"`
 	Rules     []ResourceRules    `json:"rules"`
+	Grants    []SnapshotGrant    `json:"grants"`
+	Locks     []SnapshotLock     `json:"locks"`
+	// CommandRules have their selectors expanded.
+	CommandRules   []SnapshotCommandRule  `json:"command_rules"`
+	ClassRules     []SnapshotClassRule    `json:"class_rules"`
+	CustomPolicies []SnapshotCustomPolicy `json:"custom_policies"` // enabled only
+	PathRules      []SnapshotPathRule     `json:"path_rules"`
+	TerminalRules  []SnapshotTerminalRule `json:"terminal_rules"`
+	MFARules       []SnapshotMFARule      `json:"mfa_rules"`
+	Agents         []SnapshotAgent        `json:"agents"`
+	BlockedRuns    []uuid.UUID            `json:"blocked_runs"` // paused or recently ended runs
 }
 
-// Request asks whether a user may perform Action on a resource.
+// Request asks whether a user or an agent of the user may perform Action.
 type Request struct {
-	UserID     uuid.UUID
+	UserID     uuid.UUID // the sponsor of AgentID
+	AgentID    *uuid.UUID
+	RunID      *uuid.UUID
+	Kind       string // connector.Kind of the session; "" when none
 	TeamIDs    []uuid.UUID
 	ResourceID uuid.UUID
 	Action     string // "ssh.connect"
@@ -98,13 +115,33 @@ type Request struct {
 	Time       time.Time
 	IPBlocked  bool
 	Port       uint16 // target port of a stream or datagram; 0: terminal or exec
+	// CLISessionID is the CLI session of the user certificate; uuid.Nil: none.
+	CLISessionID uuid.UUID
+	// Command, Classes and ApprovalGranted describe an exec request; a
+	// connect request leaves them empty.
+	Command         string
+	Classes         []string
+	ApprovalGranted bool
+	// Paths are the paths of the command, PathHits and PathOutside the ids
+	// of the path rules it hits or leaves (shellclass.EvalPaths); Console
+	// marks a shell the command console serves.
+	Paths, PathHits, PathOutside []string
+	Console                      bool
+	// MFAAgeSeconds is the age of the user's last second factor of
+	// MFAMethod ("totp" | "webauthn"); MFAMethod "" means none (mfaAge).
+	MFAAgeSeconds int64
+	MFAMethod     string
 }
 
 // Decision lists the ids of the policies that decided it; "error:<id>" marks
-// a policy that failed to evaluate.
+// a policy that failed to evaluate. A deny carries Obligations when meeting
+// them (e.g. an approval) would allow, and the @message of the first
+// deciding forbid.
 type Decision struct {
-	Allow   bool
-	Reasons []string
+	Allow       bool
+	Reasons     []string
+	Obligations []string
+	Message     string
 }
 
 // PolicySet is a compiled snapshot.
@@ -149,7 +186,8 @@ func matches(labels, selector map[string]string) bool {
 
 // Authorize decides r. An invalid IP, an action that is not one of the
 // resource type's actions or any policy evaluation error denies. A zero
-// r.Time means now.
+// r.Time means now. A deny also carries the @message and the obligations of
+// the forbids that decided it. An agent's request passes twice (authorizeAgent).
 func (ps *PolicySet) Authorize(r Request) Decision {
 	if ps == nil {
 		return Decision{Reasons: []string{"error:compile"}}
@@ -160,6 +198,34 @@ func (ps *PolicySet) Authorize(r Request) Decision {
 	if !ps.typeHasAction(r.ResourceID, r.Action) {
 		return Decision{Reasons: []string{"invalid_action"}}
 	}
+	if r.AgentID != nil {
+		return ps.authorizeAgent(r)
+	}
+	return ps.decidePass(r, userUID(r.UserID))
+}
+
+// decidePass decides r with principal p: the user of r or its agent.
+func (ps *PolicySet) decidePass(r Request, p cedar.EntityUID) Decision {
+	d, diag := ps.evaluate(r, p)
+	// cedar-go skips a policy that fails to evaluate: a broken forbid would allow.
+	out := Decision{Allow: d == cedar.Allow && len(diag.Errors) == 0}
+	for _, rs := range diag.Reasons {
+		out.Reasons = append(out.Reasons, string(rs.PolicyID))
+	}
+	slices.Sort(out.Reasons) // cedar-go reports in map order
+	n := len(out.Reasons)
+	for _, e := range diag.Errors {
+		out.Reasons = append(out.Reasons, "error:"+string(e.PolicyID))
+	}
+	slices.Sort(out.Reasons[n:])
+	if d == cedar.Deny && len(diag.Errors) == 0 {
+		out.Message, out.Obligations = ps.explain(r, p, out.Reasons)
+	}
+	return out
+}
+
+// evaluate runs the policies on r with principal p; r.IP must be valid.
+func (ps *PolicySet) evaluate(r Request, p cedar.EntityUID) (cedar.Decision, cedar.Diagnostic) {
 	ip := r.IP.Unmap()
 	t := r.Time
 	if t.IsZero() {
@@ -170,49 +236,37 @@ func (ps *PolicySet) Authorize(r Request) Decision {
 	for i, id := range r.TeamIDs {
 		teams[i] = cedar.NewEntityUID("Werbot::Team", cedar.String(id.String()))
 	}
-	user := cedar.Entity{
-		UID:     cedar.NewEntityUID("Werbot::User", cedar.String(r.UserID.String())),
-		Parents: cedar.NewEntityUIDSet(teams...),
-	}
+	user := cedar.Entity{UID: userUID(r.UserID), Parents: cedar.NewEntityUIDSet(teams...)}
 	req := cedar.Request{
-		Principal: user.UID,
+		Principal: p,
 		Action:    cedar.NewEntityUID("Werbot::Action", cedar.String(r.Action)),
 		Resource:  cedar.NewEntityUID("Werbot::Resource", cedar.String(r.ResourceID.String())),
 		Context: cedar.NewRecord(cedar.RecordMap{
-			"ip":         cedar.IPAddr(netip.PrefixFrom(ip, ip.BitLen())),
-			"country":    cedar.String(strings.ToUpper(r.Country)),
-			"weekday":    cedar.Long(t.Weekday()),
-			"hour":       cedar.Long(t.Hour()),
-			"ip_blocked": cedar.Boolean(r.IPBlocked),
-			"port":       cedar.Long(r.Port),
+			"ip":               cedar.IPAddr(netip.PrefixFrom(ip, ip.BitLen())),
+			"country":          cedar.String(strings.ToUpper(r.Country)),
+			"weekday":          cedar.Long(t.Weekday()),
+			"hour":             cedar.Long(t.Hour()),
+			"ip_blocked":       cedar.Boolean(r.IPBlocked),
+			"port":             cedar.Long(r.Port),
+			"now":              cedar.Long(t.Unix()),
+			"cli_session_id":   cedar.String(cliSession(r.CLISessionID)),
+			"command":          cedar.String(r.Command),
+			"classes":          stringSet(r.Classes),
+			"approval_granted": cedar.Boolean(r.ApprovalGranted),
+			"paths":            stringSet(r.Paths),
+			"path_hits":        stringSet(r.PathHits),
+			"path_outside":     stringSet(r.PathOutside),
+			"console":          cedar.Boolean(r.Console),
+			"run_id":           cedar.String(rpcid.String(r.RunID)), // no run is "", which no run id matches
+			"kind":             cedar.String(r.Kind),
+			"mfa_age":          cedar.Long(mfaAge(r)),
+			"mfa_method":       cedar.String(r.MFAMethod),
 		}),
 	}
-	d, diag := cedar.Authorize(ps.policies, entityGetter{ps.entities, user}, req)
-	// cedar-go skips a policy that fails to evaluate: a broken forbid would allow.
-	out := Decision{Allow: d == cedar.Allow && len(diag.Errors) == 0}
-	for _, rs := range diag.Reasons {
-		out.Reasons = append(out.Reasons, string(rs.PolicyID))
-	}
-	for _, e := range diag.Errors {
-		out.Reasons = append(out.Reasons, "error:"+string(e.PolicyID))
-	}
-	return out
+	return cedar.Authorize(ps.policies, entityGetter{ps.entities, user}, req)
 }
 
-// typeHasAction reports whether action is one of the actions of the registered
-// type of resource id; a resource outside the snapshot has none.
-func (ps *PolicySet) typeHasAction(id uuid.UUID, action string) bool {
-	e, ok := ps.entities[cedar.NewEntityUID("Werbot::Resource", cedar.String(id.String()))]
-	if !ok {
-		return false
-	}
-	v, _ := e.Attributes.Get("type")
-	typ, _ := v.(cedar.String)
-	t, ok := connector.Lookup(string(typ))
-	return ok && slices.Contains(t.Actions, action)
-}
-
-// entityGetter adds the request principal to the compiled entities without copying them.
+// entityGetter adds the request user to the compiled entities without copying them.
 type entityGetter struct {
 	entities cedar.EntityMap
 	user     cedar.Entity

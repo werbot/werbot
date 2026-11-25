@@ -5,7 +5,7 @@ const LOG = 'e2e/.server.log';
 
 // Reads the newest LogMailer record for `to` from the server log and returns its first link to `path`.
 export async function latestEmailLink(to: string, path: 'invite' | 'reset-password' | 'profile/delete'): Promise<string> {
-	const re = new RegExp(`http://127\\.0\\.0\\.1:18080/${path}/[A-Za-z0-9_-]{43}`);
+	const re = new RegExp(`http://localhost:18080/${path}/[A-Za-z0-9_-]{43}`);
 	let link = '';
 	await expect
 		.poll(

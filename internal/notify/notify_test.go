@@ -72,6 +72,56 @@ func TestRenderOtherTemplates(t *testing.T) {
 	assert.Contains(t, html, `href="https://w.example/x"`)
 }
 
+func TestRenderAccessTemplates(t *testing.T) {
+	for _, tc := range []struct {
+		name, subject string
+		data          map[string]string
+		body          []string
+	}{
+		{"access_request", "bob requests access to db <1>",
+			map[string]string{"url": "https://w.example/requests?id=1", "requester": "bob", "resource": "db <1>",
+				"duration": "2h", "reason": "fix <b>", "command": "rm -rf /tmp/<x>"},
+			[]string{`href="https://w.example/requests?id=1"`, "db &lt;1&gt;", "2h", "fix &lt;b&gt;", "rm -rf /tmp/&lt;x&gt;"}},
+		{"access_decision", "Your request for env=prod was approved",
+			map[string]string{"url": "https://w.example/requests?id=2", "resource": "env=prod", "status": "approved", "comment": "ok <i>"},
+			[]string{`href="https://w.example/requests?id=2"`, "approved", "ok &lt;i&gt;"}},
+		{"break_glass", "Break-glass access to db by bob",
+			map[string]string{"url": "https://w.example/requests?id=3", "requester": "bob", "resource": "db", "reason": "incident <1>"},
+			[]string{`href="https://w.example/requests?id=3"`, "bob", "incident &lt;1&gt;"}},
+	} {
+		subj, html, err := Render(tc.name, tc.data)
+		require.NoError(t, err, tc.name)
+		assert.Equal(t, tc.subject, subj, tc.name)
+		for _, b := range tc.body {
+			assert.Contains(t, html, b, tc.name)
+		}
+	}
+	_, html, err := Render("access_request", map[string]string{"url": "u", "requester": "bob", "resource": "db",
+		"duration": "2h", "reason": "", "command": ""})
+	require.NoError(t, err)
+	assert.NotContains(t, html, "Command", "an access request shows no command block")
+	subj, _, err := Render("access_decision", map[string]string{"url": "u", "resource": "a\r\nBcc: x", "status": "denied", "comment": ""})
+	require.NoError(t, err)
+	assert.NotContains(t, subj, "\n")
+	assert.NotContains(t, subj, "\r")
+}
+
+func TestRenderAgentAlert(t *testing.T) {
+	subj, html, err := Render("agent_alert", map[string]string{"url": "https://w.example/agents/runs/1", "agent": "claude",
+		"sponsor": "bob", "resource": "db", "command": "cat <id_rsa> && echo \"x\"", "classes": "read, secrets"})
+	require.NoError(t, err)
+	assert.Equal(t, "Werbot: agent claude attempted read, secrets on db", subj)
+	for _, b := range []string{`href="https://w.example/agents/runs/1"`, "bob", "db", "read, secrets",
+		"cat &lt;id_rsa&gt; &amp;&amp; echo &#34;x&#34;"} {
+		assert.Contains(t, html, b)
+	}
+	assert.NotContains(t, html, "<id_rsa>", "the command is escaped")
+	subj, _, err = Render("agent_alert", map[string]string{"url": "u", "agent": "claude", "sponsor": "bob",
+		"resource": "db\r\nBcc: x", "command": "id", "classes": "egress"})
+	require.NoError(t, err)
+	assert.NotContains(t, subj, "\n")
+}
+
 func TestRenderUnknownTemplate(t *testing.T) {
 	_, _, err := Render("nope", nil)
 	assert.ErrorContains(t, err, "unknown template")

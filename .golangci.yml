@@ -1,6 +1,6 @@
 version: "2"
 run:
-  build-tags: [cluster, load] # test/ builds only with these tags
+  build-tags: [cluster, load, redteam] # test/ builds only with these tags
 linters:
   default: none
   enable: [bodyclose, depguard, gocritic, gosec, govet, ineffassign, misspell, nolintlint, revive, sqlclosecheck, staticcheck, unconvert, unparam, unused, whitespace]
@@ -28,6 +28,7 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/gateway, desc: platform must not import domains }
             - { pkg: github.com/werbot/werbot/internal/system, desc: platform must not import domains }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: platform must not import domains }
+            - { pkg: github.com/werbot/werbot/internal/relay, desc: platform must not import the relay }
         system:
           files: ["**/internal/system/*.go", "**/internal/system/**/*.go"]
           deny:
@@ -43,6 +44,7 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/notify, desc: domains must not import other domains }
             - { pkg: github.com/werbot/werbot/internal/gateway, desc: domains must not import other domains }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: domains must not import other domains }
+            - { pkg: github.com/werbot/werbot/internal/relay, desc: domains must not import the relay }
         notify:
           files: ["**/internal/notify/*.go", "**/internal/notify/**/*.go"]
           deny:
@@ -58,6 +60,7 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/gateway, desc: domains must not import other domains }
             - { pkg: github.com/werbot/werbot/internal/system, desc: domains must not import other domains }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: domains must not import other domains }
+            - { pkg: github.com/werbot/werbot/internal/relay, desc: domains must not import the relay }
         identity:
           files: ["**/internal/identity/*.go", "**/internal/identity/**/*.go"]
           deny:
@@ -73,6 +76,7 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/gateway, desc: domains must not import other domains }
             - { pkg: github.com/werbot/werbot/internal/system, desc: domains must not import other domains }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: domains must not import other domains }
+            - { pkg: github.com/werbot/werbot/internal/relay, desc: domains must not import the relay }
         connector:
           files: ["**/internal/connector/*.go", "**/internal/connector/**/*.go"]
           deny:
@@ -89,6 +93,7 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/gateway, desc: connector may import only platform and gen }
             - { pkg: github.com/werbot/werbot/internal/system, desc: connector may import only platform and gen }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: connector may import only platform and gen }
+            - { pkg: github.com/werbot/werbot/internal/relay, desc: connector may import only platform and gen }
         inventory:
           files: ["**/internal/inventory/*.go", "**/internal/inventory/**/*.go"]
           deny:
@@ -104,6 +109,7 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/gateway, desc: domains must not import each other }
             - { pkg: github.com/werbot/werbot/internal/system, desc: domains must not import each other }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/relay, desc: domains must not import the relay }
         credential:
           files: ["**/internal/credential/*.go", "**/internal/credential/**/*.go"]
           deny:
@@ -119,6 +125,7 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/gateway, desc: domains must not import each other }
             - { pkg: github.com/werbot/werbot/internal/system, desc: domains must not import each other }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/relay, desc: domains must not import the relay }
         access:
           files: ["**/internal/access/*.go", "**/internal/access/**/*.go"]
           deny:
@@ -134,6 +141,7 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/gateway, desc: domains must not import each other }
             - { pkg: github.com/werbot/werbot/internal/system, desc: domains must not import each other }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/relay, desc: domains must not import the relay }
         policy:
           files: ["**/internal/policy/*.go", "**/internal/policy/**/*.go"]
           deny:
@@ -149,6 +157,7 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/gateway, desc: domains must not import each other }
             - { pkg: github.com/werbot/werbot/internal/system, desc: domains must not import each other }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/relay, desc: domains must not import the relay }
         session:
           files: ["**/internal/session/*.go", "**/internal/session/**/*.go"]
           deny:
@@ -164,6 +173,7 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/gateway, desc: domains must not import each other }
             - { pkg: github.com/werbot/werbot/internal/system, desc: domains must not import each other }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/relay, desc: domains must not import the relay }
         audit:
           files: ["**/internal/audit/*.go", "**/internal/audit/**/*.go"]
           deny:
@@ -179,6 +189,23 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/gateway, desc: domains must not import each other }
             - { pkg: github.com/werbot/werbot/internal/system, desc: domains must not import each other }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/relay, desc: domains must not import the relay }
+        agentic:
+          files: ["**/internal/agentic/*.go", "**/internal/agentic/**/*.go"]
+          deny:
+            - { pkg: github.com/werbot/werbot/internal/app, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/tunnel, desc: domains must not import the tunnel handler }
+            - { pkg: github.com/werbot/werbot/internal/identity, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/inventory, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/credential, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/policy, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/access, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/session, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/audit, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/notify, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/gateway, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/system, desc: domains must not import each other }
+            - { pkg: github.com/werbot/werbot/internal/relay, desc: domains must not import the relay }
         tunnel:
           files: ["**/internal/tunnel/*.go", "**/internal/tunnel/**/*.go"]
           deny:
@@ -196,6 +223,29 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: tunnel may import only platform and gen }
             - { pkg: github.com/werbot/werbot/internal/connector, desc: tunnel may import only platform and gen }
             - { pkg: github.com/werbot/werbot/internal/webui, desc: tunnel may import only platform and gen }
+            - { pkg: github.com/werbot/werbot/internal/relay, desc: tunnel may import only platform and gen }
+        relay:
+          files: ["**/internal/relay/*.go", "**/internal/relay/**/*.go"]
+          deny:
+            - { pkg: github.com/werbot/werbot/internal/app, desc: relay talks to domains through its own interfaces }
+            - { pkg: github.com/werbot/werbot/internal/gateway, desc: relay talks to domains through its own interfaces }
+            - { pkg: github.com/werbot/werbot/internal/tunnel, desc: relay talks to domains through its own interfaces }
+            - { pkg: github.com/werbot/werbot/internal/webui, desc: relay talks to domains through its own interfaces }
+            - { pkg: github.com/werbot/werbot/internal/connector, desc: relay talks to domains through its own interfaces }
+            - { pkg: github.com/werbot/werbot/internal/identity, desc: relay talks to domains through its own interfaces }
+            - { pkg: github.com/werbot/werbot/internal/inventory, desc: relay talks to domains through its own interfaces }
+            - { pkg: github.com/werbot/werbot/internal/credential, desc: relay talks to domains through its own interfaces }
+            - { pkg: github.com/werbot/werbot/internal/policy, desc: relay talks to domains through its own interfaces }
+            - { pkg: github.com/werbot/werbot/internal/access, desc: relay talks to domains through its own interfaces }
+            - { pkg: github.com/werbot/werbot/internal/session, desc: relay talks to domains through its own interfaces }
+            - { pkg: github.com/werbot/werbot/internal/audit, desc: relay talks to domains through its own interfaces }
+            - { pkg: github.com/werbot/werbot/internal/notify, desc: relay talks to domains through its own interfaces }
+            - { pkg: github.com/werbot/werbot/internal/system, desc: relay talks to domains through its own interfaces }
+            - { pkg: github.com/werbot/werbot/internal/agentic, desc: relay talks to domains through its own interfaces }
+            - { pkg: github.com/werbot/werbot/internal/connectcli, desc: relay talks to domains through its own interfaces }
+            - { pkg: github.com/werbot/werbot/internal/cli$, desc: relay talks to domains through its own interfaces }
+            - { pkg: github.com/werbot/werbot/internal/clientauth, desc: relay talks to domains through its own interfaces }
+            - { pkg: github.com/werbot/werbot/internal/mcpserver, desc: relay talks to domains through its own interfaces }
         gateway:
           files: ["**/internal/gateway/*.go", "**/internal/gateway/**/*.go"]
           deny:
@@ -212,6 +262,7 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/system, desc: gateway may import only platform+connector+gen }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: gateway may import only platform+connector+gen }
             - { pkg: github.com/werbot/werbot/internal/webui, desc: gateway may import only platform+connector+gen }
+            - { pkg: github.com/werbot/werbot/internal/relay, desc: gateway may import only platform+connector+gen }
         webui:
           files: ["**/internal/webui/*.go", "**/internal/webui/**/*.go"]
           deny:
@@ -229,6 +280,7 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/gateway, desc: webui must not import domains }
             - { pkg: github.com/werbot/werbot/internal/system, desc: webui must not import domains }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: webui must not import domains }
+            - { pkg: github.com/werbot/werbot/internal/relay, desc: webui must not import the relay }
         connectcli:
           files: ["**/internal/connectcli/*.go", "**/internal/connectcli/**/*.go"]
           deny:
@@ -248,6 +300,88 @@ linters:
             - { pkg: github.com/werbot/werbot/internal/notify, desc: connectcli knows only SSH and the gateway answer }
             - { pkg: github.com/werbot/werbot/internal/system, desc: connectcli knows only SSH and the gateway answer }
             - { pkg: github.com/werbot/werbot/internal/agentic, desc: connectcli knows only SSH and the gateway answer }
+            - { pkg: github.com/werbot/werbot/internal/relay, desc: connectcli knows only SSH and the gateway answer }
+        cli:
+          files: ["**/internal/cli/*.go", "**/internal/cli/**/*.go"]
+          deny:
+            - { pkg: github.com/werbot/werbot/internal/app, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/platform/db, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/tunnel, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/gateway, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/webui, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/connector, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/identity, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/inventory, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/credential, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/policy, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/access, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/session, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/audit, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/notify, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/system, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/agentic, desc: client commands know only client-side packages }
+            - { pkg: github.com/werbot/werbot/internal/relay, desc: client commands know only client-side packages }
+        clientauth:
+          files: ["**/internal/clientauth/*.go", "**/internal/clientauth/**/*.go"]
+          deny:
+            - { pkg: github.com/werbot/werbot/internal/app, desc: clientauth knows only the server API and the profile on disk }
+            - { pkg: github.com/werbot/werbot/internal/platform/db, desc: clientauth knows only the server API and the profile on disk }
+            - { pkg: github.com/werbot/werbot/internal/tunnel, desc: clientauth knows only the server API and the profile on disk }
+            - { pkg: github.com/werbot/werbot/internal/gateway, desc: clientauth knows only the server API and the profile on disk }
+            - { pkg: github.com/werbot/werbot/internal/webui, desc: clientauth knows only the server API and the profile on disk }
+            - { pkg: github.com/werbot/werbot/internal/connector, desc: clientauth knows only the server API and the profile on disk }
+            - { pkg: github.com/werbot/werbot/internal/identity, desc: clientauth knows only the server API and the profile on disk }
+            - { pkg: github.com/werbot/werbot/internal/inventory, desc: clientauth knows only the server API and the profile on disk }
+            - { pkg: github.com/werbot/werbot/internal/credential, desc: clientauth knows only the server API and the profile on disk }
+            - { pkg: github.com/werbot/werbot/internal/policy, desc: clientauth knows only the server API and the profile on disk }
+            - { pkg: github.com/werbot/werbot/internal/access, desc: clientauth knows only the server API and the profile on disk }
+            - { pkg: github.com/werbot/werbot/internal/session, desc: clientauth knows only the server API and the profile on disk }
+            - { pkg: github.com/werbot/werbot/internal/audit, desc: clientauth knows only the server API and the profile on disk }
+            - { pkg: github.com/werbot/werbot/internal/notify, desc: clientauth knows only the server API and the profile on disk }
+            - { pkg: github.com/werbot/werbot/internal/system, desc: clientauth knows only the server API and the profile on disk }
+            - { pkg: github.com/werbot/werbot/internal/agentic, desc: clientauth knows only the server API and the profile on disk }
+            - { pkg: github.com/werbot/werbot/internal/relay, desc: clientauth knows only the server API and the profile on disk }
+        mcpserver:
+          files: ["**/internal/mcpserver/*.go", "**/internal/mcpserver/**/*.go"]
+          deny:
+            - { pkg: github.com/werbot/werbot/internal/app, desc: the MCP server knows only the client packages and the server API }
+            - { pkg: github.com/werbot/werbot/internal/platform/db, desc: the MCP server knows only the client packages and the server API }
+            - { pkg: github.com/werbot/werbot/internal/tunnel, desc: the MCP server knows only the client packages and the server API }
+            - { pkg: github.com/werbot/werbot/internal/gateway, desc: the MCP server knows only the client packages and the server API }
+            - { pkg: github.com/werbot/werbot/internal/webui, desc: the MCP server knows only the client packages and the server API }
+            - { pkg: github.com/werbot/werbot/internal/connector, desc: the MCP server knows only the client packages and the server API }
+            - { pkg: github.com/werbot/werbot/internal/identity, desc: the MCP server knows only the client packages and the server API }
+            - { pkg: github.com/werbot/werbot/internal/inventory, desc: the MCP server knows only the client packages and the server API }
+            - { pkg: github.com/werbot/werbot/internal/credential, desc: the MCP server knows only the client packages and the server API }
+            - { pkg: github.com/werbot/werbot/internal/policy, desc: the MCP server knows only the client packages and the server API }
+            - { pkg: github.com/werbot/werbot/internal/access, desc: the MCP server knows only the client packages and the server API }
+            - { pkg: github.com/werbot/werbot/internal/session, desc: the MCP server knows only the client packages and the server API }
+            - { pkg: github.com/werbot/werbot/internal/audit, desc: the MCP server knows only the client packages and the server API }
+            - { pkg: github.com/werbot/werbot/internal/notify, desc: the MCP server knows only the client packages and the server API }
+            - { pkg: github.com/werbot/werbot/internal/system, desc: the MCP server knows only the client packages and the server API }
+            - { pkg: github.com/werbot/werbot/internal/agentic, desc: the MCP server knows only the client packages and the server API }
+            - { pkg: github.com/werbot/werbot/internal/cli$, desc: the MCP server knows only the client packages and the server API }
+            - { pkg: github.com/werbot/werbot/internal/relay, desc: the MCP server knows only the client packages and the server API }
+        vnet:
+          files: ["**/internal/vnet/*.go", "**/internal/vnet/**/*.go"]
+          deny:
+            - { pkg: github.com/werbot/werbot/internal/app, desc: vnet knows only the client packages }
+            - { pkg: github.com/werbot/werbot/internal/platform/db, desc: vnet knows only the client packages }
+            - { pkg: github.com/werbot/werbot/internal/tunnel, desc: vnet knows only the client packages }
+            - { pkg: github.com/werbot/werbot/internal/gateway, desc: vnet knows only the client packages }
+            - { pkg: github.com/werbot/werbot/internal/connector, desc: vnet knows only the client packages }
+            - { pkg: github.com/werbot/werbot/internal/webui, desc: vnet knows only the client packages }
+            - { pkg: github.com/werbot/werbot/internal/identity, desc: vnet knows only the client packages }
+            - { pkg: github.com/werbot/werbot/internal/inventory, desc: vnet knows only the client packages }
+            - { pkg: github.com/werbot/werbot/internal/credential, desc: vnet knows only the client packages }
+            - { pkg: github.com/werbot/werbot/internal/policy, desc: vnet knows only the client packages }
+            - { pkg: github.com/werbot/werbot/internal/access, desc: vnet knows only the client packages }
+            - { pkg: github.com/werbot/werbot/internal/session, desc: vnet knows only the client packages }
+            - { pkg: github.com/werbot/werbot/internal/audit, desc: vnet knows only the client packages }
+            - { pkg: github.com/werbot/werbot/internal/notify, desc: vnet knows only the client packages }
+            - { pkg: github.com/werbot/werbot/internal/system, desc: vnet knows only the client packages }
+            - { pkg: github.com/werbot/werbot/internal/agentic, desc: vnet knows only the client packages }
+            - { pkg: github.com/werbot/werbot/internal/relay, desc: vnet knows only the client packages }
         e2e:
           files: ["**/internal/e2e/*.go", "**/internal/e2e/**/*.go"]
           deny:
@@ -257,5 +391,14 @@ linters:
           files: ["**/*.go", "!**/internal/session/recstore/**"]
           deny:
             - { pkg: github.com/aws/aws-sdk-go-v2, desc: S3 access goes through internal/session/recstore }
+        wireguard-vnet-only:
+          files: ["**/*.go", "!**/internal/vnet/**"]
+          deny:
+            - { pkg: golang.zx2c4.com/wireguard, desc: the TUN device and the userspace stack live only in internal/vnet }
+            - { pkg: gvisor.dev/gvisor, desc: the TUN device and the userspace stack live only in internal/vnet }
+        cedar-exp-policy-only:
+          files: ["**/*.go", "!**/internal/policy/custom.go", "!**/*_test.go"]
+          deny:
+            - { pkg: github.com/cedar-policy/cedar-go/x/exp, desc: experimental cedar-go APIs only in internal/policy/custom.go and tests }
 formatters:
   enable: [goimports]

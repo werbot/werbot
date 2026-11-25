@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file werbot/v1/auth.proto.
  */
 export const file_werbot_v1_auth: GenFile = /*@__PURE__*/
-  fileDesc("ChR3ZXJib3QvdjEvYXV0aC5wcm90bxIJd2VyYm90LnYxIhYKFEdldFNldHVwU3RhdGVSZXF1ZXN0IiwKFUdldFNldHVwU3RhdGVSZXNwb25zZRITCgtuZWVkc19zZXR1cBgBIAEoCCK6AQoMU2V0dXBSZXF1ZXN0EhkKBWVtYWlsGAEgASgJQgq6SAdyBRj+AWABEjAKBWxvZ2luGAIgASgJQiG6SB5yHDIaXlthLXowLTldW2EtejAtOV8tXXsxLDMxfSQSGAoEbmFtZRgDIAEoCUIKukgHcgUQARiAARIcCghwYXNzd29yZBgEIAEoCUIKukgHcgUQDBiAAhIlChFvcmdhbml6YXRpb25fbmFtZRgFIAEoCUIKukgHcgUQARiAASIPCg1TZXR1cFJlc3BvbnNlIkcKDExvZ2luUmVxdWVzdBIZCgVlbWFpbBgBIAEoCUIKukgHcgUY/gFgARIcCghwYXNzd29yZBgCIAEoCUIKukgHcgUQARiAAiIPCg1Mb2dpblJlc3BvbnNlIg8KDUxvZ291dFJlcXVlc3QiEAoOTG9nb3V0UmVzcG9uc2UiEwoRR2V0U2Vzc2lvblJlcXVlc3QigQEKEkdldFNlc3Npb25SZXNwb25zZRIdCgR1c2VyGAEgASgLMg8ud2VyYm90LnYxLlVzZXISLQoMb3JnYW5pemF0aW9uGAIgASgLMhcud2VyYm90LnYxLk9yZ2FuaXphdGlvbhIdCgRyb2xlGAMgASgOMg8ud2VyYm90LnYxLlJvbGUiOAobUmVxdWVzdFBhc3N3b3JkUmVzZXRSZXF1ZXN0EhkKBWVtYWlsGAEgASgJQgq6SAdyBRj+AWABIh4KHFJlcXVlc3RQYXNzd29yZFJlc2V0UmVzcG9uc2UiUwoUUmVzZXRQYXNzd29yZFJlcXVlc3QSGQoFdG9rZW4YASABKAlCCrpIB3IFEAEYgAESIAoMbmV3X3Bhc3N3b3JkGAIgASgJQgq6SAdyBRAMGIACIhcKFVJlc2V0UGFzc3dvcmRSZXNwb25zZTKgBAoLQXV0aFNlcnZpY2USUgoNR2V0U2V0dXBTdGF0ZRIfLndlcmJvdC52MS5HZXRTZXR1cFN0YXRlUmVxdWVzdBogLndlcmJvdC52MS5HZXRTZXR1cFN0YXRlUmVzcG9uc2USOgoFU2V0dXASFy53ZXJib3QudjEuU2V0dXBSZXF1ZXN0Ghgud2VyYm90LnYxLlNldHVwUmVzcG9uc2USOgoFTG9naW4SFy53ZXJib3QudjEuTG9naW5SZXF1ZXN0Ghgud2VyYm90LnYxLkxvZ2luUmVzcG9uc2USPQoGTG9nb3V0Ehgud2VyYm90LnYxLkxvZ291dFJlcXVlc3QaGS53ZXJib3QudjEuTG9nb3V0UmVzcG9uc2USSQoKR2V0U2Vzc2lvbhIcLndlcmJvdC52MS5HZXRTZXNzaW9uUmVxdWVzdBodLndlcmJvdC52MS5HZXRTZXNzaW9uUmVzcG9uc2USZwoUUmVxdWVzdFBhc3N3b3JkUmVzZXQSJi53ZXJib3QudjEuUmVxdWVzdFBhc3N3b3JkUmVzZXRSZXF1ZXN0Gicud2VyYm90LnYxLlJlcXVlc3RQYXNzd29yZFJlc2V0UmVzcG9uc2USUgoNUmVzZXRQYXNzd29yZBIfLndlcmJvdC52MS5SZXNldFBhc3N3b3JkUmVxdWVzdBogLndlcmJvdC52MS5SZXNldFBhc3N3b3JkUmVzcG9uc2VCkAEKDWNvbS53ZXJib3QudjFCCUF1dGhQcm90b1ABWi9naXRodWIuY29tL3dlcmJvdC93ZXJib3QvZ2VuL3dlcmJvdC92MTt3ZXJib3R2MaICA1dYWKoCCVdlcmJvdC5WMcoCCVdlcmJvdFxWMeICFVdlcmJvdFxWMVxHUEJNZXRhZGF0YeoCCldlcmJvdDo6VjFiBnByb3RvMw", [file_buf_validate_validate, file_werbot_v1_user]);
+  fileDesc("ChR3ZXJib3QvdjEvYXV0aC5wcm90bxIJd2VyYm90LnYxIhYKFEdldFNldHVwU3RhdGVSZXF1ZXN0IiwKFUdldFNldHVwU3RhdGVSZXNwb25zZRITCgtuZWVkc19zZXR1cBgBIAEoCCK6AQoMU2V0dXBSZXF1ZXN0EhkKBWVtYWlsGAEgASgJQgq6SAdyBRj+AWABEjAKBWxvZ2luGAIgASgJQiG6SB5yHDIaXlthLXowLTldW2EtejAtOV8tXXsxLDMxfSQSGAoEbmFtZRgDIAEoCUIKukgHcgUQARiAARIcCghwYXNzd29yZBgEIAEoCUIKukgHcgUQDBiAAhIlChFvcmdhbml6YXRpb25fbmFtZRgFIAEoCUIKukgHcgUQARiAASIPCg1TZXR1cFJlc3BvbnNlIkcKDExvZ2luUmVxdWVzdBIZCgVlbWFpbBgBIAEoCUIKukgHcgUY/gFgARIcCghwYXNzd29yZBgCIAEoCUIKukgHcgUQARiAAiJjCg1Mb2dpblJlc3BvbnNlEhQKDG1mYV9yZXF1aXJlZBgBIAEoCBIRCgltZmFfdG9rZW4YAiABKAkSDwoHbWV0aG9kcxgDIAMoCRIYChB3ZWJhdXRobl9vcHRpb25zGAQgASgMIroBChJDb21wbGV0ZU1GQVJlcXVlc3QSHQoJbWZhX3Rva2VuGAEgASgJQgq6SAdyBRABGIABEiYKCXRvdHBfY29kZRgCIAEoCUIRukgOcgwyCl5bMC05XXs2fSRIABIpChJ3ZWJhdXRobl9hc3NlcnRpb24YAyABKAxCC7pICHoGEAEYgIABSAASIgoNcmVjb3ZlcnlfY29kZRgEIAEoCUIJukgGcgQQARhASABCDgoFcHJvb2YSBbpIAggBIhUKE0NvbXBsZXRlTUZBUmVzcG9uc2UiDwoNTG9nb3V0UmVxdWVzdCIQCg5Mb2dvdXRSZXNwb25zZSITChFHZXRTZXNzaW9uUmVxdWVzdCKiAQoSR2V0U2Vzc2lvblJlc3BvbnNlEh0KBHVzZXIYASABKAsyDy53ZXJib3QudjEuVXNlchItCgxvcmdhbml6YXRpb24YAiABKAsyFy53ZXJib3QudjEuT3JnYW5pemF0aW9uEh0KBHJvbGUYAyABKA4yDy53ZXJib3QudjEuUm9sZRIfChdtZmFfZW5yb2xsbWVudF9yZXF1aXJlZBgEIAEoCCI4ChtSZXF1ZXN0UGFzc3dvcmRSZXNldFJlcXVlc3QSGQoFZW1haWwYASABKAlCCrpIB3IFGP4BYAEiHgocUmVxdWVzdFBhc3N3b3JkUmVzZXRSZXNwb25zZSJTChRSZXNldFBhc3N3b3JkUmVxdWVzdBIZCgV0b2tlbhgBIAEoCUIKukgHcgUQARiAARIgCgxuZXdfcGFzc3dvcmQYAiABKAlCCrpIB3IFEAwYgAIiFwoVUmVzZXRQYXNzd29yZFJlc3BvbnNlIhQKEkJlZ2luU3RlcFVwUmVxdWVzdCJbChNCZWdpblN0ZXBVcFJlc3BvbnNlEg8KB21ldGhvZHMYASADKAkSGAoQd2ViYXV0aG5fb3B0aW9ucxgCIAEoDBILCgN1cmwYAyABKAkSDAoEY29kZRgEIAEoCSJ6ChVDb21wbGV0ZVN0ZXBVcFJlcXVlc3QSJgoJdG90cF9jb2RlGAEgASgJQhG6SA5yDDIKXlswLTldezZ9JEgAEikKEndlYmF1dGhuX2Fzc2VydGlvbhgCIAEoDEILukgIegYQARiAgAFIAEIOCgVwcm9vZhIFukgCCAEiGAoWQ29tcGxldGVTdGVwVXBSZXNwb25zZSIpCidBdXRoU2VydmljZUxpc3RJZGVudGl0eVByb3ZpZGVyc1JlcXVlc3QiXQooQXV0aFNlcnZpY2VMaXN0SWRlbnRpdHlQcm92aWRlcnNSZXNwb25zZRIxCglwcm92aWRlcnMYASADKAsyHi53ZXJib3QudjEuSWRlbnRpdHlQcm92aWRlclJlZiIvChNJZGVudGl0eVByb3ZpZGVyUmVmEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkylgcKC0F1dGhTZXJ2aWNlElIKDUdldFNldHVwU3RhdGUSHy53ZXJib3QudjEuR2V0U2V0dXBTdGF0ZVJlcXVlc3QaIC53ZXJib3QudjEuR2V0U2V0dXBTdGF0ZVJlc3BvbnNlEjoKBVNldHVwEhcud2VyYm90LnYxLlNldHVwUmVxdWVzdBoYLndlcmJvdC52MS5TZXR1cFJlc3BvbnNlEjoKBUxvZ2luEhcud2VyYm90LnYxLkxvZ2luUmVxdWVzdBoYLndlcmJvdC52MS5Mb2dpblJlc3BvbnNlEkwKC0NvbXBsZXRlTUZBEh0ud2VyYm90LnYxLkNvbXBsZXRlTUZBUmVxdWVzdBoeLndlcmJvdC52MS5Db21wbGV0ZU1GQVJlc3BvbnNlEj0KBkxvZ291dBIYLndlcmJvdC52MS5Mb2dvdXRSZXF1ZXN0Ghkud2VyYm90LnYxLkxvZ291dFJlc3BvbnNlEkkKCkdldFNlc3Npb24SHC53ZXJib3QudjEuR2V0U2Vzc2lvblJlcXVlc3QaHS53ZXJib3QudjEuR2V0U2Vzc2lvblJlc3BvbnNlEmcKFFJlcXVlc3RQYXNzd29yZFJlc2V0EiYud2VyYm90LnYxLlJlcXVlc3RQYXNzd29yZFJlc2V0UmVxdWVzdBonLndlcmJvdC52MS5SZXF1ZXN0UGFzc3dvcmRSZXNldFJlc3BvbnNlElIKDVJlc2V0UGFzc3dvcmQSHy53ZXJib3QudjEuUmVzZXRQYXNzd29yZFJlcXVlc3QaIC53ZXJib3QudjEuUmVzZXRQYXNzd29yZFJlc3BvbnNlEkwKC0JlZ2luU3RlcFVwEh0ud2VyYm90LnYxLkJlZ2luU3RlcFVwUmVxdWVzdBoeLndlcmJvdC52MS5CZWdpblN0ZXBVcFJlc3BvbnNlElUKDkNvbXBsZXRlU3RlcFVwEiAud2VyYm90LnYxLkNvbXBsZXRlU3RlcFVwUmVxdWVzdBohLndlcmJvdC52MS5Db21wbGV0ZVN0ZXBVcFJlc3BvbnNlEoABChVMaXN0SWRlbnRpdHlQcm92aWRlcnMSMi53ZXJib3QudjEuQXV0aFNlcnZpY2VMaXN0SWRlbnRpdHlQcm92aWRlcnNSZXF1ZXN0GjMud2VyYm90LnYxLkF1dGhTZXJ2aWNlTGlzdElkZW50aXR5UHJvdmlkZXJzUmVzcG9uc2VCkAEKDWNvbS53ZXJib3QudjFCCUF1dGhQcm90b1ABWi9naXRodWIuY29tL3dlcmJvdC93ZXJib3QvZ2VuL3dlcmJvdC92MTt3ZXJib3R2MaICA1dYWKoCCVdlcmJvdC5WMcoCCVdlcmJvdFxWMeICFVdlcmJvdFxWMVxHUEJNZXRhZGF0YeoCCldlcmJvdDo6VjFiBnByb3RvMw", [file_buf_validate_validate, file_werbot_v1_user]);
 
 /**
  * @generated from message werbot.v1.GetSetupStateRequest
@@ -121,6 +121,33 @@ export const LoginRequestSchema: GenMessage<LoginRequest> = /*@__PURE__*/
  * @generated from message werbot.v1.LoginResponse
  */
 export type LoginResponse = Message<"werbot.v1.LoginResponse"> & {
+  /**
+   * Set when the user has a second factor: no session cookie was set.
+   *
+   * @generated from field: bool mfa_required = 1;
+   */
+  mfaRequired: boolean;
+
+  /**
+   * Single use, 5 minutes; a wrong factor does not spend it.
+   *
+   * @generated from field: string mfa_token = 2;
+   */
+  mfaToken: string;
+
+  /**
+   * Subset of "webauthn", "totp", "recovery", in that order.
+   *
+   * @generated from field: repeated string methods = 3;
+   */
+  methods: string[];
+
+  /**
+   * JSON of the WebAuthn assertion options when methods has "webauthn".
+   *
+   * @generated from field: bytes webauthn_options = 4;
+   */
+  webauthnOptions: Uint8Array;
 };
 
 /**
@@ -129,6 +156,61 @@ export type LoginResponse = Message<"werbot.v1.LoginResponse"> & {
  */
 export const LoginResponseSchema: GenMessage<LoginResponse> = /*@__PURE__*/
   messageDesc(file_werbot_v1_auth, 5);
+
+/**
+ * @generated from message werbot.v1.CompleteMFARequest
+ */
+export type CompleteMFARequest = Message<"werbot.v1.CompleteMFARequest"> & {
+  /**
+   * @generated from field: string mfa_token = 1;
+   */
+  mfaToken: string;
+
+  /**
+   * @generated from oneof werbot.v1.CompleteMFARequest.proof
+   */
+  proof: {
+    /**
+     * @generated from field: string totp_code = 2;
+     */
+    value: string;
+    case: "totpCode";
+  } | {
+    /**
+     * The browser's assertion (JSON).
+     *
+     * @generated from field: bytes webauthn_assertion = 3;
+     */
+    value: Uint8Array;
+    case: "webauthnAssertion";
+  } | {
+    /**
+     * @generated from field: string recovery_code = 4;
+     */
+    value: string;
+    case: "recoveryCode";
+  } | { case: undefined; value?: undefined };
+};
+
+/**
+ * Describes the message werbot.v1.CompleteMFARequest.
+ * Use `create(CompleteMFARequestSchema)` to create a new message.
+ */
+export const CompleteMFARequestSchema: GenMessage<CompleteMFARequest> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_auth, 6);
+
+/**
+ * @generated from message werbot.v1.CompleteMFAResponse
+ */
+export type CompleteMFAResponse = Message<"werbot.v1.CompleteMFAResponse"> & {
+};
+
+/**
+ * Describes the message werbot.v1.CompleteMFAResponse.
+ * Use `create(CompleteMFAResponseSchema)` to create a new message.
+ */
+export const CompleteMFAResponseSchema: GenMessage<CompleteMFAResponse> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_auth, 7);
 
 /**
  * @generated from message werbot.v1.LogoutRequest
@@ -141,7 +223,7 @@ export type LogoutRequest = Message<"werbot.v1.LogoutRequest"> & {
  * Use `create(LogoutRequestSchema)` to create a new message.
  */
 export const LogoutRequestSchema: GenMessage<LogoutRequest> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_auth, 6);
+  messageDesc(file_werbot_v1_auth, 8);
 
 /**
  * @generated from message werbot.v1.LogoutResponse
@@ -154,7 +236,7 @@ export type LogoutResponse = Message<"werbot.v1.LogoutResponse"> & {
  * Use `create(LogoutResponseSchema)` to create a new message.
  */
 export const LogoutResponseSchema: GenMessage<LogoutResponse> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_auth, 7);
+  messageDesc(file_werbot_v1_auth, 9);
 
 /**
  * @generated from message werbot.v1.GetSessionRequest
@@ -167,7 +249,7 @@ export type GetSessionRequest = Message<"werbot.v1.GetSessionRequest"> & {
  * Use `create(GetSessionRequestSchema)` to create a new message.
  */
 export const GetSessionRequestSchema: GenMessage<GetSessionRequest> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_auth, 8);
+  messageDesc(file_werbot_v1_auth, 10);
 
 /**
  * @generated from message werbot.v1.GetSessionResponse
@@ -187,6 +269,14 @@ export type GetSessionResponse = Message<"werbot.v1.GetSessionResponse"> & {
    * @generated from field: werbot.v1.Role role = 3;
    */
   role: Role;
+
+  /**
+   * The organization requires a second factor the user has not enrolled:
+   * only enrollment works until then.
+   *
+   * @generated from field: bool mfa_enrollment_required = 4;
+   */
+  mfaEnrollmentRequired: boolean;
 };
 
 /**
@@ -194,7 +284,7 @@ export type GetSessionResponse = Message<"werbot.v1.GetSessionResponse"> & {
  * Use `create(GetSessionResponseSchema)` to create a new message.
  */
 export const GetSessionResponseSchema: GenMessage<GetSessionResponse> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_auth, 9);
+  messageDesc(file_werbot_v1_auth, 11);
 
 /**
  * @generated from message werbot.v1.RequestPasswordResetRequest
@@ -211,7 +301,7 @@ export type RequestPasswordResetRequest = Message<"werbot.v1.RequestPasswordRese
  * Use `create(RequestPasswordResetRequestSchema)` to create a new message.
  */
 export const RequestPasswordResetRequestSchema: GenMessage<RequestPasswordResetRequest> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_auth, 10);
+  messageDesc(file_werbot_v1_auth, 12);
 
 /**
  * @generated from message werbot.v1.RequestPasswordResetResponse
@@ -224,7 +314,7 @@ export type RequestPasswordResetResponse = Message<"werbot.v1.RequestPasswordRes
  * Use `create(RequestPasswordResetResponseSchema)` to create a new message.
  */
 export const RequestPasswordResetResponseSchema: GenMessage<RequestPasswordResetResponse> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_auth, 11);
+  messageDesc(file_werbot_v1_auth, 13);
 
 /**
  * @generated from message werbot.v1.ResetPasswordRequest
@@ -246,7 +336,7 @@ export type ResetPasswordRequest = Message<"werbot.v1.ResetPasswordRequest"> & {
  * Use `create(ResetPasswordRequestSchema)` to create a new message.
  */
 export const ResetPasswordRequestSchema: GenMessage<ResetPasswordRequest> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_auth, 12);
+  messageDesc(file_werbot_v1_auth, 14);
 
 /**
  * @generated from message werbot.v1.ResetPasswordResponse
@@ -259,7 +349,157 @@ export type ResetPasswordResponse = Message<"werbot.v1.ResetPasswordResponse"> &
  * Use `create(ResetPasswordResponseSchema)` to create a new message.
  */
 export const ResetPasswordResponseSchema: GenMessage<ResetPasswordResponse> = /*@__PURE__*/
-  messageDesc(file_werbot_v1_auth, 13);
+  messageDesc(file_werbot_v1_auth, 15);
+
+/**
+ * @generated from message werbot.v1.BeginStepUpRequest
+ */
+export type BeginStepUpRequest = Message<"werbot.v1.BeginStepUpRequest"> & {
+};
+
+/**
+ * Describes the message werbot.v1.BeginStepUpRequest.
+ * Use `create(BeginStepUpRequestSchema)` to create a new message.
+ */
+export const BeginStepUpRequestSchema: GenMessage<BeginStepUpRequest> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_auth, 16);
+
+/**
+ * @generated from message werbot.v1.BeginStepUpResponse
+ */
+export type BeginStepUpResponse = Message<"werbot.v1.BeginStepUpResponse"> & {
+  /**
+   * Subset of "webauthn", "totp", in that order; recovery codes never step up.
+   *
+   * @generated from field: repeated string methods = 1;
+   */
+  methods: string[];
+
+  /**
+   * JSON of the WebAuthn assertion options (browser sessions with a passkey).
+   *
+   * @generated from field: bytes webauthn_options = 2;
+   */
+  webauthnOptions: Uint8Array;
+
+  /**
+   * CLI tokens with a passkey: the page that confirms the step-up and the
+   * code it shows (XXXX-XXXX).
+   *
+   * @generated from field: string url = 3;
+   */
+  url: string;
+
+  /**
+   * @generated from field: string code = 4;
+   */
+  code: string;
+};
+
+/**
+ * Describes the message werbot.v1.BeginStepUpResponse.
+ * Use `create(BeginStepUpResponseSchema)` to create a new message.
+ */
+export const BeginStepUpResponseSchema: GenMessage<BeginStepUpResponse> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_auth, 17);
+
+/**
+ * @generated from message werbot.v1.CompleteStepUpRequest
+ */
+export type CompleteStepUpRequest = Message<"werbot.v1.CompleteStepUpRequest"> & {
+  /**
+   * @generated from oneof werbot.v1.CompleteStepUpRequest.proof
+   */
+  proof: {
+    /**
+     * @generated from field: string totp_code = 1;
+     */
+    value: string;
+    case: "totpCode";
+  } | {
+    /**
+     * The browser's assertion (JSON).
+     *
+     * @generated from field: bytes webauthn_assertion = 2;
+     */
+    value: Uint8Array;
+    case: "webauthnAssertion";
+  } | { case: undefined; value?: undefined };
+};
+
+/**
+ * Describes the message werbot.v1.CompleteStepUpRequest.
+ * Use `create(CompleteStepUpRequestSchema)` to create a new message.
+ */
+export const CompleteStepUpRequestSchema: GenMessage<CompleteStepUpRequest> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_auth, 18);
+
+/**
+ * @generated from message werbot.v1.CompleteStepUpResponse
+ */
+export type CompleteStepUpResponse = Message<"werbot.v1.CompleteStepUpResponse"> & {
+};
+
+/**
+ * Describes the message werbot.v1.CompleteStepUpResponse.
+ * Use `create(CompleteStepUpResponseSchema)` to create a new message.
+ */
+export const CompleteStepUpResponseSchema: GenMessage<CompleteStepUpResponse> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_auth, 19);
+
+/**
+ * @generated from message werbot.v1.AuthServiceListIdentityProvidersRequest
+ */
+export type AuthServiceListIdentityProvidersRequest = Message<"werbot.v1.AuthServiceListIdentityProvidersRequest"> & {
+};
+
+/**
+ * Describes the message werbot.v1.AuthServiceListIdentityProvidersRequest.
+ * Use `create(AuthServiceListIdentityProvidersRequestSchema)` to create a new message.
+ */
+export const AuthServiceListIdentityProvidersRequestSchema: GenMessage<AuthServiceListIdentityProvidersRequest> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_auth, 20);
+
+/**
+ * @generated from message werbot.v1.AuthServiceListIdentityProvidersResponse
+ */
+export type AuthServiceListIdentityProvidersResponse = Message<"werbot.v1.AuthServiceListIdentityProvidersResponse"> & {
+  /**
+   * @generated from field: repeated werbot.v1.IdentityProviderRef providers = 1;
+   */
+  providers: IdentityProviderRef[];
+};
+
+/**
+ * Describes the message werbot.v1.AuthServiceListIdentityProvidersResponse.
+ * Use `create(AuthServiceListIdentityProvidersResponseSchema)` to create a new message.
+ */
+export const AuthServiceListIdentityProvidersResponseSchema: GenMessage<AuthServiceListIdentityProvidersResponse> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_auth, 21);
+
+/**
+ * IdentityProviderRef names an enabled identity provider on the login page.
+ *
+ * @generated from message werbot.v1.IdentityProviderRef
+ */
+export type IdentityProviderRef = Message<"werbot.v1.IdentityProviderRef"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+};
+
+/**
+ * Describes the message werbot.v1.IdentityProviderRef.
+ * Use `create(IdentityProviderRefSchema)` to create a new message.
+ */
+export const IdentityProviderRefSchema: GenMessage<IdentityProviderRef> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_auth, 22);
 
 /**
  * @generated from service werbot.v1.AuthService
@@ -282,12 +522,26 @@ export const AuthService: GenService<{
     output: typeof SetupResponseSchema;
   },
   /**
+   * Checks the password. A user with a second factor gets no session yet:
+   * mfa_token and the methods to finish the login with CompleteMFA.
+   *
    * @generated from rpc werbot.v1.AuthService.Login
    */
   login: {
     methodKind: "unary";
     input: typeof LoginRequestSchema;
     output: typeof LoginResponseSchema;
+  },
+  /**
+   * Public: finishes a login with the mfa_token and one factor and sets the
+   * session cookie. A wrong factor leaves the token usable until it expires.
+   *
+   * @generated from rpc werbot.v1.AuthService.CompleteMFA
+   */
+  completeMFA: {
+    methodKind: "unary";
+    input: typeof CompleteMFARequestSchema;
+    output: typeof CompleteMFAResponseSchema;
   },
   /**
    * @generated from rpc werbot.v1.AuthService.Logout
@@ -320,6 +574,39 @@ export const AuthService: GenService<{
     methodKind: "unary";
     input: typeof ResetPasswordRequestSchema;
     output: typeof ResetPasswordResponseSchema;
+  },
+  /**
+   * Starts a step-up: a fresh second factor for admin actions. A browser
+   * session gets the methods and the passkey options; a CLI token gets the
+   * TOTP method and, with a passkey, a challenge URL to confirm in the browser.
+   *
+   * @generated from rpc werbot.v1.AuthService.BeginStepUp
+   */
+  beginStepUp: {
+    methodKind: "unary";
+    input: typeof BeginStepUpRequestSchema;
+    output: typeof BeginStepUpResponseSchema;
+  },
+  /**
+   * Finishes a step-up of the caller's credential (session or CLI token).
+   *
+   * @generated from rpc werbot.v1.AuthService.CompleteStepUp
+   */
+  completeStepUp: {
+    methodKind: "unary";
+    input: typeof CompleteStepUpRequestSchema;
+    output: typeof CompleteStepUpResponseSchema;
+  },
+  /**
+   * Public: the enabled OIDC identity providers of the installation, for the
+   * login page (start at /api/oidc/{id}/start).
+   *
+   * @generated from rpc werbot.v1.AuthService.ListIdentityProviders
+   */
+  listIdentityProviders: {
+    methodKind: "unary";
+    input: typeof AuthServiceListIdentityProvidersRequestSchema;
+    output: typeof AuthServiceListIdentityProvidersResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_werbot_v1_auth, 0);

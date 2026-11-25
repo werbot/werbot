@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { Badge, Button, EmptyState, Label, Skeleton, Table, TextField } from '#lib/ui/index.js';
 	import { resources } from '#lib/api.js';
 	import { failToast } from '#lib/errors.js';
 	import LoadFailed from '#lib/LoadFailed.svelte';
-	import type { Resource } from '#lib/gen/werbot/v1/resource_pb.js';
+	import type { Resource, ResourceType } from '#lib/gen/werbot/v1/resource_pb.js';
 	import NewResourceModal from '#lib/resources/NewResourceModal.svelte';
 	import PageBody from '#lib/shell/PageBody.svelte';
 	import PageHeader from '#lib/shell/PageHeader.svelte';
@@ -13,11 +14,13 @@
 	import { address } from '#lib/resources/address.js';
 	import { categoryLabel, typeIcon } from '#lib/resources/icons.js';
 	import { parseLabelFilter } from '#lib/resources/labels.js';
+	import { hasTerminal, terminalHref } from '#lib/terminal/socket.js';
 	import Ago from '#lib/Ago.svelte';
 	import CellLead from '#lib/CellLead.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 
 	let list = $state<Resource[]>([]);
+	let types = $state<ResourceType[]>([]);
 	let filter = $state('');
 	let failed = $state(false);
 	let creating = $state(false);
@@ -28,7 +31,7 @@
 	async function refresh() {
 		try {
 			const labelFilter = parseLabelFilter(filter);
-			({ resources: list } = await resources.listResources({ labelFilter }));
+			[{ resources: list }, { types }] = await Promise.all([resources.listResources({ labelFilter }), resources.listResourceTypes({})]);
 			if (!Object.keys(labelFilter).length) any = list.length > 0;
 			loaded = true;
 			failed = false;
@@ -87,6 +90,7 @@
 				<th>{m.resources_labels()}</th>
 				<th>{m.resources_credentials()}</th>
 				<th>{m.resources_col_health()}</th>
+				<th></th>
 			{/snippet}
 			{#each list as r (r.id)}
 				<tr>
@@ -102,6 +106,11 @@
 						<Badge tone={r.credentialKind ? 'accent' : 'ghost'}>{r.credentialKind || m.resources_cred_none()}</Badge>
 					</td>
 					<td><span class="health"><HealthDot health={r.health} /><Ago ts={r.health?.checkedAt} /></span></td>
+					<td class="more">
+						{#if hasTerminal(types, r.type)}
+							<Button scheme="g" variant="plain" size={28} onclick={() => goto(terminalHref(r.name))}>{m.terminal_open()}</Button>
+						{/if}
+					</td>
 				</tr>
 			{/each}
 		</Table>
@@ -116,5 +125,9 @@
 		gap: var(--miso-sp-08);
 		color: var(--miso-txt-tertiary);
 		white-space: nowrap;
+	}
+
+	.more {
+		text-align: right;
 	}
 </style>

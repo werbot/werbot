@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file werbot/v1/session.proto.
  */
 export const file_werbot_v1_session: GenFile = /*@__PURE__*/
-  fileDesc("Chd3ZXJib3QvdjEvc2Vzc2lvbi5wcm90bxIJd2VyYm90LnYxIjwKCVJlY29yZGluZxIOCgZjaHVua3MYASABKAUSDQoFYnl0ZXMYAiABKAMSEAoIZmluaXNoZWQYAyABKAgimgMKB1Nlc3Npb24SCgoCaWQYASABKAkSDwoHdXNlcl9pZBgCIAEoCRISCgp1c2VyX2xvZ2luGAMgASgJEhMKC3Jlc291cmNlX2lkGAQgASgJEhUKDXJlc291cmNlX25hbWUYBSABKAkSEgoKZ2F0ZXdheV9pZBgGIAEoCRIRCgljbGllbnRfaXAYByABKAkSLgoKc3RhcnRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLAoIZW5kZWRfYXQYCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhIKCmVuZF9yZWFzb24YCiABKAkSJwoJcmVjb3JkaW5nGAsgASgLMhQud2VyYm90LnYxLlJlY29yZGluZxIMCgRraW5kGAwgASgJEg4KBnRhcmdldBgNIAEoCRIQCghieXRlc191cBgOIAEoAxISCgpieXRlc19kb3duGA8gASgDEhQKDGRhdGFncmFtc191cBgQIAEoAxIWCg5kYXRhZ3JhbXNfZG93bhgRIAEoAyKTAgoTTGlzdFNlc3Npb25zUmVxdWVzdBIcCgd1c2VyX2lkGAEgASgJQgu6SAjYAQFyA7ABARIgCgtyZXNvdXJjZV9pZBgCIAEoCUILukgI2AEBcgOwAQESKAoEZnJvbRgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASJgoCdG8YBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjIKBnN0YXR1cxgFIAEoDjIYLndlcmJvdC52MS5TZXNzaW9uU3RhdHVzQgi6SAWCAQIQARIaCgRwYWdlGAYgASgFQgy6SAkaBxiAreIEKAASGgoJcGFnZV9zaXplGAcgASgFQge6SAQaAigAIk8KFExpc3RTZXNzaW9uc1Jlc3BvbnNlEiQKCHNlc3Npb25zGAEgAygLMhIud2VyYm90LnYxLlNlc3Npb24SEQoJbmV4dF9wYWdlGAIgASgFIjcKH1Nlc3Npb25TZXJ2aWNlR2V0U2Vzc2lvblJlcXVlc3QSFAoCaWQYASABKAlCCLpIBXIDsAEBIkcKIFNlc3Npb25TZXJ2aWNlR2V0U2Vzc2lvblJlc3BvbnNlEiMKB3Nlc3Npb24YASABKAsyEi53ZXJib3QudjEuU2Vzc2lvbiI2ChZWZXJpZnlSZWNvcmRpbmdSZXF1ZXN0EhwKCnNlc3Npb25faWQYASABKAlCCLpIBXIDsAEBIjsKF1ZlcmlmeVJlY29yZGluZ1Jlc3BvbnNlEhAKCHZlcmlmaWVkGAEgASgIEg4KBnJlYXNvbhgCIAEoCSpkCg1TZXNzaW9uU3RhdHVzEh4KGlNFU1NJT05fU1RBVFVTX1VOU1BFQ0lGSUVEEAASGQoVU0VTU0lPTl9TVEFUVVNfQUNUSVZFEAESGAoUU0VTU0lPTl9TVEFUVVNfRU5ERUQQAjKiAgoOU2Vzc2lvblNlcnZpY2USTwoMTGlzdFNlc3Npb25zEh4ud2VyYm90LnYxLkxpc3RTZXNzaW9uc1JlcXVlc3QaHy53ZXJib3QudjEuTGlzdFNlc3Npb25zUmVzcG9uc2USZQoKR2V0U2Vzc2lvbhIqLndlcmJvdC52MS5TZXNzaW9uU2VydmljZUdldFNlc3Npb25SZXF1ZXN0Gisud2VyYm90LnYxLlNlc3Npb25TZXJ2aWNlR2V0U2Vzc2lvblJlc3BvbnNlElgKD1ZlcmlmeVJlY29yZGluZxIhLndlcmJvdC52MS5WZXJpZnlSZWNvcmRpbmdSZXF1ZXN0GiIud2VyYm90LnYxLlZlcmlmeVJlY29yZGluZ1Jlc3BvbnNlQpMBCg1jb20ud2VyYm90LnYxQgxTZXNzaW9uUHJvdG9QAVovZ2l0aHViLmNvbS93ZXJib3Qvd2VyYm90L2dlbi93ZXJib3QvdjE7d2VyYm90djGiAgNXWFiqAglXZXJib3QuVjHKAglXZXJib3RcVjHiAhVXZXJib3RcVjFcR1BCTWV0YWRhdGHqAgpXZXJib3Q6OlYxYgZwcm90bzM", [file_buf_validate_validate, file_google_protobuf_timestamp]);
+  fileDesc("Chd3ZXJib3QvdjEvc2Vzc2lvbi5wcm90bxIJd2VyYm90LnYxIjwKCVJlY29yZGluZxIOCgZjaHVua3MYASABKAUSDQoFYnl0ZXMYAiABKAMSEAoIZmluaXNoZWQYAyABKAgi6AMKB1Nlc3Npb24SCgoCaWQYASABKAkSDwoHdXNlcl9pZBgCIAEoCRISCgp1c2VyX2xvZ2luGAMgASgJEhMKC3Jlc291cmNlX2lkGAQgASgJEhUKDXJlc291cmNlX25hbWUYBSABKAkSEgoKZ2F0ZXdheV9pZBgGIAEoCRIRCgljbGllbnRfaXAYByABKAkSLgoKc3RhcnRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLAoIZW5kZWRfYXQYCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhIKCmVuZF9yZWFzb24YCiABKAkSJwoJcmVjb3JkaW5nGAsgASgLMhQud2VyYm90LnYxLlJlY29yZGluZxIMCgRraW5kGAwgASgJEg4KBnRhcmdldBgNIAEoCRIQCghieXRlc191cBgOIAEoAxISCgpieXRlc19kb3duGA8gASgDEhQKDGRhdGFncmFtc191cBgQIAEoAxIWCg5kYXRhZ3JhbXNfZG93bhgRIAEoAxIPCgdjb21tYW5kGBIgASgJEg8KB2NsYXNzZXMYEyADKAkSDQoFZnJvbnQYFCABKAkSDAoEbGl2ZRgVIAEoCBINCgVwYXRocxgZIAMoCSKTAgoTTGlzdFNlc3Npb25zUmVxdWVzdBIcCgd1c2VyX2lkGAEgASgJQgu6SAjYAQFyA7ABARIgCgtyZXNvdXJjZV9pZBgCIAEoCUILukgI2AEBcgOwAQESKAoEZnJvbRgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASJgoCdG8YBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjIKBnN0YXR1cxgFIAEoDjIYLndlcmJvdC52MS5TZXNzaW9uU3RhdHVzQgi6SAWCAQIQARIaCgRwYWdlGAYgASgFQgy6SAkaBxiAreIEKAASGgoJcGFnZV9zaXplGAcgASgFQge6SAQaAigAIk8KFExpc3RTZXNzaW9uc1Jlc3BvbnNlEiQKCHNlc3Npb25zGAEgAygLMhIud2VyYm90LnYxLlNlc3Npb24SEQoJbmV4dF9wYWdlGAIgASgFIjcKH1Nlc3Npb25TZXJ2aWNlR2V0U2Vzc2lvblJlcXVlc3QSFAoCaWQYASABKAlCCLpIBXIDsAEBIkcKIFNlc3Npb25TZXJ2aWNlR2V0U2Vzc2lvblJlc3BvbnNlEiMKB3Nlc3Npb24YASABKAsyEi53ZXJib3QudjEuU2Vzc2lvbiI2ChZWZXJpZnlSZWNvcmRpbmdSZXF1ZXN0EhwKCnNlc3Npb25faWQYASABKAlCCLpIBXIDsAEBIjsKF1ZlcmlmeVJlY29yZGluZ1Jlc3BvbnNlEhAKCHZlcmlmaWVkGAEgASgIEg4KBnJlYXNvbhgCIAEoCSJLChdUZXJtaW5hdGVTZXNzaW9uUmVxdWVzdBIUCgJpZBgBIAEoCUIIukgFcgOwAQESGgoGcmVhc29uGAIgASgJQgq6SAdyBRABGIACIhoKGFRlcm1pbmF0ZVNlc3Npb25SZXNwb25zZSpkCg1TZXNzaW9uU3RhdHVzEh4KGlNFU1NJT05fU1RBVFVTX1VOU1BFQ0lGSUVEEAASGQoVU0VTU0lPTl9TVEFUVVNfQUNUSVZFEAESGAoUU0VTU0lPTl9TVEFUVVNfRU5ERUQQAjL/AgoOU2Vzc2lvblNlcnZpY2USTwoMTGlzdFNlc3Npb25zEh4ud2VyYm90LnYxLkxpc3RTZXNzaW9uc1JlcXVlc3QaHy53ZXJib3QudjEuTGlzdFNlc3Npb25zUmVzcG9uc2USZQoKR2V0U2Vzc2lvbhIqLndlcmJvdC52MS5TZXNzaW9uU2VydmljZUdldFNlc3Npb25SZXF1ZXN0Gisud2VyYm90LnYxLlNlc3Npb25TZXJ2aWNlR2V0U2Vzc2lvblJlc3BvbnNlElgKD1ZlcmlmeVJlY29yZGluZxIhLndlcmJvdC52MS5WZXJpZnlSZWNvcmRpbmdSZXF1ZXN0GiIud2VyYm90LnYxLlZlcmlmeVJlY29yZGluZ1Jlc3BvbnNlElsKEFRlcm1pbmF0ZVNlc3Npb24SIi53ZXJib3QudjEuVGVybWluYXRlU2Vzc2lvblJlcXVlc3QaIy53ZXJib3QudjEuVGVybWluYXRlU2Vzc2lvblJlc3BvbnNlQpMBCg1jb20ud2VyYm90LnYxQgxTZXNzaW9uUHJvdG9QAVovZ2l0aHViLmNvbS93ZXJib3Qvd2VyYm90L2dlbi93ZXJib3QvdjE7d2VyYm90djGiAgNXWFiqAglXZXJib3QuVjHKAglXZXJib3RcVjHiAhVXZXJib3RcVjFcR1BCTWV0YWRhdGHqAgpXZXJib3Q6OlYxYgZwcm90bzM", [file_buf_validate_validate, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message werbot.v1.Recording
@@ -134,6 +134,41 @@ export type Session = Message<"werbot.v1.Session"> & {
    * @generated from field: int64 datagrams_down = 17;
    */
   datagramsDown: bigint;
+
+  /**
+   * exec only; cut at 64 KiB
+   *
+   * @generated from field: string command = 18;
+   */
+  command: string;
+
+  /**
+   * exec only: read | write | destructive | privilege | secrets | egress | opaque
+   *
+   * @generated from field: repeated string classes = 19;
+   */
+  classes: string[];
+
+  /**
+   * ssh | web
+   *
+   * @generated from field: string front = 20;
+   */
+  front: string;
+
+  /**
+   * an open terminal session that can be watched or terminated
+   *
+   * @generated from field: bool live = 21;
+   */
+  live: boolean;
+
+  /**
+   * paths the command touched; output only
+   *
+   * @generated from field: repeated string paths = 25;
+   */
+  paths: string[];
 };
 
 /**
@@ -290,6 +325,41 @@ export const VerifyRecordingResponseSchema: GenMessage<VerifyRecordingResponse> 
   messageDesc(file_werbot_v1_session, 7);
 
 /**
+ * @generated from message werbot.v1.TerminateSessionRequest
+ */
+export type TerminateSessionRequest = Message<"werbot.v1.TerminateSessionRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string reason = 2;
+   */
+  reason: string;
+};
+
+/**
+ * Describes the message werbot.v1.TerminateSessionRequest.
+ * Use `create(TerminateSessionRequestSchema)` to create a new message.
+ */
+export const TerminateSessionRequestSchema: GenMessage<TerminateSessionRequest> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_session, 8);
+
+/**
+ * @generated from message werbot.v1.TerminateSessionResponse
+ */
+export type TerminateSessionResponse = Message<"werbot.v1.TerminateSessionResponse"> & {
+};
+
+/**
+ * Describes the message werbot.v1.TerminateSessionResponse.
+ * Use `create(TerminateSessionResponseSchema)` to create a new message.
+ */
+export const TerminateSessionResponseSchema: GenMessage<TerminateSessionResponse> = /*@__PURE__*/
+  messageDesc(file_werbot_v1_session, 9);
+
+/**
  * @generated from enum werbot.v1.SessionStatus
  */
 export enum SessionStatus {
@@ -344,6 +414,16 @@ export const SessionService: GenService<{
     methodKind: "unary";
     input: typeof VerifyRecordingRequestSchema;
     output: typeof VerifyRecordingResponseSchema;
+  },
+  /**
+   * Owner and admin terminate any session of the organization, a member only their own.
+   *
+   * @generated from rpc werbot.v1.SessionService.TerminateSession
+   */
+  terminateSession: {
+    methodKind: "unary";
+    input: typeof TerminateSessionRequestSchema;
+    output: typeof TerminateSessionResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_werbot_v1_session, 0);

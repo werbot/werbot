@@ -1,0 +1,32 @@
+syntax = "proto3";
+package gateway.v1;
+
+import "buf/validate/validate.proto";
+
+// AgentInfo is the agent run a verified agent certificate belongs to; the
+// sponsor is the authenticated user.
+message AgentInfo {
+  string agent_id = 1;
+  string run_id = 2;
+  string sponsor_user_id = 3;
+}
+
+// RecordDenialRequest reports an action of an agent run the gateway refused
+// by policy; the run counts it toward its pause.
+message RecordDenialRequest {
+  string run_id = 1 [(buf.validate.field).string.uuid = true];
+  // resource name from the login; the server resolves the id when it exists
+  string resource = 2 [(buf.validate.field).string.max_bytes = 63];
+  // the refused command (the gateway truncates)
+  string command = 3 [(buf.validate.field).string.max_bytes = 1024];
+  repeated string classes = 4 [(buf.validate.field).repeated = {
+    max_items: 7
+    items: {string: {in: ["read", "write", "destructive", "privilege", "secrets", "egress", "opaque"]}}
+  }];
+  repeated string reasons = 5 [(buf.validate.field).repeated = {max_items: 16, items: {string: {max_bytes: 128}}}];
+}
+
+message RecordDenialResponse {
+  // the run is paused after this denial
+  bool paused = 1;
+}

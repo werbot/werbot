@@ -33,13 +33,31 @@ func (h *Handler) Setup(ctx context.Context, req *connect.Request[werbotv1.Setup
 	return res, nil
 }
 
-// Login is public: it sets the session cookie.
+// Login is public: it sets the session cookie, or, for a user with a second
+// factor, answers the mfa_token and the methods for CompleteMFA.
 func (h *Handler) Login(ctx context.Context, req *connect.Request[werbotv1.LoginRequest]) (*connect.Response[werbotv1.LoginResponse], error) {
-	token, err := h.svc.Login(ctx, req.Msg.GetEmail(), req.Msg.GetPassword(), req.Header().Get("User-Agent"))
+	r, err := h.svc.Login(ctx, req.Msg.GetEmail(), req.Msg.GetPassword(), req.Header().Get("User-Agent"))
 	if err != nil {
 		return nil, apperr.ToConnect(err)
 	}
-	res := connect.NewResponse(&werbotv1.LoginResponse{})
+	res := connect.NewResponse(&werbotv1.LoginResponse{
+		MfaRequired: r.MFAToken != "", MfaToken: r.MFAToken, Methods: r.Methods, WebauthnOptions: r.WebAuthnOptions,
+	})
+	if r.Token != "" {
+		res.Header().Add("Set-Cookie", h.sessionCookie(r.Token, sessionMaxAge))
+	}
+	return res, nil
+}
+
+// CompleteMFA is public: the mfa_token is the credential. It sets the session cookie.
+func (h *Handler) CompleteMFA(ctx context.Context, req *connect.Request[werbotv1.CompleteMFARequest]) (*connect.Response[werbotv1.CompleteMFAResponse], error) {
+	m := req.Msg
+	proof := MFAProof{TOTP: m.GetTotpCode(), RecoveryCode: m.GetRecoveryCode(), Assertion: m.GetWebauthnAssertion()}
+	token, err := h.svc.CompleteMFA(ctx, m.GetMfaToken(), proof, req.Header().Get("User-Agent"))
+	if err != nil {
+		return nil, apperr.ToConnect(err)
+	}
+	res := connect.NewResponse(&werbotv1.CompleteMFAResponse{})
 	res.Header().Add("Set-Cookie", h.sessionCookie(token, sessionMaxAge))
 	return res, nil
 }
@@ -67,9 +85,10 @@ func (h *Handler) GetSession(ctx context.Context, _ *connect.Request[werbotv1.Ge
 		return nil, apperr.ToConnect(err)
 	}
 	return connect.NewResponse(&werbotv1.GetSessionResponse{
-		User:         userToProto(info.User),
-		Organization: &werbotv1.Organization{Id: info.OrgID.String(), Name: info.OrgName},
-		Role:         roleToProto(info.Role),
+		User:                  userToProto(info.User),
+		Organization:          &werbotv1.Organization{Id: info.OrgID.String(), Name: info.OrgName},
+		Role:                  roleToProto(info.Role),
+		MfaEnrollmentRequired: EnrollmentRequired(ctx),
 	}), nil
 }
 
@@ -87,4 +106,45 @@ func (h *Handler) ResetPassword(ctx context.Context, req *connect.Request[werbot
 		return nil, apperr.ToConnect(err)
 	}
 	return connect.NewResponse(&werbotv1.ResetPasswordResponse{}), nil
+}
+
+// BeginStepUp starts a step-up of the caller's session or CLI token.
+func (h *Handler) BeginStepUp(ctx context.Context, _ *connect.Request[werbotv1.BeginStepUpRequest]) (*connect.Response[werbotv1.BeginStepUpResponse], error) {
+	p, err := principal.Require(ctx)
+	if err != nil {
+		return nil, apperr.ToConnect(err)
+	}
+	su, err := h.svc.BeginStepUp(ctx, p)
+	if err != nil {
+		return nil, apperr.ToConnect(err)
+	}
+	return connect.NewResponse(&werbotv1.BeginStepUpResponse{
+		Methods: su.Methods, WebauthnOptions: su.WebAuthnOptions, Url: su.URL, Code: su.Code,
+	}), nil
+}
+
+// CompleteStepUp records a fresh second factor of the caller's session or CLI token.
+func (h *Handler) CompleteStepUp(ctx context.Context, req *connect.Request[werbotv1.CompleteStepUpRequest]) (*connect.Response[werbotv1.CompleteStepUpResponse], error) {
+	p, err := principal.Require(ctx)
+	if err != nil {
+		return nil, apperr.ToConnect(err)
+	}
+	proof := MFAProof{TOTP: req.Msg.GetTotpCode(), Assertion: req.Msg.GetWebauthnAssertion()}
+	if err := h.svc.CompleteStepUp(ctx, p, proof); err != nil {
+		return nil, apperr.ToConnect(err)
+	}
+	return connect.NewResponse(&werbotv1.CompleteStepUpResponse{}), nil
+}
+
+// ListIdentityProviders is public: the login page offers the enabled IdPs.
+func (h *Handler) ListIdentityProviders(ctx context.Context, _ *connect.Request[werbotv1.AuthServiceListIdentityProvidersRequest]) (*connect.Response[werbotv1.AuthServiceListIdentityProvidersResponse], error) {
+	refs, err := h.svc.IdentityProviders(ctx)
+	if err != nil {
+		return nil, apperr.ToConnect(err)
+	}
+	res := &werbotv1.AuthServiceListIdentityProvidersResponse{}
+	for _, r := range refs {
+		res.Providers = append(res.Providers, &werbotv1.IdentityProviderRef{Id: r.ID.String(), Name: r.Name})
+	}
+	return connect.NewResponse(res), nil
 }

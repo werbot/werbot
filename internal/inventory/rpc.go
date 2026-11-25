@@ -26,10 +26,15 @@ type Handler struct {
 	werbotv1connect.UnimplementedResourceServiceHandler
 	svc   *Service
 	creds Credentials
+	acc   Accessible
+	gws   *Gateways
+	req   Requestable
 }
 
 // NewHandler returns the Connect handler for ResourceService.
-func NewHandler(s *Service, creds Credentials) *Handler { return &Handler{svc: s, creds: creds} }
+func NewHandler(s *Service, creds Credentials, acc Accessible, gws *Gateways, req Requestable) *Handler {
+	return &Handler{svc: s, creds: creds, acc: acc, gws: gws, req: req}
+}
 
 // admin authorizes owner/admin and returns the organization.
 func admin(ctx context.Context) (uuid.UUID, error) {
@@ -56,14 +61,24 @@ func (h *Handler) resources(ctx context.Context, org uuid.UUID, rs ...Resource) 
 	return out, nil
 }
 
-// ListResourceTypes lists the registered resource types; any member may read them.
+// ListResourceTypes lists the registered resource types, then the presets of the organization; any member may read them.
 func (h *Handler) ListResourceTypes(ctx context.Context, _ *connect.Request[werbotv1.ListResourceTypesRequest]) (*connect.Response[werbotv1.ListResourceTypesResponse], error) {
-	if _, err := principal.Require(ctx); err != nil {
+	p, err := principal.Require(ctx)
+	if err != nil {
+		return nil, apperr.ToConnect(err)
+	}
+	ps, err := h.svc.ListPresets(ctx, p.OrgID)
+	if err != nil {
 		return nil, apperr.ToConnect(err)
 	}
 	res := &werbotv1.ListResourceTypesResponse{}
 	for _, t := range connector.Types() {
 		res.Types = append(res.Types, typeToProto(t))
+	}
+	for _, pr := range ps {
+		if base, ok := connector.Lookup(pr.BaseType); ok {
+			res.Types = append(res.Types, presetTypeToProto(pr, base))
+		}
 	}
 	return connect.NewResponse(res), nil
 }
@@ -121,12 +136,16 @@ func (h *Handler) CreateResource(ctx context.Context, req *connect.Request[werbo
 	if err != nil {
 		return nil, apperr.ToConnect(err)
 	}
+	presetID, err := h.presetType(ctx, org, m)
+	if err != nil {
+		return nil, apperr.ToConnect(err)
+	}
 	cfg, err := parseConfig(t, m.GetConfig(), m.GetConfigJson())
 	if err != nil {
 		return nil, apperr.ToConnect(err)
 	}
 	idle, maxDur := timeouts(m.GetIdleTimeout(), m.GetMaxDuration())
-	r, err := h.svc.Create(ctx, org, CreateInput{Name: m.GetName(), Type: t.Name, GatewayID: gw, Config: cfg, Labels: m.GetLabels(),
+	r, err := h.svc.Create(ctx, org, CreateInput{Name: m.GetName(), Type: t.Name, GatewayID: gw, PresetID: presetID, Config: cfg, Labels: m.GetLabels(),
 		IdleTimeout: idle, MaxDuration: maxDur})
 	if err != nil {
 		return nil, apperr.ToConnect(err)

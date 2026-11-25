@@ -56,6 +56,7 @@ func TestListenDeliversAndReconnects(t *testing.T) {
 	require.Zero(t, pool.Stat().AcquiredConns(), "listen connection must live outside the pool")
 
 	orgID := dbtest.Org(t, pool)
+	require.Equal(t, orgID.String(), recv(t, org), "org_setting insert")
 	insertTeam := func(name string) {
 		t.Helper()
 		_, err := pool.Exec(ctx, `INSERT INTO team (org_id, name) VALUES ($1, $2)`, orgID, name)
@@ -153,7 +154,7 @@ func TestOrgChangedTriggers(t *testing.T) {
 	require.NoError(t, err)
 	got, err := pgx.CollectRows(rows, pgx.RowTo[string])
 	require.NoError(t, err)
-	want := []string{"access_binding", "gateway", "gateway_instance", "gateway_instance", "ip_blocklist", "membership", "resource", "resource_country_rule", "resource_label", "resource_network_rule", "resource_schedule", "team", "team_member"}
+	want := []string{"access_binding", "access_grant", "agent", "agent", "agent_run", "command_class_rule", "command_rule", "custom_policy", "gateway", "gateway_instance", "gateway_instance", "ip_blocklist", "lock", "membership", "mfa_rule", "org_setting", "path_rule", "resource", "resource_country_rule", "resource_label", "resource_network_rule", "resource_schedule", "team", "team_member", "terminal_rule"}
 	require.True(t, slices.Equal(want, got), "triggered tables = %v", got)
 
 	conn, err := pgx.ConnectConfig(ctx, pool.Config().ConnConfig.Copy())
@@ -168,7 +169,7 @@ func TestOrgChangedTriggers(t *testing.T) {
 	_, err = pool.Exec(ctx, `DELETE FROM team WHERE id = $1`, teamID)
 	require.NoError(t, err)
 
-	for _, step := range []string{"insert", "delete"} {
+	for _, step := range []string{"org_setting insert", "insert", "delete"} {
 		wctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		n, err := conn.WaitForNotification(wctx)
 		cancel()

@@ -1,0 +1,113 @@
+syntax = "proto3";
+package werbot.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+// The caller's second factors: a TOTP authenticator app, passkeys and
+// recovery codes.
+service MFAService {
+  rpc ListFactors(ListFactorsRequest) returns (ListFactorsResponse);
+  // Starts a TOTP enrollment; an unconfirmed one is replaced, a confirmed
+  // one is AlreadyExists. The only response that carries the secret.
+  rpc EnrollTOTP(EnrollTOTPRequest) returns (EnrollTOTPResponse);
+  // Confirms the enrollment with a current code.
+  rpc ConfirmTOTP(ConfirmTOTPRequest) returns (ConfirmTOTPResponse);
+  // Replaces all recovery codes; the only response that carries them.
+  rpc GenerateRecoveryCodes(GenerateRecoveryCodesRequest) returns (GenerateRecoveryCodesResponse);
+  rpc DeleteFactor(DeleteFactorRequest) returns (DeleteFactorResponse);
+  // Starts a passkey registration: options is the JSON of the WebAuthn
+  // credential creation options. FailedPrecondition when WERBOT_WEB_URL has
+  // no domain name.
+  rpc BeginWebAuthnRegistration(BeginWebAuthnRegistrationRequest) returns (BeginWebAuthnRegistrationResponse);
+  // Stores the passkey from the browser's attestation (JSON).
+  rpc FinishWebAuthnRegistration(FinishWebAuthnRegistrationRequest) returns (FinishWebAuthnRegistrationResponse);
+}
+
+// The browser side of an SSH MFA challenge: only the challenge's user reads
+// it and confirms it with a passkey; a TOTP code is entered in the terminal.
+service MFAChallengeService {
+  // NotFound for another user's challenge, FailedPrecondition once it is
+  // not pending; webauthn_options is empty without a passkey.
+  rpc GetChallenge(GetChallengeRequest) returns (GetChallengeResponse);
+  rpc ConfirmChallenge(ConfirmChallengeRequest) returns (ConfirmChallengeResponse);
+}
+
+message Factor {
+  // The passkey's uuid, "totp" or "recovery".
+  string id = 1;
+  // "webauthn", "totp" or "recovery".
+  string kind = 2;
+  string name = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp last_used_at = 5;
+  // Unused recovery codes; 0 for other kinds.
+  int32 remaining = 6;
+}
+
+message ListFactorsRequest {}
+message ListFactorsResponse {
+  repeated Factor factors = 1;
+}
+
+message EnrollTOTPRequest {}
+message EnrollTOTPResponse {
+  string otpauth_url = 1;
+  // Base32, for manual entry.
+  string secret = 2;
+  // The QR code is qr_size × qr_size modules drawn by the SVG path qr_path.
+  int32 qr_size = 3;
+  string qr_path = 4;
+}
+
+message ConfirmTOTPRequest {
+  string code = 1 [(buf.validate.field).string.pattern = "^[0-9]{6}$"];
+}
+message ConfirmTOTPResponse {}
+
+message GenerateRecoveryCodesRequest {}
+message GenerateRecoveryCodesResponse {
+  repeated string codes = 1;
+}
+
+message DeleteFactorRequest {
+  string id = 1 [(buf.validate.field).string.pattern = "^(totp|recovery|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$"];
+}
+message DeleteFactorResponse {}
+
+message BeginWebAuthnRegistrationRequest {}
+message BeginWebAuthnRegistrationResponse {
+  bytes options = 1;
+}
+
+message FinishWebAuthnRegistrationRequest {
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 64}];
+  bytes attestation = 2 [(buf.validate.field).bytes = {min_len: 1, max_len: 16384}];
+}
+message FinishWebAuthnRegistrationResponse {
+  Factor factor = 1;
+}
+
+message GetChallengeRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+message GetChallengeResponse {
+  // The code the terminal shows.
+  string code = 1;
+  // The hostname of the gateway instance.
+  string host = 2;
+  string client_ip = 3;
+  // The resource name; empty once it is deleted.
+  string resource = 4;
+  // "any" or "webauthn".
+  string strength = 5;
+  google.protobuf.Timestamp expires_at = 6;
+  // The JSON of the WebAuthn assertion options.
+  bytes webauthn_options = 7;
+}
+
+message ConfirmChallengeRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  bytes webauthn_assertion = 2 [(buf.validate.field).bytes = {min_len: 1, max_len: 16384}];
+}
+message ConfirmChallengeResponse {}

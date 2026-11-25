@@ -1,10 +1,11 @@
-//go:build cluster || load
+//go:build cluster || load || redteam
 
 package cluster
 
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -25,6 +26,10 @@ import (
 )
 
 var probe = &http.Client{Timeout: 5 * time.Second}
+
+// ErrNoSeries is ReadMetric of a series the replica does not export: a
+// labelled counter appears with its first increment.
+var ErrNoSeries = errors.New("no series")
 
 // Ready is the status code of GET http://addr/readyz; 0 when there is no answer.
 func Ready(addr string) int {
@@ -74,7 +79,7 @@ func ReadMetric(addr, name string, labels ...string) (int64, error) {
 	if err := sc.Err(); err != nil {
 		return 0, err
 	}
-	return 0, fmt.Errorf("%s: no series %s", addr, series)
+	return 0, fmt.Errorf("%s: %w %s", addr, ErrNoSeries, series)
 }
 
 // connectDB opens a pool to the stand's Postgres. Every new connection resolves

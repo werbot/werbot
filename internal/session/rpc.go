@@ -94,6 +94,18 @@ func (h *SessionHandler) VerifyRecording(ctx context.Context, req *connect.Reque
 	return connect.NewResponse(&werbotv1.VerifyRecordingResponse{Verified: v.Verified, Reason: v.Reason}), nil
 }
 
+// TerminateSession asks the gateway serving an open session to end it.
+func (h *SessionHandler) TerminateSession(ctx context.Context, req *connect.Request[werbotv1.TerminateSessionRequest]) (*connect.Response[werbotv1.TerminateSessionResponse], error) {
+	p, id, err := h.authID(ctx, req.Msg.GetId())
+	if err != nil {
+		return nil, err
+	}
+	if err := h.svc.TerminateSession(ctx, p, id, req.Msg.GetReason()); err != nil {
+		return nil, apperr.ToConnect(err)
+	}
+	return connect.NewResponse(&werbotv1.TerminateSessionResponse{}), nil
+}
+
 // authID authenticates and parses the session id.
 func (h *SessionHandler) authID(ctx context.Context, raw string) (principal.Principal, uuid.UUID, error) {
 	p, err := principal.Require(ctx)
@@ -142,7 +154,7 @@ func toProto(s Summary) *werbotv1.Session {
 		Id: s.ID.String(), UserId: idString(s.UserID), UserLogin: s.UserLogin,
 		ResourceId: idString(s.ResourceID), ResourceName: s.ResourceName, GatewayId: idString(s.GatewayID),
 		ClientIp: s.ClientIP.String(), StartedAt: timestamppb.New(s.StartedAt), EndReason: s.EndReason,
-		Kind: s.Kind, Target: s.Target, BytesUp: s.BytesUp, BytesDown: s.BytesDown,
+		Kind: s.Kind, Target: s.Target, Command: s.Command, Front: s.Front, Live: s.Live, Classes: s.Classes, Paths: s.Paths, BytesUp: s.BytesUp, BytesDown: s.BytesDown,
 		DatagramsUp: s.DatagramsUp, DatagramsDown: s.DatagramsDown,
 		Recording: &werbotv1.Recording{Chunks: int32(s.Chunks), Bytes: s.Bytes, Finished: s.Finished}, //nolint:gosec // chunk count is small
 	}

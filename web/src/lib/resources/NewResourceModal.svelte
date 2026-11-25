@@ -7,7 +7,7 @@
 	import type { ResourceType } from '#lib/gen/werbot/v1/resource_pb.js';
 	import ResourceForm, { type ResourceValues } from '#lib/resources/ResourceForm.svelte';
 	import { m } from '#lib/paraglide/messages.js';
-	import { categoryIcon, categoryLabel, groupTypes, typeIcon } from './icons.js';
+	import { categoryIcon, categoryLabel, groupTypes, resourceTypeIcon } from './icons.js';
 	import TileGrid from './TileGrid.svelte';
 
 	let { open = $bindable(false) }: { open?: boolean } = $props();
@@ -23,10 +23,12 @@
 	let category = $state('');
 	let typeName = $state('');
 
+	const typeLabel = (name: string) => types?.find((t) => t.name === name)?.displayName || name;
+
 	let groups = $derived(groupTypes(types ?? []));
 	let step = $derived(typeName ? 3 : category ? 2 : 1);
 	let crumbs = $derived(
-		[m.resources_step_category(), categoryLabel(category), typeName].slice(0, step).map((label) => ({ label }))
+		[m.resources_step_category(), categoryLabel(category), typeLabel(typeName)].slice(0, step).map((label) => ({ label }))
 	);
 
 	function back() {
@@ -80,7 +82,7 @@
 			{:else if step === 2}
 				<TileGrid
 					label={m.resources_step_type()}
-					tiles={(groups.find((g) => g.category === category)?.types ?? []).map((t) => ({ value: t.name, label: t.name, icon: typeIcon(t.name) }))}
+					tiles={(groups.find((g) => g.category === category)?.types ?? []).map((t) => ({ value: t.name, label: t.displayName || t.name, icon: resourceTypeIcon(t) }))}
 					onpick={(v) => (typeName = v)}
 				/>
 			{:else}

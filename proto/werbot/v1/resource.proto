@@ -5,10 +5,12 @@ import "buf/validate/validate.proto";
 import "google/protobuf/any.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
+import "werbot/connector/v1/ports.proto";
 
 service ResourceService {
   rpc ListResourceTypes(ListResourceTypesRequest) returns (ListResourceTypesResponse);
   rpc ListResources(ListResourcesRequest) returns (ListResourcesResponse);
+  rpc ListAccessibleResources(ListAccessibleResourcesRequest) returns (ListAccessibleResourcesResponse);
   rpc GetResource(GetResourceRequest) returns (GetResourceResponse);
   rpc CreateResource(CreateResourceRequest) returns (CreateResourceResponse);
   rpc UpdateResource(UpdateResourceRequest) returns (UpdateResourceResponse);
@@ -26,6 +28,14 @@ message ResourceType {
   string level = 5;
   string config_type_url = 6; // "type.googleapis.com/<FullName>"
   repeated string kinds = 7;  // connector.Type.Kinds in registration order: "terminal" | "exec" | "stream"
+  // Preset entries only (empty for builtin types): name and category are the
+  // preset's, the rest comes from its base type.
+  string preset_id = 8;
+  string base_type = 9;
+  string display_name = 10;
+  string icon = 11;
+  repeated werbot.connector.v1.PortRange default_ports = 12;
+  string launch_hint = 13;
 }
 
 message HostKey {
@@ -63,11 +73,35 @@ message Resource {
   google.protobuf.Duration idle_timeout = 13; // unset: the gateway default
   google.protobuf.Duration max_duration = 14; // unset: the gateway default
   ResourceHealth health = 15;
+  string preset_id = 16; // empty unless created from a preset
 }
 
 message ListResourceTypesRequest {}
 message ListResourceTypesResponse {
   repeated ResourceType types = 1;
+}
+
+// A resource the caller may connect to or request access to, with the address and host key of its pool.
+message AccessibleResource {
+  string id = 1;
+  string name = 2;
+  string type = 3;
+  repeated string kinds = 4;
+  map<string, string> labels = 5;
+  string ssh_address = 6; // empty without a pool or before the address is set
+  string ws_url = 7;      // empty without a pool or before the URL is set
+  string host_key = 8;    // authorized_keys line of the pool host key
+  bool requestable = 9;   // an approval policy lets the caller request access
+  bool allowed = 10;      // the caller may connect now
+  // An agent caller only (stage 12): the command classes the merged sponsor
+  // and agent decision allows, and those it allows after an approval.
+  repeated string allowed_classes = 20;
+  repeated string approval_classes = 21;
+}
+
+message ListAccessibleResourcesRequest {}
+message ListAccessibleResourcesResponse {
+  repeated AccessibleResource resources = 1;
 }
 
 message ListResourcesRequest {
@@ -101,6 +135,8 @@ message CreateResourceRequest {
     gte: {seconds: 60}
     lte: {seconds: 604800}
   }];
+  // A preset of the organization; type must then equal its base_type.
+  string preset_id = 9 [(buf.validate.field).string.uuid = true, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
 }
 message CreateResourceResponse {
   Resource resource = 1;

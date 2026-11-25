@@ -56,8 +56,9 @@ func newBench(t *testing.T, tune func(h *Hub)) *bench {
 	return newBenchTLS(t, tune, nil)
 }
 
-// newBenchTLS lets a test weaken the server TLS config to reach the middleware.
-func newBenchTLS(t *testing.T, tune func(h *Hub), tweak func(*tls.Config)) *bench {
+// newBenchTLS lets a test weaken the server TLS config to reach the middleware
+// and change the handler's deps.
+func newBenchTLS(t *testing.T, tune func(h *Hub), tweak func(*tls.Config), edits ...func(*Deps)) *bench {
 	t.Helper()
 	box, err := secretbox.New(make([]byte, 32), nil)
 	if err != nil {
@@ -80,6 +81,9 @@ func newBenchTLS(t *testing.T, tune func(h *Hub), tweak func(*tls.Config)) *benc
 	}
 	d := b.f.deps()
 	d.Metrics, d.Logger = b.reg, slog.New(slog.DiscardHandler)
+	for _, edit := range edits {
+		edit(&d)
+	}
 	mux := http.NewServeMux()
 	New(d, b.hub).Mount(mux)
 

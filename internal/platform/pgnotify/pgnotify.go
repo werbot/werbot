@@ -14,10 +14,18 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// NOTIFY channels: OrgChanged carries an org id or "*" (all orgs), GeoIPChanged has no payload.
+// NOTIFY channels: OrgChanged carries an org id or "*" (all orgs), GeoIPChanged has no payload,
+// ApprovalDecided carries "<gateway_instance_id>:<approval_id>" of a decided command approval,
+// StreamOpen "<gateway_instance_id>:<ticket_id>" of a new stream ticket, SessionTerminate
+// "<gateway_instance_id>:<session_id>" of a session to terminate and MFAConfirmed
+// "<gateway_instance_id>:<challenge_id>" of a confirmed MFA challenge.
 const (
-	OrgChanged   = "werbot_org_changed"
-	GeoIPChanged = "werbot_geoip_changed"
+	OrgChanged       = "werbot_org_changed"
+	GeoIPChanged     = "werbot_geoip_changed"
+	ApprovalDecided  = "werbot_approval_decided"
+	StreamOpen       = "werbot_stream_open"
+	SessionTerminate = "werbot_session_terminate"
+	MFAConfirmed     = "werbot_mfa_confirmed"
 )
 
 const (

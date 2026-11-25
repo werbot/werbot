@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"net/netip"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -104,7 +105,7 @@ func TestHeartbeatForwardsCountersDenialsHealth(t *testing.T) {
 		for i := range wantD {
 			got := ds[0].denials[i]
 			got.UserID, wantD[i].UserID = nil, nil
-			if got != wantD[i] {
+			if !reflect.DeepEqual(got, wantD[i]) {
 				t.Fatalf("denial %d = %+v, want %+v", i, got, wantD[i])
 			}
 		}
@@ -141,8 +142,8 @@ func TestHeartbeatPayloadValidated(t *testing.T) {
 		"ip":           {Denials: []*gatewayv1.Denial{{ClientIp: "x", Reason: "denied"}}},
 		"session":      {Counters: []*gatewayv1.SessionCounters{{SessionId: "x"}}},
 		"health error": {Health: []*gatewayv1.ResourceHealth{{ResourceId: uuid.NewString(), Error: strings.Repeat("e", 101)}}},
-		// bounds count bytes: 76 four-byte characters are 304 bytes
-		"target bytes":  {Denials: []*gatewayv1.Denial{{Target: strings.Repeat("😀", 76), Reason: "denied"}}},
+		// bounds count bytes: 257 four-byte characters are 1028 bytes
+		"target bytes":  {Denials: []*gatewayv1.Denial{{Target: strings.Repeat("😀", 257), Reason: "denied"}}},
 		"version bytes": {Version: strings.Repeat("😀", 17)},
 		"ip zone":       {Denials: []*gatewayv1.Denial{{ClientIp: "fe80::1%" + strings.Repeat("z", 57), Reason: "denied"}}},
 	} {
@@ -172,8 +173,10 @@ func TestHeartbeatMaxSizeFitsReadLimit(t *testing.T) {
 	}
 	for range 100 {
 		hb.Denials = append(hb.Denials, &gatewayv1.Denial{UserId: id, KeyFingerprint: fill(128),
-			Resource: fill(63), Kind: fill(16), Target: fill(300),
-			ClientIp: "fe80::ffff:ffff:ffff:ffff%" + strings.Repeat("z", 38), Reason: "target_not_allowed", At: ts}) // 64 bytes
+			Resource: fill(63), Kind: fill(16), Target: fill(1024),
+			ClientIp: "fe80::ffff:ffff:ffff:ffff%" + strings.Repeat("z", 38), Reason: "target_not_allowed", At: ts, // 64 bytes
+			SessionId: id, AgentRunId: id, Classes: []string{"destructive", "destructive", "destructive", "destructive", "destructive", "destructive", "destructive"},
+			Paths: slices.Repeat([]string{fill(1024)}, 16), Reasons: slices.Repeat([]string{fill(128)}, 16)})
 	}
 	for range 1000 {
 		hb.Health = append(hb.Health, &gatewayv1.ResourceHealth{ResourceId: id, Ok: true, Error: fill(100), CheckedAt: ts})

@@ -40,6 +40,8 @@ const (
 	AuthServiceSetupProcedure = "/werbot.v1.AuthService/Setup"
 	// AuthServiceLoginProcedure is the fully-qualified name of the AuthService's Login RPC.
 	AuthServiceLoginProcedure = "/werbot.v1.AuthService/Login"
+	// AuthServiceCompleteMFAProcedure is the fully-qualified name of the AuthService's CompleteMFA RPC.
+	AuthServiceCompleteMFAProcedure = "/werbot.v1.AuthService/CompleteMFA"
 	// AuthServiceLogoutProcedure is the fully-qualified name of the AuthService's Logout RPC.
 	AuthServiceLogoutProcedure = "/werbot.v1.AuthService/Logout"
 	// AuthServiceGetSessionProcedure is the fully-qualified name of the AuthService's GetSession RPC.
@@ -50,17 +52,39 @@ const (
 	// AuthServiceResetPasswordProcedure is the fully-qualified name of the AuthService's ResetPassword
 	// RPC.
 	AuthServiceResetPasswordProcedure = "/werbot.v1.AuthService/ResetPassword"
+	// AuthServiceBeginStepUpProcedure is the fully-qualified name of the AuthService's BeginStepUp RPC.
+	AuthServiceBeginStepUpProcedure = "/werbot.v1.AuthService/BeginStepUp"
+	// AuthServiceCompleteStepUpProcedure is the fully-qualified name of the AuthService's
+	// CompleteStepUp RPC.
+	AuthServiceCompleteStepUpProcedure = "/werbot.v1.AuthService/CompleteStepUp"
+	// AuthServiceListIdentityProvidersProcedure is the fully-qualified name of the AuthService's
+	// ListIdentityProviders RPC.
+	AuthServiceListIdentityProvidersProcedure = "/werbot.v1.AuthService/ListIdentityProviders"
 )
 
 // AuthServiceClient is a client for the werbot.v1.AuthService service.
 type AuthServiceClient interface {
 	GetSetupState(context.Context, *connect.Request[v1.GetSetupStateRequest]) (*connect.Response[v1.GetSetupStateResponse], error)
 	Setup(context.Context, *connect.Request[v1.SetupRequest]) (*connect.Response[v1.SetupResponse], error)
+	// Checks the password. A user with a second factor gets no session yet:
+	// mfa_token and the methods to finish the login with CompleteMFA.
 	Login(context.Context, *connect.Request[v1.LoginRequest]) (*connect.Response[v1.LoginResponse], error)
+	// Public: finishes a login with the mfa_token and one factor and sets the
+	// session cookie. A wrong factor leaves the token usable until it expires.
+	CompleteMFA(context.Context, *connect.Request[v1.CompleteMFARequest]) (*connect.Response[v1.CompleteMFAResponse], error)
 	Logout(context.Context, *connect.Request[v1.LogoutRequest]) (*connect.Response[v1.LogoutResponse], error)
 	GetSession(context.Context, *connect.Request[v1.GetSessionRequest]) (*connect.Response[v1.GetSessionResponse], error)
 	RequestPasswordReset(context.Context, *connect.Request[v1.RequestPasswordResetRequest]) (*connect.Response[v1.RequestPasswordResetResponse], error)
 	ResetPassword(context.Context, *connect.Request[v1.ResetPasswordRequest]) (*connect.Response[v1.ResetPasswordResponse], error)
+	// Starts a step-up: a fresh second factor for admin actions. A browser
+	// session gets the methods and the passkey options; a CLI token gets the
+	// TOTP method and, with a passkey, a challenge URL to confirm in the browser.
+	BeginStepUp(context.Context, *connect.Request[v1.BeginStepUpRequest]) (*connect.Response[v1.BeginStepUpResponse], error)
+	// Finishes a step-up of the caller's credential (session or CLI token).
+	CompleteStepUp(context.Context, *connect.Request[v1.CompleteStepUpRequest]) (*connect.Response[v1.CompleteStepUpResponse], error)
+	// Public: the enabled OIDC identity providers of the installation, for the
+	// login page (start at /api/oidc/{id}/start).
+	ListIdentityProviders(context.Context, *connect.Request[v1.AuthServiceListIdentityProvidersRequest]) (*connect.Response[v1.AuthServiceListIdentityProvidersResponse], error)
 }
 
 // NewAuthServiceClient constructs a client for the werbot.v1.AuthService service. By default, it
@@ -92,6 +116,12 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(authServiceMethods.ByName("Login")),
 			connect.WithClientOptions(opts...),
 		),
+		completeMFA: connect.NewClient[v1.CompleteMFARequest, v1.CompleteMFAResponse](
+			httpClient,
+			baseURL+AuthServiceCompleteMFAProcedure,
+			connect.WithSchema(authServiceMethods.ByName("CompleteMFA")),
+			connect.WithClientOptions(opts...),
+		),
 		logout: connect.NewClient[v1.LogoutRequest, v1.LogoutResponse](
 			httpClient,
 			baseURL+AuthServiceLogoutProcedure,
@@ -116,18 +146,40 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(authServiceMethods.ByName("ResetPassword")),
 			connect.WithClientOptions(opts...),
 		),
+		beginStepUp: connect.NewClient[v1.BeginStepUpRequest, v1.BeginStepUpResponse](
+			httpClient,
+			baseURL+AuthServiceBeginStepUpProcedure,
+			connect.WithSchema(authServiceMethods.ByName("BeginStepUp")),
+			connect.WithClientOptions(opts...),
+		),
+		completeStepUp: connect.NewClient[v1.CompleteStepUpRequest, v1.CompleteStepUpResponse](
+			httpClient,
+			baseURL+AuthServiceCompleteStepUpProcedure,
+			connect.WithSchema(authServiceMethods.ByName("CompleteStepUp")),
+			connect.WithClientOptions(opts...),
+		),
+		listIdentityProviders: connect.NewClient[v1.AuthServiceListIdentityProvidersRequest, v1.AuthServiceListIdentityProvidersResponse](
+			httpClient,
+			baseURL+AuthServiceListIdentityProvidersProcedure,
+			connect.WithSchema(authServiceMethods.ByName("ListIdentityProviders")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // authServiceClient implements AuthServiceClient.
 type authServiceClient struct {
-	getSetupState        *connect.Client[v1.GetSetupStateRequest, v1.GetSetupStateResponse]
-	setup                *connect.Client[v1.SetupRequest, v1.SetupResponse]
-	login                *connect.Client[v1.LoginRequest, v1.LoginResponse]
-	logout               *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
-	getSession           *connect.Client[v1.GetSessionRequest, v1.GetSessionResponse]
-	requestPasswordReset *connect.Client[v1.RequestPasswordResetRequest, v1.RequestPasswordResetResponse]
-	resetPassword        *connect.Client[v1.ResetPasswordRequest, v1.ResetPasswordResponse]
+	getSetupState         *connect.Client[v1.GetSetupStateRequest, v1.GetSetupStateResponse]
+	setup                 *connect.Client[v1.SetupRequest, v1.SetupResponse]
+	login                 *connect.Client[v1.LoginRequest, v1.LoginResponse]
+	completeMFA           *connect.Client[v1.CompleteMFARequest, v1.CompleteMFAResponse]
+	logout                *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
+	getSession            *connect.Client[v1.GetSessionRequest, v1.GetSessionResponse]
+	requestPasswordReset  *connect.Client[v1.RequestPasswordResetRequest, v1.RequestPasswordResetResponse]
+	resetPassword         *connect.Client[v1.ResetPasswordRequest, v1.ResetPasswordResponse]
+	beginStepUp           *connect.Client[v1.BeginStepUpRequest, v1.BeginStepUpResponse]
+	completeStepUp        *connect.Client[v1.CompleteStepUpRequest, v1.CompleteStepUpResponse]
+	listIdentityProviders *connect.Client[v1.AuthServiceListIdentityProvidersRequest, v1.AuthServiceListIdentityProvidersResponse]
 }
 
 // GetSetupState calls werbot.v1.AuthService.GetSetupState.
@@ -143,6 +195,11 @@ func (c *authServiceClient) Setup(ctx context.Context, req *connect.Request[v1.S
 // Login calls werbot.v1.AuthService.Login.
 func (c *authServiceClient) Login(ctx context.Context, req *connect.Request[v1.LoginRequest]) (*connect.Response[v1.LoginResponse], error) {
 	return c.login.CallUnary(ctx, req)
+}
+
+// CompleteMFA calls werbot.v1.AuthService.CompleteMFA.
+func (c *authServiceClient) CompleteMFA(ctx context.Context, req *connect.Request[v1.CompleteMFARequest]) (*connect.Response[v1.CompleteMFAResponse], error) {
+	return c.completeMFA.CallUnary(ctx, req)
 }
 
 // Logout calls werbot.v1.AuthService.Logout.
@@ -165,15 +222,44 @@ func (c *authServiceClient) ResetPassword(ctx context.Context, req *connect.Requ
 	return c.resetPassword.CallUnary(ctx, req)
 }
 
+// BeginStepUp calls werbot.v1.AuthService.BeginStepUp.
+func (c *authServiceClient) BeginStepUp(ctx context.Context, req *connect.Request[v1.BeginStepUpRequest]) (*connect.Response[v1.BeginStepUpResponse], error) {
+	return c.beginStepUp.CallUnary(ctx, req)
+}
+
+// CompleteStepUp calls werbot.v1.AuthService.CompleteStepUp.
+func (c *authServiceClient) CompleteStepUp(ctx context.Context, req *connect.Request[v1.CompleteStepUpRequest]) (*connect.Response[v1.CompleteStepUpResponse], error) {
+	return c.completeStepUp.CallUnary(ctx, req)
+}
+
+// ListIdentityProviders calls werbot.v1.AuthService.ListIdentityProviders.
+func (c *authServiceClient) ListIdentityProviders(ctx context.Context, req *connect.Request[v1.AuthServiceListIdentityProvidersRequest]) (*connect.Response[v1.AuthServiceListIdentityProvidersResponse], error) {
+	return c.listIdentityProviders.CallUnary(ctx, req)
+}
+
 // AuthServiceHandler is an implementation of the werbot.v1.AuthService service.
 type AuthServiceHandler interface {
 	GetSetupState(context.Context, *connect.Request[v1.GetSetupStateRequest]) (*connect.Response[v1.GetSetupStateResponse], error)
 	Setup(context.Context, *connect.Request[v1.SetupRequest]) (*connect.Response[v1.SetupResponse], error)
+	// Checks the password. A user with a second factor gets no session yet:
+	// mfa_token and the methods to finish the login with CompleteMFA.
 	Login(context.Context, *connect.Request[v1.LoginRequest]) (*connect.Response[v1.LoginResponse], error)
+	// Public: finishes a login with the mfa_token and one factor and sets the
+	// session cookie. A wrong factor leaves the token usable until it expires.
+	CompleteMFA(context.Context, *connect.Request[v1.CompleteMFARequest]) (*connect.Response[v1.CompleteMFAResponse], error)
 	Logout(context.Context, *connect.Request[v1.LogoutRequest]) (*connect.Response[v1.LogoutResponse], error)
 	GetSession(context.Context, *connect.Request[v1.GetSessionRequest]) (*connect.Response[v1.GetSessionResponse], error)
 	RequestPasswordReset(context.Context, *connect.Request[v1.RequestPasswordResetRequest]) (*connect.Response[v1.RequestPasswordResetResponse], error)
 	ResetPassword(context.Context, *connect.Request[v1.ResetPasswordRequest]) (*connect.Response[v1.ResetPasswordResponse], error)
+	// Starts a step-up: a fresh second factor for admin actions. A browser
+	// session gets the methods and the passkey options; a CLI token gets the
+	// TOTP method and, with a passkey, a challenge URL to confirm in the browser.
+	BeginStepUp(context.Context, *connect.Request[v1.BeginStepUpRequest]) (*connect.Response[v1.BeginStepUpResponse], error)
+	// Finishes a step-up of the caller's credential (session or CLI token).
+	CompleteStepUp(context.Context, *connect.Request[v1.CompleteStepUpRequest]) (*connect.Response[v1.CompleteStepUpResponse], error)
+	// Public: the enabled OIDC identity providers of the installation, for the
+	// login page (start at /api/oidc/{id}/start).
+	ListIdentityProviders(context.Context, *connect.Request[v1.AuthServiceListIdentityProvidersRequest]) (*connect.Response[v1.AuthServiceListIdentityProvidersResponse], error)
 }
 
 // NewAuthServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -201,6 +287,12 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(authServiceMethods.ByName("Login")),
 		connect.WithHandlerOptions(opts...),
 	)
+	authServiceCompleteMFAHandler := connect.NewUnaryHandler(
+		AuthServiceCompleteMFAProcedure,
+		svc.CompleteMFA,
+		connect.WithSchema(authServiceMethods.ByName("CompleteMFA")),
+		connect.WithHandlerOptions(opts...),
+	)
 	authServiceLogoutHandler := connect.NewUnaryHandler(
 		AuthServiceLogoutProcedure,
 		svc.Logout,
@@ -225,6 +317,24 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(authServiceMethods.ByName("ResetPassword")),
 		connect.WithHandlerOptions(opts...),
 	)
+	authServiceBeginStepUpHandler := connect.NewUnaryHandler(
+		AuthServiceBeginStepUpProcedure,
+		svc.BeginStepUp,
+		connect.WithSchema(authServiceMethods.ByName("BeginStepUp")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceCompleteStepUpHandler := connect.NewUnaryHandler(
+		AuthServiceCompleteStepUpProcedure,
+		svc.CompleteStepUp,
+		connect.WithSchema(authServiceMethods.ByName("CompleteStepUp")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceListIdentityProvidersHandler := connect.NewUnaryHandler(
+		AuthServiceListIdentityProvidersProcedure,
+		svc.ListIdentityProviders,
+		connect.WithSchema(authServiceMethods.ByName("ListIdentityProviders")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/werbot.v1.AuthService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AuthServiceGetSetupStateProcedure:
@@ -233,6 +343,8 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 			authServiceSetupHandler.ServeHTTP(w, r)
 		case AuthServiceLoginProcedure:
 			authServiceLoginHandler.ServeHTTP(w, r)
+		case AuthServiceCompleteMFAProcedure:
+			authServiceCompleteMFAHandler.ServeHTTP(w, r)
 		case AuthServiceLogoutProcedure:
 			authServiceLogoutHandler.ServeHTTP(w, r)
 		case AuthServiceGetSessionProcedure:
@@ -241,6 +353,12 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 			authServiceRequestPasswordResetHandler.ServeHTTP(w, r)
 		case AuthServiceResetPasswordProcedure:
 			authServiceResetPasswordHandler.ServeHTTP(w, r)
+		case AuthServiceBeginStepUpProcedure:
+			authServiceBeginStepUpHandler.ServeHTTP(w, r)
+		case AuthServiceCompleteStepUpProcedure:
+			authServiceCompleteStepUpHandler.ServeHTTP(w, r)
+		case AuthServiceListIdentityProvidersProcedure:
+			authServiceListIdentityProvidersHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -262,6 +380,10 @@ func (UnimplementedAuthServiceHandler) Login(context.Context, *connect.Request[v
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.AuthService.Login is not implemented"))
 }
 
+func (UnimplementedAuthServiceHandler) CompleteMFA(context.Context, *connect.Request[v1.CompleteMFARequest]) (*connect.Response[v1.CompleteMFAResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.AuthService.CompleteMFA is not implemented"))
+}
+
 func (UnimplementedAuthServiceHandler) Logout(context.Context, *connect.Request[v1.LogoutRequest]) (*connect.Response[v1.LogoutResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.AuthService.Logout is not implemented"))
 }
@@ -276,4 +398,16 @@ func (UnimplementedAuthServiceHandler) RequestPasswordReset(context.Context, *co
 
 func (UnimplementedAuthServiceHandler) ResetPassword(context.Context, *connect.Request[v1.ResetPasswordRequest]) (*connect.Response[v1.ResetPasswordResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.AuthService.ResetPassword is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) BeginStepUp(context.Context, *connect.Request[v1.BeginStepUpRequest]) (*connect.Response[v1.BeginStepUpResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.AuthService.BeginStepUp is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) CompleteStepUp(context.Context, *connect.Request[v1.CompleteStepUpRequest]) (*connect.Response[v1.CompleteStepUpResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.AuthService.CompleteStepUp is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) ListIdentityProviders(context.Context, *connect.Request[v1.AuthServiceListIdentityProvidersRequest]) (*connect.Response[v1.AuthServiceListIdentityProvidersResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("werbot.v1.AuthService.ListIdentityProviders is not implemented"))
 }

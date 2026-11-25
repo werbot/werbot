@@ -57,6 +57,9 @@ type Gateway struct {
 	Connectors []string // common to every online instance
 	CreatedAt  time.Time
 	Instances  []Instance // by created_at
+	SSHAddress string     // host:port clients dial; "" until set
+	HostKey    string     // authorized_keys line of the pool host key
+	WSURL      string     // ws:// or wss:// URL clients dial; "" until set
 }
 
 // Instance is one gateway process of a pool.
@@ -199,7 +202,11 @@ func (g *Gateways) List(ctx context.Context) ([]Gateway, error) {
 			byPool[r.GatewayID] = append(byPool[r.GatewayID], toInstance(r))
 		}
 		for _, r := range pools {
-			gw := Gateway{ID: r.ID, OrgID: r.OrgID, Name: r.Name, CreatedAt: r.CreatedAt, Instances: byPool[r.ID]}
+			gw, err := g.toGateway(r)
+			if err != nil {
+				return err
+			}
+			gw.Instances = byPool[r.ID]
 			gw.Online, gw.Connectors = poolStatus(gw.Instances)
 			out = append(out, gw)
 		}

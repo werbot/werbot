@@ -61,6 +61,9 @@ type Config struct {
 	// GeoIPURL (WERBOT_GEOIP_URL, default DefaultGeoIPURL) is the country
 	// database download; "%s" is the month as 2006-01. It may hold a token.
 	GeoIPURL string
+
+	InternalAddr string // WERBOT_INTERNAL_ADDR, default ":8444": replica-to-replica mTLS listener
+	InternalURL  string // WERBOT_INTERNAL_URL: https address other replicas dial; empty -> https://<hostname>:<port>
 }
 
 // Vars lists every environment variable Load reads, in contract order.
@@ -73,6 +76,7 @@ func Vars() []string {
 		"WERBOT_LOCAL_POOL_ALLOW_LOOPBACK",
 		"WERBOT_RECORDINGS_S3_ENDPOINT", "WERBOT_RECORDINGS_S3_BUCKET", "WERBOT_RECORDINGS_S3_REGION",
 		"WERBOT_RECORDINGS_S3_ACCESS_KEY", "WERBOT_RECORDINGS_S3_SECRET_KEY", "WERBOT_GEOIP_URL",
+		"WERBOT_INTERNAL_ADDR", "WERBOT_INTERNAL_URL",
 	}
 }
 
@@ -119,7 +123,7 @@ func Load(getenv func(string) string) (Config, error) {
 			return Config{}, err
 		}
 	}
-	if c.TrustedProxies, err = ParseTrustedProxies(getenv("WERBOT_TRUSTED_PROXIES")); err != nil {
+	if c.TrustedProxies, err = ParsePrefixes("WERBOT_TRUSTED_PROXIES", getenv("WERBOT_TRUSTED_PROXIES")); err != nil {
 		return Config{}, err
 	}
 	if c.SMTP, err = loadSMTP(getenv); err != nil {
@@ -140,7 +144,8 @@ func Load(getenv func(string) string) (Config, error) {
 	if c.RecordingsS3, err = loadRecordingsS3(getenv); err != nil {
 		return Config{}, err
 	}
-	if err := checkGeoIPURL(c.GeoIPURL); err != nil {
+	c.InternalAddr, c.InternalURL, err = loadInternal(getenv)
+	if err = errors.Join(checkGeoIPURL(c.GeoIPURL), err); err != nil {
 		return Config{}, err
 	}
 	return c, nil
@@ -179,8 +184,8 @@ func LoadLogging(getenv func(string) string) (level, format string, err error) {
 	return level, format, nil
 }
 
-// ParseTrustedProxies parses comma-separated CIDRs; empty input gives nil.
-func ParseTrustedProxies(s string) ([]netip.Prefix, error) {
+// ParsePrefixes parses comma-separated CIDRs; empty input gives nil. name is the variable the errors name.
+func ParsePrefixes(name, s string) ([]netip.Prefix, error) {
 	if s == "" {
 		return nil, nil
 	}
@@ -188,7 +193,7 @@ func ParseTrustedProxies(s string) ([]netip.Prefix, error) {
 	for part := range strings.SplitSeq(s, ",") {
 		p, err := netip.ParsePrefix(strings.TrimSpace(part))
 		if err != nil {
-			return nil, fmt.Errorf("WERBOT_TRUSTED_PROXIES: %w", err)
+			return nil, fmt.Errorf("%s: %w", name, err)
 		}
 		out = append(out, p)
 	}

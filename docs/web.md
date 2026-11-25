@@ -3,7 +3,7 @@
 ## Topologies
 
 - **All-in-one (default).** `werbot server` serves the UI itself on `WERBOT_HTTP_ADDR`, next to the API.
-- **Separate web.** `werbot web` runs on its own host and domain. It serves the UI and proxies the paths `/werbot.v1.` (the Connect API) and `/api/` (recording replay) to the server, so the browser sees one origin and no CORS is needed. The server's `Set-Cookie` passes unchanged and becomes a cookie of the web domain.
+- **Separate web.** `werbot web` runs on its own host and domain. It serves the UI and proxies the paths `/werbot.v1.` (the Connect API), `/api/` (recording replay), `/oauth/` and `/.well-known/` (the CLI's OAuth authorization server) to the server, so the browser sees one origin and no CORS is needed. The server's `Set-Cookie` passes unchanged and becomes a cookie of the web domain.
 
 `werbot web` keeps no state, never connects to PostgreSQL and does not get `WERBOT_SECRET_KEY` or `WERBOT_DATABASE_URL`. Run as many replicas as you need behind an L7 load balancer.
 
@@ -32,6 +32,14 @@ Terminate TLS on the load balancer or ingress in front of web. Web removes incom
 - `WERBOT_PUBLIC_URL` stays the server address: gateways build the tunnel address from it. They enroll at `--server` (`WERBOT_GATEWAY_SERVER_URL`), and the start command in the UI passes the web domain there ([gateway.md](gateway.md#firewall)).
 - Put the subnet of the web replicas into `WERBOT_TRUSTED_PROXIES` of the server. Otherwise audit and IP rules see the address of web, and an "allowed CIDRs" rule denies everyone.
 - Open the server HTTP port only to web and the gateways.
+
+## WebSocket
+
+The web terminal and the live view ([web-terminal.md](web-terminal.md)) use WebSockets on `/api/terminal` and `/api/sessions/<id>/live`. `werbot web` proxies them to the server with no setting. Check these in front of web:
+
+- The load balancer passes `Upgrade` and `Connection` and keeps idle connections at least 60 seconds ([scaling.md](scaling.md#websocket-streams)).
+- The server accepts a WebSocket only when its `Origin` equals the origin of `WERBOT_WEB_URL`; any other `Origin` gets `403`. Serve the UI from that one origin. A UI reachable at several origins is not supported.
+- The handshake has the 30 s response-header wait of any proxied request; after it the connection lasts as long as the session.
 
 ## Failures
 

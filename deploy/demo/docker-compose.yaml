@@ -1,0 +1,29 @@
+# Demo: an AI agent works on "production" without any key. An override of
+# ../docker-compose.yaml; run it through demo.sh, which generates the throwaway
+# secrets below. Project name, ports and volumes do not touch a real install.
+name: werbot-demo
+
+services:
+  werbot:
+    image: ${WERBOT_IMAGE:-ghcr.io/werbot/werbot:${WERBOT_VERSION:?set WERBOT_VERSION, e.g. v0.2.0}}
+    env_file: !reset []
+    environment:
+      WERBOT_ENV: development # emails go to the log with their links
+      WERBOT_PUBLIC_URL: http://localhost:18090
+    ports: !override
+      - "127.0.0.1:18090:8080" # web UI and API
+      - "127.0.0.1:12222:2222" # SSH to the built-in gateway
+    stop_grace_period: 40s
+
+  prod-web: &target
+    image: lscr.io/linuxserver/openssh-server:10.3_p1-r1-ls241@sha256:0b46c755aac07057908077f2c7ff14f0ad923970bb6a3a67bcd008e72fa60050
+    hostname: prod-web
+    restart: unless-stopped
+    environment:
+      USER_NAME: werbot
+      USER_PASSWORD: ${DEMO_TARGET_PASSWORD:-demo-target-password} # throwaway, only the demo network reaches it
+      PASSWORD_ACCESS: "true"
+
+  stage-web:
+    <<: *target
+    hostname: stage-web

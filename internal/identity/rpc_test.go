@@ -26,7 +26,7 @@ func newAuthClient(t *testing.T, svc *Service) werbotv1connect.AuthServiceClient
 	t.Helper()
 	mux := http.NewServeMux()
 	mux.Handle(werbotv1connect.NewAuthServiceHandler(NewHandler(svc)))
-	srv := httptest.NewServer(Middleware(svc)(mux))
+	srv := httptest.NewServer(Middleware(svc, nil)(mux))
 	t.Cleanup(srv.Close)
 	return werbotv1connect.NewAuthServiceClient(srv.Client(), srv.URL)
 }
@@ -141,7 +141,7 @@ func TestMiddlewareStoreFailureIsUnavailable(t *testing.T) {
 		_, ok := principal.From(r.Context())
 		assert.False(t, ok, "SPA request goes on without a subject")
 	})
-	srv := httptest.NewServer(Middleware(svc)(mux))
+	srv := httptest.NewServer(Middleware(svc, nil)(mux))
 	t.Cleanup(srv.Close)
 	client := werbotv1connect.NewAuthServiceClient(srv.Client(), srv.URL)
 	c := login(t, client)
@@ -177,8 +177,8 @@ func TestMiddlewareStoreFailureIsUnavailable(t *testing.T) {
 
 // publicMethods are the only RPCs served without a session.
 var publicMethods = map[string]bool{
-	"GetSetupState": true, "Setup": true, "Login": true,
-	"RequestPasswordReset": true, "ResetPassword": true, "AcceptInvite": true,
+	"GetSetupState": true, "Setup": true, "Login": true, "CompleteMFA": true,
+	"RequestPasswordReset": true, "ResetPassword": true, "AcceptInvite": true, "ListIdentityProviders": true,
 }
 
 func TestRPCRequiresSession(t *testing.T) {
@@ -190,13 +190,14 @@ func TestRPCRequiresSession(t *testing.T) {
 	mux.Handle(werbotv1connect.NewSSHKeyServiceHandler(h))
 	mux.Handle(werbotv1connect.NewMemberServiceHandler(h))
 	mux.Handle(werbotv1connect.NewTeamServiceHandler(h))
+	mux.Handle(werbotv1connect.NewCLISessionServiceHandler(h))
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
 
 	checked := 0
 	for _, name := range []string{
 		werbotv1connect.AuthServiceName, werbotv1connect.ProfileServiceName, werbotv1connect.SSHKeyServiceName,
-		werbotv1connect.MemberServiceName, werbotv1connect.TeamServiceName,
+		werbotv1connect.MemberServiceName, werbotv1connect.TeamServiceName, werbotv1connect.CLISessionServiceName,
 	} {
 		d, err := protoregistry.GlobalFiles.FindDescriptorByName(protoreflect.FullName(name))
 		require.NoError(t, err)
@@ -213,5 +214,5 @@ func TestRPCRequiresSession(t *testing.T) {
 			checked++
 		}
 	}
-	assert.Equal(t, 21, checked)
+	assert.Equal(t, 25, checked)
 }

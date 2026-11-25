@@ -24,6 +24,102 @@ type AccessBinding struct {
 	Ports         []pgtype.Range[pgtype.Int4]
 }
 
+type AccessGrant struct {
+	ID          uuid.UUID
+	OrgID       uuid.UUID
+	ApprovalID  *uuid.UUID
+	UserID      uuid.UUID
+	ResourceID  uuid.UUID
+	ExpiresAt   time.Time
+	RevokedAt   *time.Time
+	BreakGlass  bool
+	NeedsReview bool
+	CreatedBy   *uuid.UUID
+	CreatedAt   time.Time
+}
+
+type Agent struct {
+	ID            uuid.UUID
+	OrgID         uuid.UUID
+	SponsorUserID uuid.UUID
+	Name          string
+	Kind          string
+	Status        string
+	Limits        []byte
+	CreatedBy     *uuid.UUID
+	CreatedAt     time.Time
+}
+
+type AgentRun struct {
+	ID            uuid.UUID
+	OrgID         uuid.UUID
+	AgentID       uuid.UUID
+	SponsorUserID uuid.UUID
+	Client        string
+	Reason        string
+	Status        string
+	Actions       int32
+	DenialsInRow  int32
+	MaxActions    int32
+	MaxConcurrent int32
+	ExpiresAt     time.Time
+	StartedAt     time.Time
+	EndedAt       *time.Time
+	EndReason     *string
+}
+
+type AgentToolCall struct {
+	ID          uuid.UUID
+	OrgID       uuid.UUID
+	RunID       uuid.UUID
+	Tool        string
+	Arguments   []byte
+	Traceparent string
+	Status      string
+	StartedAt   time.Time
+	EndedAt     *time.Time
+}
+
+type Approval struct {
+	ID                uuid.UUID
+	OrgID             uuid.UUID
+	Kind              string
+	RequesterUserID   uuid.UUID
+	AgentRunID        *uuid.UUID
+	ResourceID        *uuid.UUID
+	LabelSelector     []byte
+	Duration          pgtype.Interval
+	Command           *string
+	CommandSha256     []byte
+	Classes           []string
+	Reason            string
+	PolicyID          *uuid.UUID
+	BreakGlass        bool
+	Status            string
+	DecidedBy         *uuid.UUID
+	DecidedAt         *time.Time
+	Comment           string
+	ExpiresAt         time.Time
+	GatewayInstanceID *uuid.UUID
+	CreatedAt         time.Time
+}
+
+type ApprovalPolicy struct {
+	ID               uuid.UUID
+	OrgID            uuid.UUID
+	Name             string
+	ResourceSelector []byte
+	Requesters       []byte
+	Approvers        []byte
+	Mode             string
+	MaxDuration      pgtype.Interval
+	RequireReason    bool
+	FourEyes         bool
+	BreakGlass       bool
+	CreatedBy        *uuid.UUID
+	CreatedAt        time.Time
+}
+
 type AuditEvent struct {
 	ID          uuid.UUID
 	OrgID       *uuid.UUID
@@ -45,6 +141,46 @@ type CaKey struct {
 	CreatedAt  time.Time
 }
 
+type CliSession struct {
+	ID                uuid.UUID
+	OrgID             uuid.UUID
+	UserID            uuid.UUID
+	ClientID          string
+	Hostname          string
+	Ip                *netip.Addr
+	RefreshHash       []byte
+	PrevRefreshHash   []byte
+	CreatedAt         time.Time
+	LastUsedAt        time.Time
+	ExpiresAt         time.Time
+	AbsoluteExpiresAt time.Time
+	RevokedAt         *time.Time
+	RevokeReason      *string
+	AgentID           *uuid.UUID
+}
+
+type CommandClassRule struct {
+	ID        uuid.UUID
+	OrgID     uuid.UUID
+	Pattern   string
+	Classes   []string
+	CreatedBy *uuid.UUID
+	CreatedAt time.Time
+}
+
+type CommandRule struct {
+	ID               uuid.UUID
+	OrgID            uuid.UUID
+	Name             string
+	Subjects         []byte
+	ResourceSelector []byte
+	Classes          []string
+	Effect           string
+	Message          string
+	CreatedBy        *uuid.UUID
+	CreatedAt        time.Time
+}
+
 type Credential struct {
 	ID         uuid.UUID
 	OrgID      uuid.UUID
@@ -56,6 +192,16 @@ type Credential struct {
 	UpdatedAt  time.Time
 }
 
+type CustomPolicy struct {
+	ID        uuid.UUID
+	OrgID     uuid.UUID
+	Name      string
+	Cedar     string
+	Enabled   bool
+	CreatedBy *uuid.UUID
+	UpdatedAt time.Time
+}
+
 type Gateway struct {
 	ID                uuid.UUID
 	OrgID             uuid.UUID
@@ -63,6 +209,8 @@ type Gateway struct {
 	HostKeyCiphertext []byte
 	HostKeyKeyID      string
 	CreatedAt         time.Time
+	SshAddress        string
+	WsUrl             string
 }
 
 type GatewayInstance struct {
@@ -100,10 +248,37 @@ type GeoipDb struct {
 	UpdatedAt time.Time
 }
 
+type IdpOidc struct {
+	ID                     uuid.UUID
+	OrgID                  uuid.UUID
+	Name                   string
+	Issuer                 string
+	ClientID               string
+	ClientSecretCiphertext []byte
+	KeyID                  string
+	Scopes                 []string
+	ClaimsMapping          []byte
+	AllowSignup            bool
+	Enabled                bool
+	CreatedBy              *uuid.UUID
+	CreatedAt              time.Time
+}
+
 type IpBlocklist struct {
 	Cidr      netip.Prefix
 	Source    string
 	UpdatedAt time.Time
+}
+
+type Lock struct {
+	ID         uuid.UUID
+	OrgID      uuid.UUID
+	TargetType string
+	TargetID   *uuid.UUID
+	Reason     string
+	ExpiresAt  *time.Time
+	CreatedBy  *uuid.UUID
+	CreatedAt  time.Time
 }
 
 type Membership struct {
@@ -111,6 +286,90 @@ type Membership struct {
 	UserID    uuid.UUID
 	Role      string
 	CreatedAt time.Time
+}
+
+type MfaChallenge struct {
+	ID                uuid.UUID
+	OrgID             uuid.UUID
+	UserID            uuid.UUID
+	Code              string
+	SshSessionID      []byte
+	ResourceID        *uuid.UUID
+	ClientIp          *netip.Addr
+	Binding           string
+	Strength          string
+	Status            string
+	ExpiresAt         time.Time
+	ConfirmedAt       *time.Time
+	GatewayInstanceID *uuid.UUID
+	CreatedAt         time.Time
+}
+
+type MfaRecoveryCode struct {
+	UserID   uuid.UUID
+	CodeHash []byte
+	UsedAt   *time.Time
+}
+
+type MfaRule struct {
+	ID               uuid.UUID
+	OrgID            uuid.UUID
+	Name             string
+	Subjects         []byte
+	ResourceSelector []byte
+	MaxAge           pgtype.Interval
+	Strength         string
+	CreatedBy        *uuid.UUID
+	CreatedAt        time.Time
+}
+
+type MfaVerification struct {
+	ID         uuid.UUID
+	OrgID      uuid.UUID
+	UserID     uuid.UUID
+	Binding    string
+	Method     string
+	VerifiedAt time.Time
+}
+
+type OauthAuthRequest struct {
+	ID             uuid.UUID
+	ClientID       string
+	RedirectUri    string
+	CodeChallenge  string
+	Scopes         []string
+	State          string
+	ClientHostname string
+	ClientIp       *netip.Addr
+	UserID         *uuid.UUID
+	OrgID          *uuid.UUID
+	CodeHash       []byte
+	ExpiresAt      time.Time
+	CreatedAt      time.Time
+}
+
+type OauthDeviceCode struct {
+	ID             uuid.UUID
+	DeviceCodeHash []byte
+	UserCode       string
+	ClientID       string
+	Scopes         []string
+	ClientHostname string
+	ClientIp       *netip.Addr
+	UserID         *uuid.UUID
+	OrgID          *uuid.UUID
+	Status         string
+	LastPollAt     *time.Time
+	ExpiresAt      time.Time
+	CreatedAt      time.Time
+}
+
+type OauthSigningKey struct {
+	ID         int16
+	Ciphertext []byte
+	KeyID      string
+	PublicJwk  []byte
+	CreatedAt  time.Time
 }
 
 type OneTimeToken struct {
@@ -125,10 +384,52 @@ type OneTimeToken struct {
 	CreatedAt time.Time
 }
 
+type OrgSetting struct {
+	OrgID              uuid.UUID
+	CliSessionTtl      pgtype.Interval
+	CliSessionMax      pgtype.Interval
+	UpdatedAt          time.Time
+	GrantDefaultTtl    pgtype.Interval
+	GrantMaxTtl        pgtype.Interval
+	RequestPendingTtl  pgtype.Interval
+	CommandApprovalTtl pgtype.Interval
+	LockMode           string
+	MaskOutput         string
+	RequireMfa         string
+}
+
+type OrgSshCa struct {
+	OrgID      uuid.UUID
+	Ciphertext []byte
+	KeyID      string
+	PublicKey  string
+	CreatedAt  time.Time
+}
+
 type Organization struct {
 	ID        uuid.UUID
 	Name      string
 	CreatedAt time.Time
+}
+
+type PathRule struct {
+	ID               uuid.UUID
+	OrgID            uuid.UUID
+	Name             string
+	Subjects         []byte
+	ResourceSelector []byte
+	Paths            []string
+	Access           string
+	Effect           string
+	Message          string
+	CreatedBy        *uuid.UUID
+	CreatedAt        time.Time
+}
+
+type RateLimit struct {
+	Key         string
+	WindowStart time.Time
+	Count       int32
 }
 
 type Recording struct {
@@ -156,6 +457,7 @@ type Resource struct {
 	UpdatedAt   time.Time
 	IdleTimeout pgtype.Interval
 	MaxDuration pgtype.Interval
+	PresetID    *uuid.UUID
 }
 
 type ResourceCountryRule struct {
@@ -199,6 +501,20 @@ type ResourceNetworkRule struct {
 	Effect     string
 }
 
+type ResourcePreset struct {
+	ID           uuid.UUID
+	OrgID        uuid.UUID
+	Name         string
+	BaseType     string
+	DisplayName  string
+	Icon         string
+	DefaultPorts []byte
+	Category     string
+	LaunchHint   string
+	CreatedBy    *uuid.UUID
+	CreatedAt    time.Time
+}
+
 type ResourceSchedule struct {
 	ResourceID uuid.UUID
 	OrgID      uuid.UUID
@@ -206,23 +522,43 @@ type ResourceSchedule struct {
 	Hour       int16
 }
 
+type ServerInstance struct {
+	ID          uuid.UUID
+	Hostname    string
+	InternalUrl string
+	Version     string
+	StartedAt   time.Time
+	LastSeenAt  time.Time
+}
+
 type Session struct {
-	ID                uuid.UUID
-	OrgID             uuid.UUID
-	UserID            *uuid.UUID
-	ResourceID        *uuid.UUID
-	GatewayID         *uuid.UUID
-	GatewayInstanceID *uuid.UUID
-	ClientIp          netip.Addr
-	StartedAt         time.Time
-	EndedAt           *time.Time
-	EndReason         *string
-	Kind              string
-	Target            string
-	BytesUp           int64
-	BytesDown         int64
-	DatagramsUp       int64
-	DatagramsDown     int64
+	ID                   uuid.UUID
+	OrgID                uuid.UUID
+	UserID               *uuid.UUID
+	ResourceID           *uuid.UUID
+	GatewayID            *uuid.UUID
+	GatewayInstanceID    *uuid.UUID
+	ClientIp             netip.Addr
+	StartedAt            time.Time
+	EndedAt              *time.Time
+	EndReason            *string
+	Kind                 string
+	Target               string
+	BytesUp              int64
+	BytesDown            int64
+	DatagramsUp          int64
+	DatagramsDown        int64
+	Command              *string
+	Classes              []string
+	Paths                []string
+	AgentRunID           *uuid.UUID
+	ToolCallID           *uuid.UUID
+	ExitCode             *int32
+	OutputSha256         []byte
+	Front                string
+	TerminateRequestedAt *time.Time
+	TerminateReason      *string
+	Transport            string
 }
 
 type SigningKey struct {
@@ -230,6 +566,24 @@ type SigningKey struct {
 	Ciphertext []byte
 	KeyID      string
 	PublicKey  []byte
+}
+
+type StreamTicket struct {
+	ID                uuid.UUID
+	OrgID             uuid.UUID
+	Mode              string
+	SessionID         *uuid.UUID
+	ResourceID        *uuid.UUID
+	UserID            uuid.UUID
+	Cols              int32
+	Rows              int32
+	GatewayInstanceID uuid.UUID
+	TargetServerID    uuid.UUID
+	ClientIp          *netip.Addr
+	ExpiresAt         time.Time
+	UsedAt            *time.Time
+	CreatedAt         time.Time
+	UserSessionID     *uuid.UUID
 }
 
 type Team struct {
@@ -245,6 +599,25 @@ type TeamMember struct {
 	UserID uuid.UUID
 }
 
+type TerminalRule struct {
+	ID               uuid.UUID
+	OrgID            uuid.UUID
+	Name             string
+	Subjects         []byte
+	ResourceSelector []byte
+	Mode             string
+	CreatedBy        *uuid.UUID
+	CreatedAt        time.Time
+}
+
+type TotpSecret struct {
+	UserID      uuid.UUID
+	Ciphertext  []byte
+	KeyID       string
+	ConfirmedAt *time.Time
+	LastStep    int64
+}
+
 type User struct {
 	ID           uuid.UUID
 	Email        string
@@ -253,6 +626,16 @@ type User struct {
 	PasswordHash string
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+}
+
+type UserIdpLink struct {
+	UserID            uuid.UUID
+	IdpID             uuid.UUID
+	OrgID             uuid.UUID
+	Subject           string
+	RefreshCiphertext []byte
+	KeyID             *string
+	LastCheckedAt     time.Time
 }
 
 type UserSession struct {
@@ -265,6 +648,7 @@ type UserSession struct {
 	LastSeenAt time.Time
 	Ip         *netip.Addr
 	UserAgent  string
+	MfaAt      *time.Time
 }
 
 type UserSshKey struct {
@@ -274,4 +658,30 @@ type UserSshKey struct {
 	PublicKey         string
 	FingerprintSha256 string
 	CreatedAt         time.Time
+}
+
+type WebauthnCeremony struct {
+	ID          uuid.UUID
+	OrgID       uuid.UUID
+	UserID      uuid.UUID
+	Kind        string
+	Ref         string
+	SessionData []byte
+	ExpiresAt   time.Time
+	UsedAt      *time.Time
+	CreatedAt   time.Time
+}
+
+type WebauthnCredential struct {
+	ID             uuid.UUID
+	UserID         uuid.UUID
+	Name           string
+	CredentialID   []byte
+	PublicKey      []byte
+	SignCount      int64
+	Aaguid         []byte
+	Transports     []string
+	BackupEligible bool
+	CreatedAt      time.Time
+	LastUsedAt     *time.Time
 }

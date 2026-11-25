@@ -1,4 +1,4 @@
-//go:build cluster || load
+//go:build cluster || load || redteam
 
 package cluster
 
@@ -127,14 +127,20 @@ func (s *Stand) inspect(ctx context.Context, service string) (Container, error) 
 	return c, nil
 }
 
-// buildEchoTarget builds the static echo target for the docker server's architecture into .bin (ruling C5).
-func buildEchoTarget(ctx context.Context) error {
+// buildTargets builds the static echo target (ruling C5) and SSH target
+// (stage 16 ruling G3) for the docker server's architecture into .bin.
+func buildTargets(ctx context.Context) error {
 	arch, err := exec.CommandContext(ctx, "docker", "version", "-f", "{{.Server.Arch}}").Output()
 	if err != nil {
 		return fmt.Errorf("docker version: %w", err)
 	}
 	env := []string{"CGO_ENABLED=0", "GOOS=linux", "GOARCH=" + strings.TrimSpace(string(arch))}
-	return goBuild(ctx, env, filepath.Join(standDir, ".bin", "echotarget"), "./internal/e2e/echotarget")
+	for _, name := range []string{"echotarget", "sshtarget"} {
+		if err := goBuild(ctx, env, filepath.Join(standDir, ".bin", name), "./internal/e2e/"+name); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // goBuild builds pkg of this module into out with env added to the environment.

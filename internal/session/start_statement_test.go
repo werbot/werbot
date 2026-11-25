@@ -39,7 +39,8 @@ func (c *sqlCount) take() int {
 }
 
 // Start writes the session and its audit row in one statement: BEGIN with the
-// context, the insert, COMMIT. The audit row keeps every column of auditlog.Write.
+// context, the break-glass check, the insert, COMMIT. The audit row keeps every
+// column of auditlog.Write.
 func TestStartWritesSessionAndAuditInOneStatement(t *testing.T) {
 	setupPool, url := dbtest.New(t)
 	cfg, err := pgxpool.ParseConfig(url)
@@ -58,7 +59,7 @@ func TestStartWritesSessionAndAuditInOneStatement(t *testing.T) {
 	id, err := New(pool).Start(bg, Start{OrgID: org, UserID: user, ResourceID: res, GatewayID: gw, InstanceID: inst,
 		ClientIP: netip.MustParseAddr("10.0.0.7"), Kind: "stream", Target: "db:5432"})
 	require.NoError(t, err)
-	assert.Equal(t, 3, trace.take(), "BEGIN, the insert, COMMIT")
+	assert.Equal(t, 4, trace.take(), "BEGIN, the break-glass check, the insert, COMMIT")
 
 	var a struct {
 		org, actor                          uuid.UUID
@@ -72,7 +73,7 @@ func TestStartWritesSessionAndAuditInOneStatement(t *testing.T) {
 	assert.Equal(t, "resource", a.typ)
 	assert.Equal(t, res.String(), a.target)
 	assert.Equal(t, "10.0.0.7", a.ip)
-	assert.JSONEq(t, `{"session_id":"`+id.String()+`","kind":"stream","target":"db:5432"}`, a.data)
+	assert.JSONEq(t, `{"session_id":"`+id.String()+`","kind":"stream","target":"db:5432","transport":"tcp"}`, a.data)
 
 	var n int
 	require.NoError(t, setupPool.QueryRow(bg, `SELECT count(*) FROM session WHERE id = $1 AND org_id = $2 AND user_id = $3

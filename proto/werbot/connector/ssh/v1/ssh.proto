@@ -8,4 +8,6 @@ message Config {
   string login = 3;
   // allow streams (ssh -L) to any host:port
   bool port_forwarding = 4;
+  // allow remote forwards (ssh -R) on the target's loopback
+  bool remote_forwarding = 5;
 }
