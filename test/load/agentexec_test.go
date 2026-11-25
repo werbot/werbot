@@ -87,7 +87,7 @@ func runExec(ctx context.Context, a *cluster.Agent, wait, gap time.Duration, cal
 		t0 := time.Now()
 		out, err := a.Exec(ctx, mcpserver.ExecInput{Resource: "target", Command: "echo load"})
 		if err == nil && (out.Status != "ok" || !strings.Contains(out.Stdout, "load")) {
-			err = fmt.Errorf("status %q: %s", out.Status, out.Message)
+			err = fmt.Errorf("status %q, exit %s, stdout %q, stderr %q: %s", out.Status, exitText(out.ExitCode), out.Stdout, out.Stderr, out.Message)
 		}
 		s.sent++
 		s.lat = append(s.lat, time.Since(t0))
@@ -162,4 +162,12 @@ func reportExec(t *testing.T, agents []*cluster.Agent, stats []execStat, calls i
 	report(t, "L5", "agent sessions recorded", "= calls", fmt.Sprintf("%d of %d", rows, sent), rows == sent)
 	report(t, "L5", "agent ssh_exec rate", "reference", fmt.Sprintf("%.0f/min over %d runs", float64(sent)/took.Minutes(), len(agents)), true)
 	report(t, "L5", "agent ssh_exec p99", "reference", p99(lat).Round(time.Millisecond).String(), true)
+}
+
+// exitText is the exit code of an answer, "none" when it has none.
+func exitText(code *int) string {
+	if code == nil {
+		return "none"
+	}
+	return fmt.Sprint(*code)
 }

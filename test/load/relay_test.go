@@ -4,6 +4,7 @@ package load
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/coder/websocket"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/werbot/werbot/test/cluster"
@@ -38,6 +40,14 @@ func l5Relays(t *testing.T) {
 	require.NoError(t, err)
 	require.Eventually(t, func() bool { n, err := cluster.ReadMetric(srv2, "werbot_tunnel_streams"); return err == nil && n == 0 },
 		cluster.RestoreMax, time.Second, "server2 holds no tunnel after gw2 stopped")
+	// a ticket picks any instance seen within 45 s (TerminalTarget): until gw2
+	// leaves that window, half the terminals wait for a stopped gateway
+	require.Eventually(t, func() bool {
+		var n int
+		err := st.DB.QueryRow(context.Background(), `SELECT count(*) FROM gateway_instance
+			WHERE gateway_id = $1 AND hostname <> 'gw1' AND last_seen_at > now() - interval '45 seconds'`, st.PoolID).Scan(&n)
+		return err == nil && n == 0
+	}, time.Minute, time.Second, "gw1 is the only online instance of the pool")
 
 	var conns []*websocket.Conn
 	t.Cleanup(func() {
@@ -56,12 +66,18 @@ func l5Relays(t *testing.T) {
 		bridges, _ = cluster.ReadMetric(srv1, "werbot_relay_streams")
 		return browsers, bridges
 	}
-	require.Eventually(t, func() bool { b, g := streams(); return b == n && g == n }, relaySteps, time.Second, "relay streams on both replicas")
+	if !assert.Eventually(t, func() bool { b, g := streams(); return b == n && g == n }, relaySteps, time.Second) {
+		b, g := streams()
+		t2, _ := cluster.ReadMetric(srv2, "werbot_tunnel_streams")
+		t1, _ := cluster.ReadMetric(srv1, "werbot_tunnel_streams")
+		t.Fatalf("relay streams on both replicas: server2 %d, server1 %d of %d; tunnel streams server2 %d, server1 %d", b, g, n, t2, t1)
+	}
 
-	hold, release := context.WithTimeout(t.Context(), *relayHold)
+	hold, release := context.WithCancel(t.Context())
 	defer release()
 	broken := holdTerminals(hold, conns)
-	<-hold.Done()
+	time.Sleep(*relayHold)
+	// read before release: a Read whose context ends closes its terminal
 	browsers, bridges := streams() // still open after the hold: no terminal was closed by a replica
 	release()
 	broken.wg.Wait()
@@ -70,11 +86,22 @@ func l5Relays(t *testing.T) {
 
 	report(t, "L5", "terminals broken during the hold", "0", fmt.Sprint(broken.errs.Load()), broken.errs.Load() == 0)
 	report(t, "L5", "werbot_relay_streams server2 / server1", fmt.Sprintf("%d / %d", n, n), fmt.Sprintf("%d / %d", browsers, bridges), browsers == n && bridges == n)
-	rejected := cluster.Metric(t, srv1, "werbot_relay_rejected_total", "reason", "limit") + cluster.Metric(t, srv2, "werbot_relay_rejected_total", "reason", "limit")
+	rejected := limitRejects(t, srv1) + limitRejects(t, srv2)
 	report(t, "L5", "werbot_relay_rejected_total{reason=\"limit\"}", "0", fmt.Sprint(rejected), rejected == 0)
 	reportRSS(t, "L5", all, "gw1", gatewayBudget)
 	reportRSS(t, "L5", all, "server1", serverBudget)
 	reportRSS(t, "L5", all, "server2", serverBudget)
+}
+
+// limitRejects is werbot_relay_rejected_total{reason="limit"} of the replica
+// at addr: 0 while the counter has no series (no reject yet).
+func limitRejects(t *testing.T, addr string) int64 {
+	n, err := cluster.ReadMetric(addr, "werbot_relay_rejected_total", "reason", "limit")
+	if errors.Is(err, cluster.ErrNoSeries) {
+		return 0
+	}
+	require.NoError(t, err)
+	return n
 }
 
 // held is the terminals of holdTerminals: errs counts the terminals that failed before the hold ended.

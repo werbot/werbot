@@ -63,7 +63,7 @@ Check: every `RESULT | L5 | ...` line ends with `PASS` and the exit code is 0. C
 - `AgentExec`: 0 failed calls, every call answered, one `session` row per call, RSS of gateways and replicas within budget in every sample.
 - `Relays`: `werbot_relay_streams` equals the terminal count on both replicas, no terminal breaks, `werbot_relay_rejected_total{reason="limit"}` is 0, RSS within budget.
 
-L5 has not run on a stand yet. If it fails on a host that is too small, use a smaller run and write it in the release notes: `make load LOAD_TESTS=L5 LOAD_ARGS='-load.agent-rate=200 -load.agent-duration=1m -load.relays=50'`.
+The default profile passed on 8 vCPU and 30 GiB RAM (test/load/README.md, "L5 stand and results"). On a 2 vCPU host the stand's own SSH target drops handshakes at this rate. If it fails on a host that is too small, use a smaller run and write it in the release notes: `make load LOAD_TESTS=L5 LOAD_ARGS='-load.agent-rate=200 -load.agent-duration=1m -load.relays=50'`.
 
 Record the numbers (host, date, commit, `RESULT` lines) in the "Stand" and "Results" sections of `test/load/README.md`. You need them for the release notes.
 
