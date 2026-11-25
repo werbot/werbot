@@ -1,0 +1,313 @@
+<!DOCTYPE html><html lang="en" dir="ltr" data-theme="dark" data-has-toc data-has-sidebar class="astro-g5ptsecz"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Just-in-time access | Werbot</title><link rel="canonical" href="https://docs.werbot.com/jit/"/><link rel="sitemap" href="/sitemap-index.xml"/><link rel="shortcut icon" href="/favicon.svg" type="image/svg+xml"/><meta name="generator" content="Astro v7.4.8"/><meta name="generator" content="Starlight v0.42.10"/><meta property="og:title" content="Just-in-time access"/><meta property="og:type" content="article"/><meta property="og:url" content="https://docs.werbot.com/jit/"/><meta property="og:locale" content="en"/><meta property="og:site_name" content="Werbot"/><meta name="twitter:card" content="summary_large_image"/><script>
+	window.StarlightThemeProvider = (() => {
+		const storedTheme =
+			typeof localStorage !== 'undefined' && localStorage.getItem('starlight-theme');
+		const theme =
+			storedTheme ||
+			(window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+		document.documentElement.dataset.theme = theme === 'light' ? 'light' : 'dark';
+		return {
+			updatePickers(theme = storedTheme || 'auto') {
+				document.querySelectorAll('starlight-theme-select').forEach((picker) => {
+					const select = picker.querySelector('select');
+					if (select) select.value = theme;
+					/** @type {HTMLTemplateElement | null} */
+					const tmpl = document.querySelector(`#theme-icons`);
+					const newIcon = tmpl && tmpl.content.querySelector('.' + theme);
+					if (newIcon) {
+						const oldIcon = picker.querySelector('svg.label-icon');
+						if (oldIcon) {
+							oldIcon.replaceChildren(...newIcon.cloneNode(true).childNodes);
+						}
+					}
+				});
+			},
+		};
+	})();
+</script><template id="theme-icons"><svg aria-hidden="true" class="light astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M5 12a1 1 0 0 0-1-1H3a1 1 0 0 0 0 2h1a1 1 0 0 0 1-1Zm.64 5-.71.71a1 1 0 0 0 0 1.41 1 1 0 0 0 1.41 0l.71-.71A1 1 0 0 0 5.64 17ZM12 5a1 1 0 0 0 1-1V3a1 1 0 0 0-2 0v1a1 1 0 0 0 1 1Zm5.66 2.34a1 1 0 0 0 .7-.29l.71-.71a1 1 0 1 0-1.41-1.41l-.66.71a1 1 0 0 0 0 1.41 1 1 0 0 0 .66.29Zm-12-.29a1 1 0 0 0 1.41 0 1 1 0 0 0 0-1.41l-.71-.71a1.004 1.004 0 1 0-1.43 1.41l.73.71ZM21 11h-1a1 1 0 0 0 0 2h1a1 1 0 0 0 0-2Zm-2.64 6A1 1 0 0 0 17 18.36l.71.71a1 1 0 0 0 1.41 0 1 1 0 0 0 0-1.41l-.76-.66ZM12 6.5a5.5 5.5 0 1 0 5.5 5.5A5.51 5.51 0 0 0 12 6.5Zm0 9a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Zm0 3.5a1 1 0 0 0-1 1v1a1 1 0 0 0 2 0v-1a1 1 0 0 0-1-1Z"/></svg><svg aria-hidden="true" class="dark astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21.64 13a1 1 0 0 0-1.05-.14 8.049 8.049 0 0 1-3.37.73 8.15 8.15 0 0 1-8.14-8.1 8.59 8.59 0 0 1 .25-2A1 1 0 0 0 8 2.36a10.14 10.14 0 1 0 14 11.69 1 1 0 0 0-.36-1.05Zm-9.5 6.69A8.14 8.14 0 0 1 7.08 5.22v.27a10.15 10.15 0 0 0 10.14 10.14 9.784 9.784 0 0 0 2.1-.22 8.11 8.11 0 0 1-7.18 4.32v-.04Z"/></svg><svg aria-hidden="true" class="auto astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21 14h-1V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v7H3a1 1 0 0 0-1 1v2a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-2a1 1 0 0 0-1-1ZM6 7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7H6V7Zm14 10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1h16v1Z"/></svg></template><link rel="stylesheet" href="/_astro/print.C9eyqPGL.css" media="print"><link rel="stylesheet" href="/_astro/common.BABrjbrQ.css"><script type="module" src="/_astro/page.cNngjUgL.js"></script></head><body class="astro-g5ptsecz"><a class="sl-skip-link astro-qb7clj6f" href="#_top">Skip to content</a><div class="page sl-flex astro-yntsjkba"><header class="header astro-yntsjkba"><div class="header astro-by6fddyj"><div class="title-wrapper sl-flex astro-by6fddyj"><a href="/" class="site-title sl-flex astro-6rvad3va"><span class="astro-6rvad3va" translate="no">Werbot</span></a></div><div class="sl-flex print:hidden astro-by6fddyj"><site-search class="astro-by6fddyj astro-b5kgnn7o" data-translations="{&quot;placeholder&quot;:&quot;Search&quot;}"><button data-open-modal disabled aria-label="Search" aria-keyshortcuts="Control+K" class="astro-b5kgnn7o"><svg aria-hidden="true" class="astro-b5kgnn7o astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21.71 20.29 18 16.61A9 9 0 1 0 16.61 18l3.68 3.68a.999.999 0 0 0 1.42 0 1 1 0 0 0 0-1.39ZM11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z"/></svg><span class="sl-hidden md:sl-block astro-b5kgnn7o" aria-hidden="true">Search</span><kbd class="sl-hidden md:sl-flex astro-b5kgnn7o" style="display: none"><kbd class="astro-b5kgnn7o">Ctrl</kbd><kbd class="astro-b5kgnn7o">K</kbd></kbd></button><dialog style="padding: 0" aria-label="Search" class="astro-b5kgnn7o"><div class="dialog-frame sl-flex astro-b5kgnn7o"><button data-close-modal class="sl-flex md:sl-hidden astro-b5kgnn7o">Cancel</button><div class="search-container astro-b5kgnn7o"><div id="starlight__search" class="astro-b5kgnn7o"></div></div></div></dialog></site-search><script>
+	(() => {
+		const openBtn = document.querySelector('button[data-open-modal]');
+		const shortcut = openBtn?.querySelector('kbd');
+		if (!openBtn || !(shortcut instanceof HTMLElement)) return;
+		const platformKey = shortcut.querySelector('kbd');
+		if (platformKey && /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform)) {
+			platformKey.textContent = '⌘';
+			openBtn.setAttribute('aria-keyshortcuts', 'Meta+K');
+		}
+		shortcut.style.display = '';
+	})();
+</script><script type="module" src="/_astro/Search.astro_astro_type_script_index_0_lang.CEQMXGVG.js"></script></div><div class="sl-hidden md:sl-flex print:hidden right-group astro-by6fddyj"><div class="sl-flex social-icons astro-by6fddyj"><a href="https://github.com/werbot/werbot" rel="me" class="sl-flex astro-n2mnl6yq"><span class="sr-only astro-n2mnl6yq">GitHub</span><svg aria-hidden="true" class="astro-n2mnl6yq astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.83-.26.83-.57L9 21.07c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.09-.73.09-.73 1.2.09 1.83 1.24 1.83 1.24 1.08 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.8 5.63-5.48 5.92.42.36.81 1.1.81 2.22l-.01 3.29c0 .31.2.69.82.57A12 12 0 0 0 12 .3Z"/></svg></a></div><starlight-theme-select><label style="--sl-select-width: 6.25em" class="astro-2z5xp7gb"><span class="sr-only astro-2z5xp7gb">Select theme</span><svg aria-hidden="true" class="icon label-icon astro-2z5xp7gb astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21 14h-1V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v7H3a1 1 0 0 0-1 1v2a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-2a1 1 0 0 0-1-1ZM6 7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7H6V7Zm14 10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1h16v1Z"/></svg><select autocomplete="off" class="astro-2z5xp7gb"><option value="dark" class="astro-2z5xp7gb">Dark</option><option value="light" class="astro-2z5xp7gb">Light</option><option value="auto" selected class="astro-2z5xp7gb">Auto</option></select><svg aria-hidden="true" class="icon caret astro-2z5xp7gb astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M17 9.17a1 1 0 0 0-1.41 0L12 12.71 8.46 9.17a1 1 0 1 0-1.41 1.42l4.24 4.24a1.002 1.002 0 0 0 1.42 0L17 10.59a1.002 1.002 0 0 0 0-1.42Z"/></svg></label></starlight-theme-select><script>
+	StarlightThemeProvider.updatePickers();
+</script><script type="module">var e=`starlight-theme`,t=e=>e===`auto`||e===`dark`||e===`light`?e:`auto`,n=()=>t(typeof localStorage<`u`&&localStorage.getItem(e));function r(t){typeof localStorage<`u`&&localStorage.setItem(e,t===`light`||t===`dark`?t:``)}var i=()=>matchMedia(`(prefers-color-scheme: light)`).matches?`light`:`dark`;function a(e){StarlightThemeProvider.updatePickers(e),document.documentElement.dataset.theme=e===`auto`?i():e,r(e)}matchMedia(`(prefers-color-scheme: light)`).addEventListener(`change`,()=>{n()===`auto`&&a(`auto`)});var o=class extends HTMLElement{constructor(){super(),a(n()),this.querySelector(`select`)?.addEventListener(`change`,e=>{e.currentTarget instanceof HTMLSelectElement&&a(t(e.currentTarget.value))})}};customElements.define(`starlight-theme-select`,o);</script><script type="module">var e=class extends HTMLElement{constructor(){super();let e=this.querySelector(`select`);e&&(e.addEventListener(`change`,e=>{e.currentTarget instanceof HTMLSelectElement&&(window.location.pathname=e.currentTarget.value)}),window.addEventListener(`pageshow`,t=>{if(!t.persisted)return;let n=e.querySelector(`option[selected]`)?.index;n!==e.selectedIndex&&(e.selectedIndex=n??0)}))}};customElements.define(`starlight-lang-select`,e);</script></div></div></header><nav class="sidebar print:hidden astro-yntsjkba" aria-label="Main"><button popovertarget="starlight__sidebar" class="sl-menu-button sl-flex md:sl-hidden print:hidden astro-r2osgdlg"><svg aria-hidden="true" class="open-menu astro-r2osgdlg astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M3 8h18a1 1 0 1 0 0-2H3a1 1 0 0 0 0 2Zm18 8H3a1 1 0 0 0 0 2h18a1 1 0 0 0 0-2Zm0-5H3a1 1 0 0 0 0 2h18a1 1 0 0 0 0-2Z"/></svg><svg aria-hidden="true" class="close-menu astro-r2osgdlg astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="m13.41 12 6.3-6.29a1.004 1.004 0 1 0-1.42-1.42L12 10.59l-6.29-6.3a1.004 1.004 0 0 0-1.42 1.42l6.3 6.29-6.3 6.29a1 1 0 0 0 0 1.42.998.998 0 0 0 1.42 0l6.29-6.3 6.29 6.3a.999.999 0 0 0 1.42 0 1 1 0 0 0 0-1.42L13.41 12Z"/></svg><span class="sr-only astro-r2osgdlg">Menu</span></button><script type="module">var e=class extends HTMLElement{constructor(){super();let e=matchMedia(`(min-width: 50em)`),t=()=>{this.popover=e.matches?null:`auto`};t(),e.addEventListener(`change`,()=>t()),this.addEventListener(`toggle`,({newState:e})=>this.trapFocus(e===`open`))}trapFocus(e){document.querySelectorAll(`.main-frame, .sl-skip-link`).forEach(t=>{t.toggleAttribute(`inert`,e)})}};customElements.define(`sl-sidebar-pane`,e);</script><sl-sidebar-pane popover id="starlight__sidebar" class="sidebar-pane astro-yntsjkba"><div class="sidebar-content sl-flex astro-yntsjkba"><sl-sidebar-state-persist data-hash="1g04a4l" class="astro-ipdry5cl"><script aria-hidden="true">
+		(() => {
+			try {
+				if (!matchMedia('(min-width: 50em)').matches) return;
+				/** @type {HTMLElement | null} */
+				const target = document.querySelector('sl-sidebar-state-persist');
+				const state = JSON.parse(sessionStorage.getItem('sl-sidebar-state') || '0');
+				if (!target || !state || target.dataset.hash !== state.hash) return;
+				window._starlightScrollRestore = state.scroll;
+				customElements.define(
+					'sl-sidebar-restore',
+					class SidebarRestore extends HTMLElement {
+						connectedCallback() {
+							try {
+								const idx = parseInt(this.dataset.index || '');
+								const details = this.closest('details');
+								if (details && typeof state.open[idx] === 'boolean') details.open = state.open[idx];
+							} catch {}
+						}
+					}
+				);
+			} catch {}
+		})();
+	</script><ul class="top-level astro-rmhv4bp6"><li class="astro-rmhv4bp6"><details open class="astro-rmhv4bp6"><summary class="astro-rmhv4bp6"><span class="group-label astro-rmhv4bp6"><span class="large astro-rmhv4bp6">Start</span></span><svg aria-hidden="true" class="caret astro-rmhv4bp6 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="0"></sl-sidebar-restore><ul class="astro-rmhv4bp6"><li class="astro-rmhv4bp6"><a href="/install/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Install</span></a></li><li class="astro-rmhv4bp6"><a href="/configuration/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Configuration</span></a></li><li class="astro-rmhv4bp6"><a href="/upgrading/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Upgrading</span></a></li></ul></details></li><li class="astro-rmhv4bp6"><details open class="astro-rmhv4bp6"><summary class="astro-rmhv4bp6"><span class="group-label astro-rmhv4bp6"><span class="large astro-rmhv4bp6">Access</span></span><svg aria-hidden="true" class="caret astro-rmhv4bp6 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="1"></sl-sidebar-restore><ul class="astro-rmhv4bp6"><li class="astro-rmhv4bp6"><a href="/jit/" aria-current="page" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Just-in-time access</span></a></li><li class="astro-rmhv4bp6"><a href="/policies/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Command policies</span></a></li><li class="astro-rmhv4bp6"><a href="/ssh-hardening/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Hardening SSH targets</span></a></li><li class="astro-rmhv4bp6"><a href="/mfa/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Multi-factor authentication</span></a></li><li class="astro-rmhv4bp6"><a href="/sso/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Single sign-on (OpenID Connect)</span></a></li><li class="astro-rmhv4bp6"><a href="/cli/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">werbot CLI</span></a></li></ul></details></li><li class="astro-rmhv4bp6"><details open class="astro-rmhv4bp6"><summary class="astro-rmhv4bp6"><span class="group-label astro-rmhv4bp6"><span class="large astro-rmhv4bp6">Agents</span></span><svg aria-hidden="true" class="caret astro-rmhv4bp6 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="2"></sl-sidebar-restore><ul class="astro-rmhv4bp6"><li class="astro-rmhv4bp6"><a href="/agents/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">AI agents</span></a></li></ul></details></li><li class="astro-rmhv4bp6"><details open class="astro-rmhv4bp6"><summary class="astro-rmhv4bp6"><span class="group-label astro-rmhv4bp6"><span class="large astro-rmhv4bp6">Sessions</span></span><svg aria-hidden="true" class="caret astro-rmhv4bp6 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="3"></sl-sidebar-restore><ul class="astro-rmhv4bp6"><li class="astro-rmhv4bp6"><a href="/web-terminal/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Web terminal, live view and terminate</span></a></li><li class="astro-rmhv4bp6"><a href="/connect/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">werbot connect</span></a></li><li class="astro-rmhv4bp6"><a href="/vnet/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">werbot connect --vnet</span></a></li><li class="astro-rmhv4bp6"><a href="/connectors/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Connectors</span></a></li></ul></details></li><li class="astro-rmhv4bp6"><details open class="astro-rmhv4bp6"><summary class="astro-rmhv4bp6"><span class="group-label astro-rmhv4bp6"><span class="large astro-rmhv4bp6">Operations</span></span><svg aria-hidden="true" class="caret astro-rmhv4bp6 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="4"></sl-sidebar-restore><ul class="astro-rmhv4bp6"><li class="astro-rmhv4bp6"><a href="/gateway/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Gateways</span></a></li><li class="astro-rmhv4bp6"><a href="/web/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Web UI</span></a></li><li class="astro-rmhv4bp6"><a href="/scaling/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Scaling and high availability</span></a></li><li class="astro-rmhv4bp6"><a href="/failure-modes/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Failure modes</span></a></li><li class="astro-rmhv4bp6"><a href="/security/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Security</span></a></li></ul></details></li><li class="astro-rmhv4bp6"><details open class="astro-rmhv4bp6"><summary class="astro-rmhv4bp6"><span class="group-label astro-rmhv4bp6"><span class="large astro-rmhv4bp6">Migration</span></span><svg aria-hidden="true" class="caret astro-rmhv4bp6 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="5"></sl-sidebar-restore><ul class="astro-rmhv4bp6"><li class="astro-rmhv4bp6"><a href="/migrate-from-boundary/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Migrate from HashiCorp Boundary</span></a></li></ul></details></li></ul><script aria-hidden="true">
+		(() => {
+			const scroller = document.getElementById('starlight__sidebar');
+			if (!window._starlightScrollRestore || !scroller) return;
+			scroller.scrollTop = window._starlightScrollRestore;
+			delete window._starlightScrollRestore;
+		})();
+	</script></sl-sidebar-state-persist><div class="md:sl-hidden"><div class="mobile-preferences sl-flex astro-p4azlveh"><div class="social-icons astro-p4azlveh"><a href="https://github.com/werbot/werbot" rel="me" class="sl-flex astro-n2mnl6yq"><span class="sr-only astro-n2mnl6yq">GitHub</span><svg aria-hidden="true" class="astro-n2mnl6yq astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.83-.26.83-.57L9 21.07c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.09-.73.09-.73 1.2.09 1.83 1.24 1.83 1.24 1.08 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.8 5.63-5.48 5.92.42.36.81 1.1.81 2.22l-.01 3.29c0 .31.2.69.82.57A12 12 0 0 0 12 .3Z"/></svg></a></div><starlight-theme-select><label style="--sl-select-width: 6.25em" class="astro-2z5xp7gb"><span class="sr-only astro-2z5xp7gb">Select theme</span><svg aria-hidden="true" class="icon label-icon astro-2z5xp7gb astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21 14h-1V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v7H3a1 1 0 0 0-1 1v2a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-2a1 1 0 0 0-1-1ZM6 7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7H6V7Zm14 10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1h16v1Z"/></svg><select autocomplete="off" class="astro-2z5xp7gb"><option value="dark" class="astro-2z5xp7gb">Dark</option><option value="light" class="astro-2z5xp7gb">Light</option><option value="auto" selected class="astro-2z5xp7gb">Auto</option></select><svg aria-hidden="true" class="icon caret astro-2z5xp7gb astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M17 9.17a1 1 0 0 0-1.41 0L12 12.71 8.46 9.17a1 1 0 1 0-1.41 1.42l4.24 4.24a1.002 1.002 0 0 0 1.42 0L17 10.59a1.002 1.002 0 0 0 0-1.42Z"/></svg></label></starlight-theme-select><script>
+	StarlightThemeProvider.updatePickers();
+</script></div></div></div></sl-sidebar-pane></nav><div class="main-frame astro-yntsjkba"><script type="module">var e=document.getElementById(`starlight__sidebar`),t=e?.querySelector(`sl-sidebar-state-persist`),n=`sl-sidebar-state`,r=()=>{let r=[],i=t?.dataset.hash||``;try{let e=sessionStorage.getItem(n),t=JSON.parse(e||`{}`);Array.isArray(t.open)&&t.hash===i&&(r=t.open)}catch{}return{hash:i,open:r,scroll:e?.scrollTop||0}},i=e=>{try{sessionStorage.setItem(n,JSON.stringify(e))}catch{}},a=()=>i(r()),o=(e,t)=>{let n=r();n.open[t]=e,i(n)};t?.addEventListener(`click`,e=>{if(!(e.target instanceof Element))return;let t=e.target.closest(`summary`)?.closest(`details`);if(!t)return;let n=t.querySelector(`sl-sidebar-restore`),r=parseInt(n?.dataset.index||``);isNaN(r)||o(!t.open,r)}),addEventListener(`visibilitychange`,()=>{document.visibilityState===`hidden`&&a()});</script><div class="lg:sl-flex astro-lrzkfocr"><aside class="right-sidebar-container print:hidden astro-lrzkfocr"><div class="right-sidebar astro-lrzkfocr"><div class="lg:sl-hidden astro-qok35upx"><mobile-starlight-toc data-min-h="2" data-max-h="3" class="astro-66cqc7ze"><nav aria-labelledby="starlight__on-this-page--mobile" class="astro-66cqc7ze"><details id="starlight__mobile-toc" class="astro-66cqc7ze"><summary id="starlight__on-this-page--mobile" class="sl-flex astro-66cqc7ze"><span class="toggle sl-flex astro-66cqc7ze">On this page<svg aria-hidden="true" class="caret astro-66cqc7ze astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></span><span class="display-current astro-66cqc7ze"></span></summary><div class="dropdown astro-66cqc7ze"><ul class="isMobile astro-jugkfwgx" style="--depth: 0;"><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#_top" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Overview</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#access-requests" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Access requests</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#approval-policies" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Approval policies</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#organization-settings" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Organization settings</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#break-glass" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Break-glass</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#grants" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Grants</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#locks" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Locks</span></a><ul class="isMobile astro-jugkfwgx" style="--depth: 1;"><li style="--depth: 1;" class="astro-jugkfwgx"><a href="#revoking-a-cli-session" style="--depth: 1;" class="astro-jugkfwgx"><span style="--depth: 1;" class="astro-jugkfwgx">Revoking a CLI session</span></a></li></ul></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#ending-sessions" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Ending sessions</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#lock-mode" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Lock mode</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#command-line" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Command line</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#enterprise" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Enterprise</span></a></li></ul></div></details></nav></mobile-starlight-toc><script type="module" src="/_astro/MobileTableOfContents.astro_astro_type_script_index_0_lang.C3fM4Kra.js"></script></div><div class="right-sidebar-panel sl-hidden lg:sl-block astro-qok35upx"><div class="sl-container astro-qok35upx"><starlight-toc data-min-h="2" data-max-h="3"><nav aria-labelledby="starlight__on-this-page"><h2 id="starlight__on-this-page">On this page</h2><ul class="astro-jugkfwgx" style="--depth: 0;"><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#_top" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Overview</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#access-requests" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Access requests</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#approval-policies" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Approval policies</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#organization-settings" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Organization settings</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#break-glass" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Break-glass</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#grants" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Grants</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#locks" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Locks</span></a><ul class="astro-jugkfwgx" style="--depth: 1;"><li style="--depth: 1;" class="astro-jugkfwgx"><a href="#revoking-a-cli-session" style="--depth: 1;" class="astro-jugkfwgx"><span style="--depth: 1;" class="astro-jugkfwgx">Revoking a CLI session</span></a></li></ul></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#ending-sessions" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Ending sessions</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#lock-mode" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Lock mode</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#command-line" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Command line</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#enterprise" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Enterprise</span></a></li></ul></nav></starlight-toc><script type="module" src="/_astro/TableOfContents.astro_astro_type_script_index_0_lang.BpJaGz7G.js"></script></div></div></div></aside><div class="main-pane astro-lrzkfocr"><main data-pagefind-body class="astro-g5ptsecz" lang="en" dir="ltr"><div class="content-panel astro-a7po4psb"><div class="sl-container astro-a7po4psb"><h1 id="_top" class="astro-bebwqqxs">Just-in-time access</h1></div></div><div class="content-panel astro-a7po4psb"><div class="sl-container astro-a7po4psb"><div class="sl-markdown-content"><p>Werbot can give access for a limited time instead of a permanent binding. A member asks for a resource, an approver decides, and the gateway cuts the session when the grant ends. This guide covers access requests, approval policies, break-glass, locks and the organization settings that bound them.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="access-requests">Access requests</h2><a class="sl-anchor-link" href="#access-requests"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Access requests”</span></a></div>
+<p>A member asks for access in the web UI (<strong>Requests</strong>, <strong>New request</strong>) or with <a href="/cli/#access-requests"><code dir="auto">werbot request</code></a>. A request names:</p>
+<ul>
+<li><strong>What</strong>: one resource, or a label selector (<code dir="auto">env=prod,team=db</code>) that covers every resource carrying those labels. A selector request needs a policy that covers every resource it matches.</li>
+<li><strong>Why</strong>: a reason, up to 1024 characters. A policy can require it; break-glass always does.</li>
+<li><strong>How long</strong>: a duration. Without one the organization default <code dir="auto">grant_default_ttl</code> applies. A duration above the policy <code dir="auto">max_duration</code> or the organization <code dir="auto">grant_max_ttl</code> is refused (<code dir="auto">duration exceeds &lt;limit&gt;</code>).</li>
+</ul>
+<p>A request is possible only when an approval policy matches it. <code dir="auto">werbot ls</code> and the API (<code dir="auto">ListAccessibleResources</code>) mark such resources: <code dir="auto">ACCESS</code> is <code dir="auto">yes</code> for resources you can open now and <code dir="auto">request</code> for resources you can ask for. <code dir="auto">werbot ssh</code>, <code dir="auto">ssh-config</code> and <code dir="auto">connect</code> use only the resources you can open.</p>
+<p>A request is <code dir="auto">pending</code> until an approver decides or it expires. The requester can cancel it while it is pending. An approved request creates one grant per resource; a grant ends at its <code dir="auto">expires_at</code>, on revoke or under a lock. Every step is audited: <code dir="auto">access.request.create</code>, <code dir="auto">access.request.approve</code>, <code dir="auto">access.request.deny</code>, <code dir="auto">access.request.cancel</code>, <code dir="auto">approval.expire</code>, <code dir="auto">access.grant.create</code> and <code dir="auto">access.grant.revoke</code>.</p>
+<p>Emails:</p>
+<ul>
+<li><code dir="auto">access_request</code> goes to every possible approver of a new request, with a link to <code dir="auto">&lt;WERBOT_WEB_URL&gt;/requests?id=&lt;id&gt;</code>.</li>
+<li><code dir="auto">access_decision</code> goes to the requester when a request is approved or denied.</li>
+<li><code dir="auto">break_glass</code> goes to every owner and admin when someone uses break-glass.</li>
+</ul>
+<div class="sl-heading-wrapper level-h2"><h2 id="approval-policies">Approval policies</h2><a class="sl-anchor-link" href="#approval-policies"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Approval policies”</span></a></div>
+<p>Owners and admins manage approval policies on <strong>Policies</strong>, <strong>Approvals</strong> (<code dir="auto">ApprovalPolicyService</code>). A policy has:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code dir="auto">name</code></td>
+<td>Unique in the organization, 1 to 63 characters. Policies are applied in name order.</td>
+</tr>
+<tr>
+<td><code dir="auto">resource_selector</code></td>
+<td>Exactly one of: up to 100 resource ids, or 1 to 8 labels (<code dir="auto">key=value</code>; a resource must carry every pair).</td>
+</tr>
+<tr>
+<td><code dir="auto">requesters</code></td>
+<td>Who may ask: users, teams, <code dir="auto">all_users</code>, <code dir="auto">all_agents</code>. At least one.</td>
+</tr>
+<tr>
+<td><code dir="auto">approvers</code></td>
+<td>Who decides: users and teams. Empty means every owner and admin.</td>
+</tr>
+<tr>
+<td><code dir="auto">mode</code></td>
+<td><code dir="auto">manual</code> (an approver decides) or <code dir="auto">auto</code> (approved at once).</td>
+</tr>
+<tr>
+<td><code dir="auto">max_duration</code></td>
+<td>Longest grant, 1 minute to 14 days, default 8 hours.</td>
+</tr>
+<tr>
+<td><code dir="auto">require_reason</code></td>
+<td>The request must give a reason.</td>
+</tr>
+<tr>
+<td><code dir="auto">four_eyes</code></td>
+<td>The sponsor of an agent never approves that agent’s commands.</td>
+</tr>
+<tr>
+<td><code dir="auto">break_glass</code></td>
+<td>The policy allows break-glass requests.</td>
+</tr>
+</tbody>
+</table>
+<p>When several policies match one request:</p>
+<ul>
+<li>The request is approved automatically only when <strong>every</strong> matching policy is <code dir="auto">auto</code>. One <code dir="auto">manual</code> policy makes the request manual.</li>
+<li>The approvers are the union of the approvers of the manual policies; a manual policy without approvers adds the owners and admins.</li>
+<li>The shortest <code dir="auto">max_duration</code> applies; <code dir="auto">require_reason</code> and <code dir="auto">four_eyes</code> apply when any matching policy sets them.</li>
+</ul>
+<p>Rules that no policy changes:</p>
+<ul>
+<li><strong>No self-approval.</strong> Nobody approves or denies their own access request.</li>
+<li><strong>Nobody to ask.</strong> When no one but the requester could approve (for example, the only owner asks for access), the request is refused with <code dir="auto">no one can approve this request</code> and nothing is stored.</li>
+<li><strong>Decision time.</strong> A decision checks the policies again against the current resources. Owners and admins may deny any request.</li>
+<li><strong>Timeout is a denial.</strong> A pending request past its deadline (<code dir="auto">request_pending_ttl</code>) becomes <code dir="auto">expired</code> and never turns into an approval. The <code dir="auto">approval.expire</code> job (River <code dir="auto">maintenance</code> queue, every minute) marks such requests; an approval that reaches the server after the deadline fails.</li>
+<li><strong>Commands.</strong> A command approval (an <code dir="auto">approval</code> command rule or custom policy, <a href="/policies/#command-approvals">policies.md</a>) is never approved automatically. Without a matching policy owners and admins decide. It waits <code dir="auto">command_approval_ttl</code>.</li>
+<li><strong>Agents.</strong> An AI agent asks through its sponsor: its access request needs a policy with <code dir="auto">all_agents</code> among the requesters, and the grant belongs to the sponsor, so it also opens the resource to the sponsor’s own sessions. Its command approvals go to the sponsor’s approvers (<a href="/agents/#access-requests">agents.md</a>).</li>
+</ul>
+<div class="sl-heading-wrapper level-h2"><h2 id="organization-settings">Organization settings</h2><a class="sl-anchor-link" href="#organization-settings"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Organization settings”</span></a></div>
+<p>Owners and admins set these on <strong>Settings</strong>. Durations are typed as text (<code dir="auto">30s</code>, <code dir="auto">15m</code>, <code dir="auto">2h</code>, <code dir="auto">14d</code>).</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Default</th>
+<th>Range</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code dir="auto">grant_default_ttl</code></td>
+<td><code dir="auto">8h</code></td>
+<td>above 0, at most <code dir="auto">grant_max_ttl</code></td>
+<td>Grant length when a request names none.</td>
+</tr>
+<tr>
+<td><code dir="auto">grant_max_ttl</code></td>
+<td><code dir="auto">14d</code></td>
+<td><code dir="auto">1m</code> to <code dir="auto">14d</code></td>
+<td>Longest grant, whatever the policy says.</td>
+</tr>
+<tr>
+<td><code dir="auto">request_pending_ttl</code></td>
+<td><code dir="auto">1h</code></td>
+<td><code dir="auto">1m</code> to <code dir="auto">24h</code></td>
+<td>How long a request waits for a decision.</td>
+</tr>
+<tr>
+<td><code dir="auto">command_approval_ttl</code></td>
+<td><code dir="auto">5m</code></td>
+<td><code dir="auto">30s</code> to <code dir="auto">1h</code></td>
+<td>How long a command approval waits for a decision.</td>
+</tr>
+<tr>
+<td><code dir="auto">lock_mode</code></td>
+<td><code dir="auto">best_effort</code></td>
+<td><code dir="auto">best_effort</code>, <code dir="auto">strict</code></td>
+<td>What gateways do while their tunnel to the server is down (<a href="#lock-mode">lock mode</a>).</td>
+</tr>
+<tr>
+<td><code dir="auto">mask_output</code></td>
+<td><code dir="auto">agents</code></td>
+<td><code dir="auto">agents</code>, <code dir="auto">all</code>, <code dir="auto">none</code></td>
+<td>Whose exec output the gateway masks (<a href="/policies/#output-masking">output masking</a>).</td>
+</tr>
+</tbody>
+</table>
+<div class="sl-heading-wrapper level-h2"><h2 id="break-glass">Break-glass</h2><a class="sl-anchor-link" href="#break-glass"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Break-glass”</span></a></div>
+<p>Break-glass is emergency access without waiting for an approver. It needs a policy with <code dir="auto">break_glass</code> that covers the resource and lists the user as a requester.</p>
+<ul>
+<li>The reason is required; the grant lasts at most 1 hour (1 hour when no duration is given).</li>
+<li>The request is approved at once and audited as <code dir="auto">access.break_glass</code>; owners and admins get the <code dir="auto">break_glass</code> email.</li>
+<li>Sessions under a break-glass grant are recorded as usual, and their <code dir="auto">session.start</code> audit event carries <code dir="auto">data.break_glass = true</code>.</li>
+<li>The grant is marked <code dir="auto">needs_review</code>. An owner or admin reviews it on <strong>Requests</strong> (<code dir="auto">ReviewBreakGlass</code>, audited as <code dir="auto">access.break_glass.review</code>). The grant owner never reviews their own break-glass.</li>
+</ul>
+<div class="sl-heading-wrapper level-h2"><h2 id="grants">Grants</h2><a class="sl-anchor-link" href="#grants"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Grants”</span></a></div>
+<p><code dir="auto">ListGrants</code> shows grants: a member sees only their own, owners and admins see all. The grant owner, an owner or an admin can revoke a grant (<code dir="auto">RevokeGrant</code>). A revoked or expired grant opens nothing.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="locks">Locks</h2><a class="sl-anchor-link" href="#locks"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Locks”</span></a></div>
+<p>A lock refuses access at once, above every binding and grant. Owners and admins manage locks on <strong>Locks</strong> (<code dir="auto">LockService</code>). Each lock has a target, a required reason and an optional expiry; without an expiry it stays until deleted.</p>
+<table>
+<thead>
+<tr>
+<th>Target</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code dir="auto">user</code></td>
+<td>Every gateway session of the user. API calls of the user are not blocked.</td>
+</tr>
+<tr>
+<td><code dir="auto">team</code></td>
+<td>Every gateway session of the team’s members.</td>
+</tr>
+<tr>
+<td><code dir="auto">resource</code></td>
+<td>Every session to the resource.</td>
+</tr>
+<tr>
+<td><code dir="auto">grant</code></td>
+<td>The grant opens nothing while the lock lasts.</td>
+</tr>
+<tr>
+<td><code dir="auto">cli_session</code></td>
+<td>Connections made with the certificates of that CLI session, and new certificates for it (<code dir="auto">cli session is locked</code>). Other logins of the same user keep working.</td>
+</tr>
+<tr>
+<td><code dir="auto">agent</code></td>
+<td>Every run of one AI agent (<a href="/agents/#kill-switch">agents.md</a>).</td>
+</tr>
+<tr>
+<td><code dir="auto">agent_run</code></td>
+<td>One run of an agent.</td>
+</tr>
+<tr>
+<td><code dir="auto">agents_of_user</code></td>
+<td>Every agent of one sponsor; the sponsor’s own sessions keep working.</td>
+</tr>
+<tr>
+<td><code dir="auto">all_agents</code></td>
+<td>Every agent of the organization; takes no target id.</td>
+</tr>
+</tbody>
+</table>
+<p>The target <code dir="auto">mfa_device</code> is the id of a passkey of a member: the lock refuses that passkey for every MFA step (<a href="/mfa/#locking-a-passkey">mfa.md</a>).</p>
+<p>Locks are audited as <code dir="auto">lock.create</code> and <code dir="auto">lock.delete</code>.</p>
+<div class="sl-heading-wrapper level-h3"><h3 id="revoking-a-cli-session">Revoking a CLI session</h3><a class="sl-anchor-link" href="#revoking-a-cli-session"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Revoking a CLI session”</span></a></div>
+<p>Revoking a CLI session (Profile, CLI sessions, or <code dir="auto">logout</code>) refuses its next API request and its next gateway connection, but open connections made with its certificate keep running. To end them too, lock the CLI session on the <strong>Locks</strong> page or with <code dir="auto">LockService</code> (<code dir="auto">target_type = cli_session</code>). The CLI session id is the target of its <code dir="auto">cli_session.revoke</code> event on the <strong>Audit</strong> page (hover the short id to see all of it). See <a href="/security/#cli-sessions-and-user-certificates">security.md</a>.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="ending-sessions">Ending sessions</h2><a class="sl-anchor-link" href="#ending-sessions"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Ending sessions”</span></a></div>
+<p>The gateway checks every open session again whenever its policy changes and when a grant or lock expires:</p>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Session ends within</th>
+<th><code dir="auto">end_reason</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A grant expires</td>
+<td>1 s after <code dir="auto">expires_at</code></td>
+<td><code dir="auto">access_revoked</code></td>
+</tr>
+<tr>
+<td>A grant is revoked</td>
+<td>2 s</td>
+<td><code dir="auto">access_revoked</code></td>
+</tr>
+<tr>
+<td>A lock is created</td>
+<td>2 s</td>
+<td><code dir="auto">access_revoked</code></td>
+</tr>
+<tr>
+<td><code dir="auto">strict</code> lock mode, tunnel down</td>
+<td>60 to 65 s after the tunnel loss (checked every 5 s)</td>
+<td><code dir="auto">policy_stale</code></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>Expiry uses a timer on the gateway, set from the last snapshot. It fires even when the server is unreachable.</li>
+<li>The gateway compares whole seconds: a grant ends at the second of its <code dir="auto">expires_at</code>, never later.</li>
+<li>Expiry is measured by the gateway clock. Keep the gateway hosts on NTP (<a href="/gateway/#lock-mode-and-clock">gateway.md</a>).</li>
+</ul>
+<div class="sl-heading-wrapper level-h2"><h2 id="lock-mode">Lock mode</h2><a class="sl-anchor-link" href="#lock-mode"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Lock mode”</span></a></div>
+<p>Revokes and locks reach a gateway through its tunnel. While the tunnel is down, a gateway cannot learn about them:</p>
+<ul>
+<li><code dir="auto">best_effort</code> (default): open sessions keep running on the last snapshot until the tunnel is back. Grant expiry still ends sessions on time.</li>
+<li><code dir="auto">strict</code>: when the tunnel has been down for more than 60 seconds, the gateway ends every session with <code dir="auto">policy_stale</code>. The gateway checks every 5 seconds, so sessions end 60 to 65 seconds after the loss. A reconnect resets the wait.</li>
+</ul>
+<p>New sessions are refused while the tunnel is down in both modes (<a href="/failure-modes/">failure-modes.md</a>).</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="command-line">Command line</h2><a class="sl-anchor-link" href="#command-line"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Command line”</span></a></div>
+<p>CLI: <a href="/cli/#access-requests">cli.md</a>.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="enterprise">Enterprise</h2><a class="sl-anchor-link" href="#enterprise"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Enterprise”</span></a></div>
+<p>N-of-M approvals, multi-step approvals and periodic access reviews are Enterprise features.</p>
+</div><footer class="sl-flex astro-ddtxxk7k"><div class="meta sl-flex astro-ddtxxk7k"><a href="https://github.com/werbot/werbot/blob/main/docs/jit.md" class="sl-flex print:hidden astro-qlekgd3o"><svg aria-hidden="true" class="astro-qlekgd3o astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.2em;"><path d="M22 7.24a1 1 0 0 0-.29-.71l-4.24-4.24a1 1 0 0 0-1.1-.22 1 1 0 0 0-.32.22l-2.83 2.83L2.29 16.05a1 1 0 0 0-.29.71V21a1 1 0 0 0 1 1h4.24a1 1 0 0 0 .76-.29l10.87-10.93L21.71 8c.1-.1.17-.2.22-.33a1 1 0 0 0 0-.24v-.14l.07-.05ZM6.83 20H4v-2.83l9.93-9.93 2.83 2.83L6.83 20ZM18.17 8.66l-2.83-2.83 1.42-1.41 2.82 2.82-1.41 1.42Z"/></svg>Edit page</a></div><div class="pagination-links print:hidden astro-b5raizh3" dir="ltr"><a href="/upgrading/" rel="prev" class="astro-b5raizh3"><svg aria-hidden="true" class="astro-b5raizh3 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.5rem;"><path d="M17 11H9.41l3.3-3.29a1.004 1.004 0 1 0-1.42-1.42l-5 5a1 1 0 0 0-.21.33 1 1 0 0 0 0 .76 1 1 0 0 0 .21.33l5 5a1.002 1.002 0 0 0 1.639-.325 1 1 0 0 0-.219-1.095L9.41 13H17a1 1 0 0 0 0-2Z"/></svg><span class="astro-b5raizh3">Previous<br class="astro-b5raizh3"><span class="link-title astro-b5raizh3">Upgrading</span></span></a><a href="/policies/" rel="next" class="astro-b5raizh3"><svg aria-hidden="true" class="astro-b5raizh3 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.5rem;"><path d="M17.92 11.62a1.001 1.001 0 0 0-.21-.33l-5-5a1.003 1.003 0 1 0-1.42 1.42l3.3 3.29H7a1 1 0 0 0 0 2h7.59l-3.3 3.29a1.002 1.002 0 0 0 .325 1.639 1 1 0 0 0 1.095-.219l5-5a1 1 0 0 0 .21-.33 1 1 0 0 0 0-.76Z"/></svg><span class="astro-b5raizh3">Next<br class="astro-b5raizh3"><span class="link-title astro-b5raizh3">Command policies</span></span></a></div></footer></div></div></main></div></div></div></div></body></html>

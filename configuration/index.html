@@ -1,0 +1,479 @@
+<!DOCTYPE html><html lang="en" dir="ltr" data-theme="dark" data-has-toc data-has-sidebar class="astro-g5ptsecz"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Configuration | Werbot</title><link rel="canonical" href="https://docs.werbot.com/configuration/"/><link rel="sitemap" href="/sitemap-index.xml"/><link rel="shortcut icon" href="/favicon.svg" type="image/svg+xml"/><meta name="generator" content="Astro v7.4.8"/><meta name="generator" content="Starlight v0.42.10"/><meta property="og:title" content="Configuration"/><meta property="og:type" content="article"/><meta property="og:url" content="https://docs.werbot.com/configuration/"/><meta property="og:locale" content="en"/><meta property="og:site_name" content="Werbot"/><meta name="twitter:card" content="summary_large_image"/><script>
+	window.StarlightThemeProvider = (() => {
+		const storedTheme =
+			typeof localStorage !== 'undefined' && localStorage.getItem('starlight-theme');
+		const theme =
+			storedTheme ||
+			(window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+		document.documentElement.dataset.theme = theme === 'light' ? 'light' : 'dark';
+		return {
+			updatePickers(theme = storedTheme || 'auto') {
+				document.querySelectorAll('starlight-theme-select').forEach((picker) => {
+					const select = picker.querySelector('select');
+					if (select) select.value = theme;
+					/** @type {HTMLTemplateElement | null} */
+					const tmpl = document.querySelector(`#theme-icons`);
+					const newIcon = tmpl && tmpl.content.querySelector('.' + theme);
+					if (newIcon) {
+						const oldIcon = picker.querySelector('svg.label-icon');
+						if (oldIcon) {
+							oldIcon.replaceChildren(...newIcon.cloneNode(true).childNodes);
+						}
+					}
+				});
+			},
+		};
+	})();
+</script><template id="theme-icons"><svg aria-hidden="true" class="light astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M5 12a1 1 0 0 0-1-1H3a1 1 0 0 0 0 2h1a1 1 0 0 0 1-1Zm.64 5-.71.71a1 1 0 0 0 0 1.41 1 1 0 0 0 1.41 0l.71-.71A1 1 0 0 0 5.64 17ZM12 5a1 1 0 0 0 1-1V3a1 1 0 0 0-2 0v1a1 1 0 0 0 1 1Zm5.66 2.34a1 1 0 0 0 .7-.29l.71-.71a1 1 0 1 0-1.41-1.41l-.66.71a1 1 0 0 0 0 1.41 1 1 0 0 0 .66.29Zm-12-.29a1 1 0 0 0 1.41 0 1 1 0 0 0 0-1.41l-.71-.71a1.004 1.004 0 1 0-1.43 1.41l.73.71ZM21 11h-1a1 1 0 0 0 0 2h1a1 1 0 0 0 0-2Zm-2.64 6A1 1 0 0 0 17 18.36l.71.71a1 1 0 0 0 1.41 0 1 1 0 0 0 0-1.41l-.76-.66ZM12 6.5a5.5 5.5 0 1 0 5.5 5.5A5.51 5.51 0 0 0 12 6.5Zm0 9a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Zm0 3.5a1 1 0 0 0-1 1v1a1 1 0 0 0 2 0v-1a1 1 0 0 0-1-1Z"/></svg><svg aria-hidden="true" class="dark astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21.64 13a1 1 0 0 0-1.05-.14 8.049 8.049 0 0 1-3.37.73 8.15 8.15 0 0 1-8.14-8.1 8.59 8.59 0 0 1 .25-2A1 1 0 0 0 8 2.36a10.14 10.14 0 1 0 14 11.69 1 1 0 0 0-.36-1.05Zm-9.5 6.69A8.14 8.14 0 0 1 7.08 5.22v.27a10.15 10.15 0 0 0 10.14 10.14 9.784 9.784 0 0 0 2.1-.22 8.11 8.11 0 0 1-7.18 4.32v-.04Z"/></svg><svg aria-hidden="true" class="auto astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21 14h-1V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v7H3a1 1 0 0 0-1 1v2a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-2a1 1 0 0 0-1-1ZM6 7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7H6V7Zm14 10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1h16v1Z"/></svg></template><link rel="stylesheet" href="/_astro/print.C9eyqPGL.css" media="print"><link rel="stylesheet" href="/_astro/common.BABrjbrQ.css"><script type="module" src="/_astro/page.cNngjUgL.js"></script></head><body class="astro-g5ptsecz"><a class="sl-skip-link astro-qb7clj6f" href="#_top">Skip to content</a><div class="page sl-flex astro-yntsjkba"><header class="header astro-yntsjkba"><div class="header astro-by6fddyj"><div class="title-wrapper sl-flex astro-by6fddyj"><a href="/" class="site-title sl-flex astro-6rvad3va"><span class="astro-6rvad3va" translate="no">Werbot</span></a></div><div class="sl-flex print:hidden astro-by6fddyj"><site-search class="astro-by6fddyj astro-b5kgnn7o" data-translations="{&quot;placeholder&quot;:&quot;Search&quot;}"><button data-open-modal disabled aria-label="Search" aria-keyshortcuts="Control+K" class="astro-b5kgnn7o"><svg aria-hidden="true" class="astro-b5kgnn7o astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21.71 20.29 18 16.61A9 9 0 1 0 16.61 18l3.68 3.68a.999.999 0 0 0 1.42 0 1 1 0 0 0 0-1.39ZM11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z"/></svg><span class="sl-hidden md:sl-block astro-b5kgnn7o" aria-hidden="true">Search</span><kbd class="sl-hidden md:sl-flex astro-b5kgnn7o" style="display: none"><kbd class="astro-b5kgnn7o">Ctrl</kbd><kbd class="astro-b5kgnn7o">K</kbd></kbd></button><dialog style="padding: 0" aria-label="Search" class="astro-b5kgnn7o"><div class="dialog-frame sl-flex astro-b5kgnn7o"><button data-close-modal class="sl-flex md:sl-hidden astro-b5kgnn7o">Cancel</button><div class="search-container astro-b5kgnn7o"><div id="starlight__search" class="astro-b5kgnn7o"></div></div></div></dialog></site-search><script>
+	(() => {
+		const openBtn = document.querySelector('button[data-open-modal]');
+		const shortcut = openBtn?.querySelector('kbd');
+		if (!openBtn || !(shortcut instanceof HTMLElement)) return;
+		const platformKey = shortcut.querySelector('kbd');
+		if (platformKey && /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform)) {
+			platformKey.textContent = '⌘';
+			openBtn.setAttribute('aria-keyshortcuts', 'Meta+K');
+		}
+		shortcut.style.display = '';
+	})();
+</script><script type="module" src="/_astro/Search.astro_astro_type_script_index_0_lang.CEQMXGVG.js"></script></div><div class="sl-hidden md:sl-flex print:hidden right-group astro-by6fddyj"><div class="sl-flex social-icons astro-by6fddyj"><a href="https://github.com/werbot/werbot" rel="me" class="sl-flex astro-n2mnl6yq"><span class="sr-only astro-n2mnl6yq">GitHub</span><svg aria-hidden="true" class="astro-n2mnl6yq astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.83-.26.83-.57L9 21.07c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.09-.73.09-.73 1.2.09 1.83 1.24 1.83 1.24 1.08 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.8 5.63-5.48 5.92.42.36.81 1.1.81 2.22l-.01 3.29c0 .31.2.69.82.57A12 12 0 0 0 12 .3Z"/></svg></a></div><starlight-theme-select><label style="--sl-select-width: 6.25em" class="astro-2z5xp7gb"><span class="sr-only astro-2z5xp7gb">Select theme</span><svg aria-hidden="true" class="icon label-icon astro-2z5xp7gb astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21 14h-1V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v7H3a1 1 0 0 0-1 1v2a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-2a1 1 0 0 0-1-1ZM6 7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7H6V7Zm14 10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1h16v1Z"/></svg><select autocomplete="off" class="astro-2z5xp7gb"><option value="dark" class="astro-2z5xp7gb">Dark</option><option value="light" class="astro-2z5xp7gb">Light</option><option value="auto" selected class="astro-2z5xp7gb">Auto</option></select><svg aria-hidden="true" class="icon caret astro-2z5xp7gb astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M17 9.17a1 1 0 0 0-1.41 0L12 12.71 8.46 9.17a1 1 0 1 0-1.41 1.42l4.24 4.24a1.002 1.002 0 0 0 1.42 0L17 10.59a1.002 1.002 0 0 0 0-1.42Z"/></svg></label></starlight-theme-select><script>
+	StarlightThemeProvider.updatePickers();
+</script><script type="module">var e=`starlight-theme`,t=e=>e===`auto`||e===`dark`||e===`light`?e:`auto`,n=()=>t(typeof localStorage<`u`&&localStorage.getItem(e));function r(t){typeof localStorage<`u`&&localStorage.setItem(e,t===`light`||t===`dark`?t:``)}var i=()=>matchMedia(`(prefers-color-scheme: light)`).matches?`light`:`dark`;function a(e){StarlightThemeProvider.updatePickers(e),document.documentElement.dataset.theme=e===`auto`?i():e,r(e)}matchMedia(`(prefers-color-scheme: light)`).addEventListener(`change`,()=>{n()===`auto`&&a(`auto`)});var o=class extends HTMLElement{constructor(){super(),a(n()),this.querySelector(`select`)?.addEventListener(`change`,e=>{e.currentTarget instanceof HTMLSelectElement&&a(t(e.currentTarget.value))})}};customElements.define(`starlight-theme-select`,o);</script><script type="module">var e=class extends HTMLElement{constructor(){super();let e=this.querySelector(`select`);e&&(e.addEventListener(`change`,e=>{e.currentTarget instanceof HTMLSelectElement&&(window.location.pathname=e.currentTarget.value)}),window.addEventListener(`pageshow`,t=>{if(!t.persisted)return;let n=e.querySelector(`option[selected]`)?.index;n!==e.selectedIndex&&(e.selectedIndex=n??0)}))}};customElements.define(`starlight-lang-select`,e);</script></div></div></header><nav class="sidebar print:hidden astro-yntsjkba" aria-label="Main"><button popovertarget="starlight__sidebar" class="sl-menu-button sl-flex md:sl-hidden print:hidden astro-r2osgdlg"><svg aria-hidden="true" class="open-menu astro-r2osgdlg astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M3 8h18a1 1 0 1 0 0-2H3a1 1 0 0 0 0 2Zm18 8H3a1 1 0 0 0 0 2h18a1 1 0 0 0 0-2Zm0-5H3a1 1 0 0 0 0 2h18a1 1 0 0 0 0-2Z"/></svg><svg aria-hidden="true" class="close-menu astro-r2osgdlg astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="m13.41 12 6.3-6.29a1.004 1.004 0 1 0-1.42-1.42L12 10.59l-6.29-6.3a1.004 1.004 0 0 0-1.42 1.42l6.3 6.29-6.3 6.29a1 1 0 0 0 0 1.42.998.998 0 0 0 1.42 0l6.29-6.3 6.29 6.3a.999.999 0 0 0 1.42 0 1 1 0 0 0 0-1.42L13.41 12Z"/></svg><span class="sr-only astro-r2osgdlg">Menu</span></button><script type="module">var e=class extends HTMLElement{constructor(){super();let e=matchMedia(`(min-width: 50em)`),t=()=>{this.popover=e.matches?null:`auto`};t(),e.addEventListener(`change`,()=>t()),this.addEventListener(`toggle`,({newState:e})=>this.trapFocus(e===`open`))}trapFocus(e){document.querySelectorAll(`.main-frame, .sl-skip-link`).forEach(t=>{t.toggleAttribute(`inert`,e)})}};customElements.define(`sl-sidebar-pane`,e);</script><sl-sidebar-pane popover id="starlight__sidebar" class="sidebar-pane astro-yntsjkba"><div class="sidebar-content sl-flex astro-yntsjkba"><sl-sidebar-state-persist data-hash="1g04a4l" class="astro-ipdry5cl"><script aria-hidden="true">
+		(() => {
+			try {
+				if (!matchMedia('(min-width: 50em)').matches) return;
+				/** @type {HTMLElement | null} */
+				const target = document.querySelector('sl-sidebar-state-persist');
+				const state = JSON.parse(sessionStorage.getItem('sl-sidebar-state') || '0');
+				if (!target || !state || target.dataset.hash !== state.hash) return;
+				window._starlightScrollRestore = state.scroll;
+				customElements.define(
+					'sl-sidebar-restore',
+					class SidebarRestore extends HTMLElement {
+						connectedCallback() {
+							try {
+								const idx = parseInt(this.dataset.index || '');
+								const details = this.closest('details');
+								if (details && typeof state.open[idx] === 'boolean') details.open = state.open[idx];
+							} catch {}
+						}
+					}
+				);
+			} catch {}
+		})();
+	</script><ul class="top-level astro-rmhv4bp6"><li class="astro-rmhv4bp6"><details open class="astro-rmhv4bp6"><summary class="astro-rmhv4bp6"><span class="group-label astro-rmhv4bp6"><span class="large astro-rmhv4bp6">Start</span></span><svg aria-hidden="true" class="caret astro-rmhv4bp6 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="0"></sl-sidebar-restore><ul class="astro-rmhv4bp6"><li class="astro-rmhv4bp6"><a href="/install/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Install</span></a></li><li class="astro-rmhv4bp6"><a href="/configuration/" aria-current="page" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Configuration</span></a></li><li class="astro-rmhv4bp6"><a href="/upgrading/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Upgrading</span></a></li></ul></details></li><li class="astro-rmhv4bp6"><details open class="astro-rmhv4bp6"><summary class="astro-rmhv4bp6"><span class="group-label astro-rmhv4bp6"><span class="large astro-rmhv4bp6">Access</span></span><svg aria-hidden="true" class="caret astro-rmhv4bp6 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="1"></sl-sidebar-restore><ul class="astro-rmhv4bp6"><li class="astro-rmhv4bp6"><a href="/jit/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Just-in-time access</span></a></li><li class="astro-rmhv4bp6"><a href="/policies/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Command policies</span></a></li><li class="astro-rmhv4bp6"><a href="/ssh-hardening/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Hardening SSH targets</span></a></li><li class="astro-rmhv4bp6"><a href="/mfa/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Multi-factor authentication</span></a></li><li class="astro-rmhv4bp6"><a href="/sso/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Single sign-on (OpenID Connect)</span></a></li><li class="astro-rmhv4bp6"><a href="/cli/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">werbot CLI</span></a></li></ul></details></li><li class="astro-rmhv4bp6"><details open class="astro-rmhv4bp6"><summary class="astro-rmhv4bp6"><span class="group-label astro-rmhv4bp6"><span class="large astro-rmhv4bp6">Agents</span></span><svg aria-hidden="true" class="caret astro-rmhv4bp6 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="2"></sl-sidebar-restore><ul class="astro-rmhv4bp6"><li class="astro-rmhv4bp6"><a href="/agents/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">AI agents</span></a></li></ul></details></li><li class="astro-rmhv4bp6"><details open class="astro-rmhv4bp6"><summary class="astro-rmhv4bp6"><span class="group-label astro-rmhv4bp6"><span class="large astro-rmhv4bp6">Sessions</span></span><svg aria-hidden="true" class="caret astro-rmhv4bp6 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="3"></sl-sidebar-restore><ul class="astro-rmhv4bp6"><li class="astro-rmhv4bp6"><a href="/web-terminal/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Web terminal, live view and terminate</span></a></li><li class="astro-rmhv4bp6"><a href="/connect/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">werbot connect</span></a></li><li class="astro-rmhv4bp6"><a href="/vnet/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">werbot connect --vnet</span></a></li><li class="astro-rmhv4bp6"><a href="/connectors/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Connectors</span></a></li></ul></details></li><li class="astro-rmhv4bp6"><details open class="astro-rmhv4bp6"><summary class="astro-rmhv4bp6"><span class="group-label astro-rmhv4bp6"><span class="large astro-rmhv4bp6">Operations</span></span><svg aria-hidden="true" class="caret astro-rmhv4bp6 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="4"></sl-sidebar-restore><ul class="astro-rmhv4bp6"><li class="astro-rmhv4bp6"><a href="/gateway/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Gateways</span></a></li><li class="astro-rmhv4bp6"><a href="/web/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Web UI</span></a></li><li class="astro-rmhv4bp6"><a href="/scaling/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Scaling and high availability</span></a></li><li class="astro-rmhv4bp6"><a href="/failure-modes/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Failure modes</span></a></li><li class="astro-rmhv4bp6"><a href="/security/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Security</span></a></li></ul></details></li><li class="astro-rmhv4bp6"><details open class="astro-rmhv4bp6"><summary class="astro-rmhv4bp6"><span class="group-label astro-rmhv4bp6"><span class="large astro-rmhv4bp6">Migration</span></span><svg aria-hidden="true" class="caret astro-rmhv4bp6 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.25rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></summary><sl-sidebar-restore data-index="5"></sl-sidebar-restore><ul class="astro-rmhv4bp6"><li class="astro-rmhv4bp6"><a href="/migrate-from-boundary/" class="astro-rmhv4bp6"><span class="astro-rmhv4bp6">Migrate from HashiCorp Boundary</span></a></li></ul></details></li></ul><script aria-hidden="true">
+		(() => {
+			const scroller = document.getElementById('starlight__sidebar');
+			if (!window._starlightScrollRestore || !scroller) return;
+			scroller.scrollTop = window._starlightScrollRestore;
+			delete window._starlightScrollRestore;
+		})();
+	</script></sl-sidebar-state-persist><div class="md:sl-hidden"><div class="mobile-preferences sl-flex astro-p4azlveh"><div class="social-icons astro-p4azlveh"><a href="https://github.com/werbot/werbot" rel="me" class="sl-flex astro-n2mnl6yq"><span class="sr-only astro-n2mnl6yq">GitHub</span><svg aria-hidden="true" class="astro-n2mnl6yq astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.83-.26.83-.57L9 21.07c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.09-.73.09-.73 1.2.09 1.83 1.24 1.83 1.24 1.08 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.8 5.63-5.48 5.92.42.36.81 1.1.81 2.22l-.01 3.29c0 .31.2.69.82.57A12 12 0 0 0 12 .3Z"/></svg></a></div><starlight-theme-select><label style="--sl-select-width: 6.25em" class="astro-2z5xp7gb"><span class="sr-only astro-2z5xp7gb">Select theme</span><svg aria-hidden="true" class="icon label-icon astro-2z5xp7gb astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M21 14h-1V7a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v7H3a1 1 0 0 0-1 1v2a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-2a1 1 0 0 0-1-1ZM6 7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7H6V7Zm14 10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-1h16v1Z"/></svg><select autocomplete="off" class="astro-2z5xp7gb"><option value="dark" class="astro-2z5xp7gb">Dark</option><option value="light" class="astro-2z5xp7gb">Light</option><option value="auto" selected class="astro-2z5xp7gb">Auto</option></select><svg aria-hidden="true" class="icon caret astro-2z5xp7gb astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1em;"><path d="M17 9.17a1 1 0 0 0-1.41 0L12 12.71 8.46 9.17a1 1 0 1 0-1.41 1.42l4.24 4.24a1.002 1.002 0 0 0 1.42 0L17 10.59a1.002 1.002 0 0 0 0-1.42Z"/></svg></label></starlight-theme-select><script>
+	StarlightThemeProvider.updatePickers();
+</script></div></div></div></sl-sidebar-pane></nav><div class="main-frame astro-yntsjkba"><script type="module">var e=document.getElementById(`starlight__sidebar`),t=e?.querySelector(`sl-sidebar-state-persist`),n=`sl-sidebar-state`,r=()=>{let r=[],i=t?.dataset.hash||``;try{let e=sessionStorage.getItem(n),t=JSON.parse(e||`{}`);Array.isArray(t.open)&&t.hash===i&&(r=t.open)}catch{}return{hash:i,open:r,scroll:e?.scrollTop||0}},i=e=>{try{sessionStorage.setItem(n,JSON.stringify(e))}catch{}},a=()=>i(r()),o=(e,t)=>{let n=r();n.open[t]=e,i(n)};t?.addEventListener(`click`,e=>{if(!(e.target instanceof Element))return;let t=e.target.closest(`summary`)?.closest(`details`);if(!t)return;let n=t.querySelector(`sl-sidebar-restore`),r=parseInt(n?.dataset.index||``);isNaN(r)||o(!t.open,r)}),addEventListener(`visibilitychange`,()=>{document.visibilityState===`hidden`&&a()});</script><div class="lg:sl-flex astro-lrzkfocr"><aside class="right-sidebar-container print:hidden astro-lrzkfocr"><div class="right-sidebar astro-lrzkfocr"><div class="lg:sl-hidden astro-qok35upx"><mobile-starlight-toc data-min-h="2" data-max-h="3" class="astro-66cqc7ze"><nav aria-labelledby="starlight__on-this-page--mobile" class="astro-66cqc7ze"><details id="starlight__mobile-toc" class="astro-66cqc7ze"><summary id="starlight__on-this-page--mobile" class="sl-flex astro-66cqc7ze"><span class="toggle sl-flex astro-66cqc7ze">On this page<svg aria-hidden="true" class="caret astro-66cqc7ze astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1rem;"><path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/></svg></span><span class="display-current astro-66cqc7ze"></span></summary><div class="dropdown astro-66cqc7ze"><ul class="isMobile astro-jugkfwgx" style="--depth: 0;"><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#_top" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Overview</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#server-werbot-server-werbot-migrate" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Server (werbot server, werbot migrate)</span></a><ul class="isMobile astro-jugkfwgx" style="--depth: 1;"><li style="--depth: 1;" class="astro-jugkfwgx"><a href="#embedded-gateway" style="--depth: 1;" class="astro-jugkfwgx"><span style="--depth: 1;" class="astro-jugkfwgx">Embedded gateway</span></a></li></ul></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#gateway-werbot-gateway" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Gateway (werbot gateway)</span></a><ul class="isMobile astro-jugkfwgx" style="--depth: 1;"><li style="--depth: 1;" class="astro-jugkfwgx"><a href="#readiness-drain-and-limits" style="--depth: 1;" class="astro-jugkfwgx"><span style="--depth: 1;" class="astro-jugkfwgx">Readiness, drain and limits</span></a></li></ul></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#web-werbot-web" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Web (werbot web)</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#client-werbot-connect-werbot-login" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Client (werbot connect, werbot login)</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#docker-compose" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Docker Compose</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#secret-key" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Secret key</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#database" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Database</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#behind-a-reverse-proxy" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Behind a reverse proxy</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#separate-web-ui" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Separate web UI</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#email" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Email</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#session-recordings" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Session recordings</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#geoip-database" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">GeoIP database</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#metrics" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Metrics</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#deployment-modes" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Deployment modes</span></a></li></ul></div></details></nav></mobile-starlight-toc><script type="module" src="/_astro/MobileTableOfContents.astro_astro_type_script_index_0_lang.C3fM4Kra.js"></script></div><div class="right-sidebar-panel sl-hidden lg:sl-block astro-qok35upx"><div class="sl-container astro-qok35upx"><starlight-toc data-min-h="2" data-max-h="3"><nav aria-labelledby="starlight__on-this-page"><h2 id="starlight__on-this-page">On this page</h2><ul class="astro-jugkfwgx" style="--depth: 0;"><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#_top" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Overview</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#server-werbot-server-werbot-migrate" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Server (werbot server, werbot migrate)</span></a><ul class="astro-jugkfwgx" style="--depth: 1;"><li style="--depth: 1;" class="astro-jugkfwgx"><a href="#embedded-gateway" style="--depth: 1;" class="astro-jugkfwgx"><span style="--depth: 1;" class="astro-jugkfwgx">Embedded gateway</span></a></li></ul></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#gateway-werbot-gateway" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Gateway (werbot gateway)</span></a><ul class="astro-jugkfwgx" style="--depth: 1;"><li style="--depth: 1;" class="astro-jugkfwgx"><a href="#readiness-drain-and-limits" style="--depth: 1;" class="astro-jugkfwgx"><span style="--depth: 1;" class="astro-jugkfwgx">Readiness, drain and limits</span></a></li></ul></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#web-werbot-web" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Web (werbot web)</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#client-werbot-connect-werbot-login" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Client (werbot connect, werbot login)</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#docker-compose" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Docker Compose</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#secret-key" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Secret key</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#database" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Database</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#behind-a-reverse-proxy" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Behind a reverse proxy</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#separate-web-ui" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Separate web UI</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#email" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Email</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#session-recordings" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Session recordings</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#geoip-database" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">GeoIP database</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#metrics" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Metrics</span></a></li><li style="--depth: 0;" class="astro-jugkfwgx"><a href="#deployment-modes" style="--depth: 0;" class="astro-jugkfwgx"><span style="--depth: 0;" class="astro-jugkfwgx">Deployment modes</span></a></li></ul></nav></starlight-toc><script type="module" src="/_astro/TableOfContents.astro_astro_type_script_index_0_lang.BpJaGz7G.js"></script></div></div></div></aside><div class="main-pane astro-lrzkfocr"><main data-pagefind-body class="astro-g5ptsecz" lang="en" dir="ltr"><div class="content-panel astro-a7po4psb"><div class="sl-container astro-a7po4psb"><h1 id="_top" class="astro-bebwqqxs">Configuration</h1></div></div><div class="content-panel astro-a7po4psb"><div class="sl-container astro-a7po4psb"><div class="sl-markdown-content"><p>Werbot is configured only through environment variables. Every <code dir="auto">werbot gateway</code> variable also has a flag; flags override the environment, and <code dir="auto">werbot gateway --help</code> lists them. <code dir="auto">werbot connect</code> flags are described in <a href="/connect/">connect.md</a>.</p>
+<p>Variables that are <code dir="auto">required</code> make the process refuse to start when they are empty. The tables below list every variable the code reads.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="server-werbot-server-werbot-migrate">Server (<code dir="auto">werbot server</code>, <code dir="auto">werbot migrate</code>)</h2><a class="sl-anchor-link" href="#server-werbot-server-werbot-migrate"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Server (werbot server, werbot migrate)”</span></a></div>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code dir="auto">WERBOT_DATABASE_URL</code></td>
+<td>required</td>
+<td>Postgres URL. URL parameters: <code dir="auto">pool_max_conns</code> (pool size), <code dir="auto">statement_timeout</code> (query limit, default <code dir="auto">30s</code>) and <code dir="auto">jit</code> (default <code dir="auto">off</code>); see <a href="#database">Database</a>.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_ENV</code></td>
+<td><code dir="auto">production</code></td>
+<td><code dir="auto">production</code> or <code dir="auto">development</code>.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_HTTP_ADDR</code></td>
+<td><code dir="auto">:8080</code></td>
+<td>API (and embedded UI) listen address.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_LOG_LEVEL</code></td>
+<td><code dir="auto">info</code></td>
+<td><code dir="auto">debug</code>, <code dir="auto">info</code>, <code dir="auto">warn</code> or <code dir="auto">error</code>.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_LOG_FORMAT</code></td>
+<td><code dir="auto">json</code></td>
+<td><code dir="auto">json</code> or <code dir="auto">text</code>.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_METRICS_ADDR</code></td>
+<td>empty (disabled)</td>
+<td>Listen address for <code dir="auto">/metrics</code>; see <a href="#metrics">Metrics</a>.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_WEB_EMBEDDED</code></td>
+<td><code dir="auto">true</code></td>
+<td>Serve the UI from the server.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_PUBLIC_URL</code></td>
+<td>required</td>
+<td>Public <code dir="auto">http(s)://</code> address of the server, for example <code dir="auto">https://werbot.example.com</code>.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_WEB_URL</code></td>
+<td><code dir="auto">WERBOT_PUBLIC_URL</code></td>
+<td>Public address of the UI; base for links in emails.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_TRUSTED_PROXIES</code></td>
+<td>empty</td>
+<td>Comma-separated CIDRs whose <code dir="auto">X-Forwarded-For</code> is trusted.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_SMTP_HOST</code></td>
+<td>empty</td>
+<td>SMTP server. Empty: emails go to the log only (the full text, with links, only when <code dir="auto">WERBOT_ENV=development</code>).</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_SMTP_PORT</code></td>
+<td><code dir="auto">587</code></td>
+<td>SMTP port, 1-65535.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_SMTP_USERNAME</code>, <code dir="auto">WERBOT_SMTP_PASSWORD</code></td>
+<td>empty</td>
+<td>SMTP credentials.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_SMTP_FROM</code></td>
+<td>empty</td>
+<td>Sender address; required when <code dir="auto">WERBOT_SMTP_HOST</code> is set.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_SECRET_KEY</code></td>
+<td>required</td>
+<td>Base64 of 32 random bytes (<code dir="auto">openssl rand -base64 32</code>); encrypts stored secrets. See <a href="#secret-key">Secret key</a>.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_SECRET_KEY_PREVIOUS</code></td>
+<td>empty</td>
+<td>Comma-separated base64 keys kept for decrypting data sealed before a key rotation.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_DATA_DIR</code></td>
+<td><code dir="auto">./data</code></td>
+<td>Local state directory: the embedded gateway, and session recordings in <code dir="auto">recordings/</code> while <code dir="auto">WERBOT_RECORDINGS_S3_BUCKET</code> is empty.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_RECORDINGS_S3_BUCKET</code></td>
+<td>empty</td>
+<td>S3 bucket for session recordings. Empty: recordings go to the file system under <code dir="auto">WERBOT_DATA_DIR/recordings</code>; use that only with one replica or a ReadWriteMany volume.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_RECORDINGS_S3_ENDPOINT</code></td>
+<td>empty</td>
+<td>S3-compatible endpoint URL. Empty: standard AWS.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_RECORDINGS_S3_REGION</code></td>
+<td><code dir="auto">us-east-1</code> when the bucket is set</td>
+<td>S3 region.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_RECORDINGS_S3_ACCESS_KEY</code>, <code dir="auto">WERBOT_RECORDINGS_S3_SECRET_KEY</code></td>
+<td>empty</td>
+<td>S3 credentials; set both or neither.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_GATEWAY_ADDR</code></td>
+<td><code dir="auto">:8443</code></td>
+<td>mTLS listener of the gateway tunnel (TLS 1.3, HTTP/2). Its port is the port in the tunnel URL given to gateways.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_INTERNAL_ADDR</code></td>
+<td><code dir="auto">:8444</code></td>
+<td>mTLS listener between server replicas (TLS 1.3, HTTP/2 only), port 1-65535. It accepts only client certificates of the internal CA with the common name of a registered replica. Keep it on the private network.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_INTERNAL_URL</code></td>
+<td><code dir="auto">https://&lt;hostname&gt;:&lt;WERBOT_INTERNAL_ADDR port&gt;</code></td>
+<td><code dir="auto">https://</code> address other replicas use to reach this one; its host is in the listener certificate. Set it when the OS hostname does not resolve from the other replicas.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_LOCAL_POOL_ALLOW_LOOPBACK</code></td>
+<td><code dir="auto">false</code></td>
+<td>See <a href="#embedded-gateway">Embedded gateway</a>.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_GEOIP_URL</code></td>
+<td><code dir="auto">https://download.db-ip.com/free/dbip-country-lite-%s.mmdb.gz</code></td>
+<td>Country database for country rules; see <a href="#geoip-database">GeoIP database</a>.</td>
+</tr>
+</tbody>
+</table>
+<div class="sl-heading-wrapper level-h3"><h3 id="embedded-gateway">Embedded gateway</h3><a class="sl-anchor-link" href="#embedded-gateway"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Embedded gateway”</span></a></div>
+<p><code dir="auto">werbot server --with-gateway</code> runs a gateway instance in the server process (pool, enrollment and shutdown: <a href="/gateway/#embedded-gateway">gateway.md</a>). It reads the <code dir="auto">WERBOT_GATEWAY_*</code> variables of the <a href="#gateway-werbot-gateway">gateway table</a> below and keeps its identity in <code dir="auto">WERBOT_DATA_DIR/gateway</code> (or <code dir="auto">WERBOT_GATEWAY_DATA_DIR</code>). It reaches its own server over loopback (<code dir="auto">http://127.0.0.1:&lt;WERBOT_HTTP_ADDR port&gt;</code>, tunnel <code dir="auto">https://127.0.0.1:&lt;WERBOT_GATEWAY_ADDR port&gt;</code>), so both addresses must accept connections on 127.0.0.1: leave the host empty (<code dir="auto">:8080</code>) or use <code dir="auto">0.0.0.0</code> or <code dir="auto">127.0.0.1</code>, not a single non-loopback IP.</p>
+<p>Because it runs inside the server process, it refuses by default target addresses on the server’s own host: loopback (<code dir="auto">127.0.0.0/8</code>, <code dir="auto">::1</code>), link-local including cloud metadata (<code dir="auto">169.254.0.0/16</code>, <code dir="auto">fe80::/10</code>), multicast (including interface-local <code dir="auto">ff01::/16</code>), unspecified (<code dir="auto">0.0.0.0</code>, <code dir="auto">::</code>), and every address the host of <code dir="auto">WERBOT_DATABASE_URL</code> resolves to. The check runs on the resolved address when a session opens (the user gets <code dir="auto">Access denied</code>, audited as <code dir="auto">target_not_allowed</code>) and again on every connect. It covers <code dir="auto">telnet</code>, <code dir="auto">tcp</code> and <code dir="auto">udp</code> sessions and health probes, not <code dir="auto">ssh</code> resources: they keep their own dial, so a loopback <code dir="auto">ssh</code> resource connects while its health shows <code dir="auto">unhealthy</code> with the refusal. Other addresses of the host and its LAN stay reachable: restrict them with resource endpoints and access bindings.</p>
+<p><code dir="auto">WERBOT_LOCAL_POOL_ALLOW_LOOPBACK=true</code> turns the check off, which a same-host database or target needs. Standalone gateways are not affected. The embedded gateway enrolls again by itself when its certificate expires.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="gateway-werbot-gateway">Gateway (<code dir="auto">werbot gateway</code>)</h2><a class="sl-anchor-link" href="#gateway-werbot-gateway"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Gateway (werbot gateway)”</span></a></div>
+<p>An instance of a gateway pool. <code dir="auto">WERBOT_LOG_LEVEL</code> and <code dir="auto">WERBOT_LOG_FORMAT</code> apply to the gateway too.</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Flag</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code dir="auto">WERBOT_GATEWAY_SERVER_URL</code></td>
+<td><code dir="auto">--server</code></td>
+<td>empty</td>
+<td><code dir="auto">https://</code> URL of the server API; needed for enrollment only (a start with a valid saved identity does not check it). <code dir="auto">http://</code> is accepted only for a loopback host (<code dir="auto">127.0.0.0/8</code>, <code dir="auto">::1</code>, <code dir="auto">localhost</code>) or with the flag <code dir="auto">--insecure-enroll</code>: enrollment sends the join token and receives the pool’s private SSH host key, so use it only on a trusted network.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_GATEWAY_JOIN_TOKEN</code></td>
+<td><code dir="auto">--join-token</code></td>
+<td>empty</td>
+<td>Join token of the pool; needed for enrollment: the first start or a start with a stale identity. A valid saved identity wins over it. Prefer the variable: it keeps the token out of <code dir="auto">ps</code> output.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_GATEWAY_DATA_DIR</code></td>
+<td><code dir="auto">--data-dir</code></td>
+<td><code dir="auto">./gateway-data</code></td>
+<td>Instance identity: <code dir="auto">gateway.json</code>, <code dir="auto">gateway.key</code>, <code dir="auto">gateway.crt</code>, <code dir="auto">ca.crt</code>, <code dir="auto">ssh_host_ed25519_key</code>, and the recording spool <code dir="auto">spool/</code>. Keep it on a persistent volume (a PVC in Kubernetes): undelivered recordings and session ends wait there across restarts.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_GATEWAY_SSH_ADDR</code></td>
+<td><code dir="auto">--ssh-addr</code></td>
+<td><code dir="auto">:2222</code></td>
+<td>SSH listen address.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_GATEWAY_PROXY_PROTOCOL</code></td>
+<td><code dir="auto">--proxy-protocol</code></td>
+<td><code dir="auto">false</code></td>
+<td>Require a PROXY protocol header on every SSH connection; expose the port to the load balancer only.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_GATEWAY_NAME</code></td>
+<td><code dir="auto">--name</code></td>
+<td>OS hostname</td>
+<td>Instance hostname shown in the pool.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_GATEWAY_IDLE_TIMEOUT</code></td>
+<td><code dir="auto">--idle-timeout</code></td>
+<td><code dir="auto">5m</code></td>
+<td>Ends a session without traffic in either direction (<code dir="auto">idle_timeout</code>) unless its resource sets <code dir="auto">idle_timeout</code>, and closes an SSH connection that runs no session for this long (keepalives do not count; typing in the resource menu does). A running session keeps its connection open; <code dir="auto">0</code> disables both.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_GATEWAY_HTTP_ADDR</code></td>
+<td><code dir="auto">--http-addr</code></td>
+<td>empty (disabled)</td>
+<td>Listen address for <code dir="auto">/readyz</code> and <code dir="auto">/metrics</code>.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_GATEWAY_DRAIN_TIMEOUT</code></td>
+<td><code dir="auto">--drain-timeout</code></td>
+<td><code dir="auto">30s</code></td>
+<td>On SIGTERM, how long running sessions may continue before they end with <code dir="auto">gateway_shutdown</code>; <code dir="auto">0</code> ends them at once.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_GATEWAY_SPOOL_MAX</code></td>
+<td><code dir="auto">--spool-max</code></td>
+<td><code dir="auto">1GiB</code></td>
+<td>Size cap of the recording spool: bytes or a <code dir="auto">KiB</code>, <code dir="auto">MiB</code>, <code dir="auto">GiB</code> suffix (powers of 1024); must be above 0.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_GATEWAY_MAX_SESSIONS</code></td>
+<td><code dir="auto">--max-sessions</code></td>
+<td><code dir="auto">10000</code></td>
+<td>Concurrent session limit, 1-10000; above it users get <code dir="auto">Gateway is busy, try again later</code>.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_GATEWAY_MAX_DURATION</code></td>
+<td><code dir="auto">--max-duration</code></td>
+<td><code dir="auto">12h</code></td>
+<td>Ends a session after this long (<code dir="auto">max_duration</code>) unless its resource sets <code dir="auto">max_duration</code>; <code dir="auto">0</code> means no limit, a negative value fails the start.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_GATEWAY_WS_ADDR</code></td>
+<td><code dir="auto">--ws-addr</code></td>
+<td>empty (disabled)</td>
+<td>Listen address of the WebSocket input (<code dir="auto">GET /v1/ssh</code>), an SSH-over-WebSocket path for clients behind an HTTP proxy.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_GATEWAY_WS_TLS_CERT</code></td>
+<td><code dir="auto">--ws-tls-cert</code></td>
+<td>empty</td>
+<td>PEM certificate file for the WebSocket input; set together with <code dir="auto">WERBOT_GATEWAY_WS_TLS_KEY</code>, or leave both empty to serve plain HTTP behind a TLS-terminating proxy.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_GATEWAY_WS_TLS_KEY</code></td>
+<td><code dir="auto">--ws-tls-key</code></td>
+<td>empty</td>
+<td>PEM private key file for the WebSocket input; set together with <code dir="auto">WERBOT_GATEWAY_WS_TLS_CERT</code>.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_GATEWAY_TRUSTED_PROXIES</code></td>
+<td><code dir="auto">--trusted-proxies</code></td>
+<td>empty</td>
+<td>Comma-separated CIDRs whose <code dir="auto">X-Forwarded-For</code> the WebSocket input trusts for the client address; any other source is identified by its TCP address. It does not affect the SSH port.</td>
+</tr>
+</tbody>
+</table>
+<p>The gateway listens only on the SSH port and, when set, <code dir="auto">WERBOT_GATEWAY_HTTP_ADDR</code> and <code dir="auto">WERBOT_GATEWAY_WS_ADDR</code>; it connects out to the server tunnel. The flag <code dir="auto">--insecure-enroll</code> has no variable. WebSocket input: see <a href="/gateway/#websocket-input">gateway.md</a>.</p>
+<div class="sl-heading-wrapper level-h3"><h3 id="readiness-drain-and-limits">Readiness, drain and limits</h3><a class="sl-anchor-link" href="#readiness-drain-and-limits"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Readiness, drain and limits”</span></a></div>
+<ul>
+<li><code dir="auto">/readyz</code> (on <code dir="auto">WERBOT_GATEWAY_HTTP_ADDR</code>) returns 200 only while the tunnel is up with a policy snapshot (a planned reconnect for <code dir="auto">rebalance</code> or a server <code dir="auto">shutdown</code> keeps it for up to 5s), a session slot is free and no drain runs.</li>
+<li>On SIGTERM <code dir="auto">/readyz</code> returns 503 at once and the SSH port stops accepting connections. Sessions continue for <code dir="auto">WERBOT_GATEWAY_DRAIN_TIMEOUT</code>; the rest end with <code dir="auto">gateway_shutdown</code>.</li>
+<li>At <code dir="auto">WERBOT_GATEWAY_MAX_SESSIONS</code> new sessions are refused and <code dir="auto">/readyz</code> returns 503.</li>
+<li>Without the server or a policy snapshot the gateway refuses new sessions (<code dir="auto">Gateway is not ready, try again later</code>) and closes that SSH connection after 30 s; running sessions continue. A connection must authenticate within 30 s.</li>
+<li><code dir="auto">WERBOT_GATEWAY_SPOOL_MAX</code> caps the recording spool. While the unsent spool is at the cap, new sessions of recorded kinds get <code dir="auto">Gateway is busy, try again later</code> (every SSH terminal or exec session is recorded, so in practice all new SSH sessions); unrecorded ones (<code dir="auto">tcp</code>, <code dir="auto">udp</code>, <code dir="auto">ssh -L</code>) still open and running sessions continue. The <code dir="auto">WERBOT_GATEWAY_DATA_DIR</code> volume must hold the cap plus headroom. While the spool cannot write (disk full or not writable), new recorded sessions get the same answer and the same metric, and each running session ends with <code dir="auto">recording_unavailable</code> at its next chunk flush (within about 10 s); a command that ends sooner can stay unrecorded.</li>
+<li>The instance renews its 24h certificate after 16h; until the renewed certificate is first used, the previous one stays valid. A saved identity whose certificate has expired or no longer loads counts as not enrolled, and the next enrollment overwrites it. An instance whose certificate expires while running stops (<code dir="auto">gateway certificate expired</code>). A standalone gateway offline for more than 24h needs a new join token in <code dir="auto">WERBOT_GATEWAY_JOIN_TOKEN</code>; a spent token fails at start with <code dir="auto">invalid join token</code>.</li>
+</ul>
+<div class="sl-heading-wrapper level-h2"><h2 id="web-werbot-web">Web (<code dir="auto">werbot web</code>)</h2><a class="sl-anchor-link" href="#web-werbot-web"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Web (werbot web)”</span></a></div>
+<p>No database access. Its four shared variables follow the same rules as on the server, with their own values for this process.</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code dir="auto">WERBOT_WEB_API_URL</code></td>
+<td>required</td>
+<td><code dir="auto">http(s)://</code> URL of the API server.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_WEB_ADDR</code></td>
+<td><code dir="auto">:8090</code></td>
+<td>Listen address.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_TRUSTED_PROXIES</code></td>
+<td>empty</td>
+<td>Comma-separated CIDRs whose <code dir="auto">X-Forwarded-For</code> is trusted.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_LOG_LEVEL</code></td>
+<td><code dir="auto">info</code></td>
+<td><code dir="auto">debug</code>, <code dir="auto">info</code>, <code dir="auto">warn</code> or <code dir="auto">error</code>.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_LOG_FORMAT</code></td>
+<td><code dir="auto">json</code></td>
+<td><code dir="auto">json</code> or <code dir="auto">text</code>.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_METRICS_ADDR</code></td>
+<td>empty (disabled)</td>
+<td>Listen address for <code dir="auto">/metrics</code>.</td>
+</tr>
+</tbody>
+</table>
+<p><code dir="auto">werbot web</code> does not read <code dir="auto">WERBOT_DATABASE_URL</code> or <code dir="auto">WERBOT_SECRET_KEY</code>. Details: <a href="/web/">web.md</a>.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="client-werbot-connect-werbot-login">Client (<code dir="auto">werbot connect</code>, <code dir="auto">werbot login</code>)</h2><a class="sl-anchor-link" href="#client-werbot-connect-werbot-login"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Client (werbot connect, werbot login)”</span></a></div>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Flag</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code dir="auto">WERBOT_CONNECT_GATEWAY</code></td>
+<td><code dir="auto">--gateway</code></td>
+<td>required</td>
+<td>Gateway SSH address <code dir="auto">host[:port]</code>; the port defaults to <code dir="auto">2222</code>.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_CONNECT_LOGIN</code></td>
+<td><code dir="auto">--login</code></td>
+<td>required</td>
+<td>Werbot login.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_SERVER</code></td>
+<td>—</td>
+<td>server of the last <code dir="auto">werbot login</code> (<code dir="auto">&lt;home&gt;/current</code>)</td>
+<td>Server whose profile the client commands use, <code dir="auto">http(s)://host[:port]</code>.</td>
+</tr>
+<tr>
+<td><code dir="auto">WERBOT_HOME</code></td>
+<td>—</td>
+<td><code dir="auto">~/.werbot</code> (Windows: <code dir="auto">%USERPROFILE%\.werbot</code>)</td>
+<td>Client profiles: one <code dir="auto">0700</code> directory per server with <code dir="auto">profile.json</code>, the key and the certificate (<code dir="auto">0600</code>).</td>
+</tr>
+</tbody>
+</table>
+<p>Other flags: <code dir="auto">-i &lt;key&gt;</code> and <code dir="auto">--known-hosts &lt;path&gt;</code>. Details: <a href="/connect/">connect.md</a> and <a href="/cli/">cli.md</a>.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="docker-compose">Docker Compose</h2><a class="sl-anchor-link" href="#docker-compose"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Docker Compose”</span></a></div>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code dir="auto">WERBOT_VERSION</code></td>
+<td>Image tag, for example <code dir="auto">v0.1.1</code>. Required.</td>
+</tr>
+<tr>
+<td><code dir="auto">POSTGRES_PASSWORD</code></td>
+<td>Postgres password, URL-safe (<code dir="auto">openssl rand -hex 24</code>); compose builds <code dir="auto">WERBOT_DATABASE_URL</code> from it. Required.</td>
+</tr>
+</tbody>
+</table>
+<p>The compose files pass the whole <code dir="auto">.env</code> to the server (<code dir="auto">env_file</code>), so any variable from the tables above that you add to <code dir="auto">.env</code> reaches <code dir="auto">werbot server</code>. <code dir="auto">docker-compose.gateway.yaml</code> passes the whole <code dir="auto">.env</code> to the gateway the same way. Gateway and web services of the cluster example get no <code dir="auto">.env</code>: they never see <code dir="auto">WERBOT_SECRET_KEY</code>, <code dir="auto">POSTGRES_PASSWORD</code> or the S3 keys.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="secret-key">Secret key</h2><a class="sl-anchor-link" href="#secret-key"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Secret key”</span></a></div>
+<p>Generate once and keep a copy: it decrypts stored resource credentials and queued email jobs. It also encrypts the gateway tunnel CA and the pool SSH host keys, so losing it breaks gateways too.</p>
+<div class="expressive-code"><link rel="stylesheet" href="/_astro/ec.w36nc.css"><script type="module" src="/_astro/ec.0vx5m.js"></script><figure class="frame is-terminal not-content"><figcaption class="header"><span class="title"></span><span class="sr-only">Terminal window</span></figcaption><pre data-language="sh"><code><div class="ec-line"><div class="code"><span style="--0:#82AAFF;--1:#3B61B0">openssl</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#ECC48D;--1:#3B61B0">rand</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#82AAFF;--1:#3B61B0">-base64</span><span style="--0:#D6DEEB;--1:#403F53"> </span><span style="--0:#F78C6C;--1:#AA0982">32</span></div></div></code></pre><div class="copy"><div aria-live="polite"></div><button title="Copy to clipboard" data-copied="Copied!" data-code="openssl rand -base64 32"><div></div></button></div></figure></div>
+<p>To rotate: move the current value to <code dir="auto">WERBOT_SECRET_KEY_PREVIOUS</code> (comma-separated when there are several), set a new <code dir="auto">WERBOT_SECRET_KEY</code> and restart. Only the server needs the key; never copy it to gateway hosts.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="database">Database</h2><a class="sl-anchor-link" href="#database"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Database”</span></a></div>
+<p><code dir="auto">WERBOT_DATABASE_URL</code> accepts these URL parameters:</p>
+<ul>
+<li><code dir="auto">pool_max_conns</code>: pool size of one replica.</li>
+<li><code dir="auto">statement_timeout</code>: query limit, default <code dir="auto">30s</code>.</li>
+<li><code dir="auto">jit</code>: default <code dir="auto">off</code>.</li>
+</ul>
+<p>The connection formula for several replicas and PgBouncer: <a href="/scaling/#postgresql">scaling.md</a>.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="behind-a-reverse-proxy">Behind a reverse proxy</h2><a class="sl-anchor-link" href="#behind-a-reverse-proxy"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Behind a reverse proxy”</span></a></div>
+<p>Set <code dir="auto">WERBOT_TRUSTED_PROXIES</code> to the CIDRs of the proxies, so the client IP in sessions and audit comes from <code dir="auto">X-Forwarded-For</code>. Set <code dir="auto">WERBOT_PUBLIC_URL</code> with <code dir="auto">https://</code>. The host of <code dir="auto">WERBOT_PUBLIC_URL</code> and the port of <code dir="auto">WERBOT_GATEWAY_ADDR</code> form the tunnel address <code dir="auto">https://&lt;host&gt;:&lt;port&gt;</code> that gateways receive at enrollment. The tunnel uses mTLS that ends on the replica: put an L4 (TCP passthrough) load balancer in front of it with the same external port; a TLS-terminating proxy breaks the tunnel. The API port works behind any HTTP load balancer.</p>
+<p>Without a trusted proxy the server sees the address of the proxy as the client IP, so every user shares one IP. Then the <a href="/mfa/#rate-limits">login and token rate limits</a> per IP count all users together and sessions and audit show the proxy address. Set <code dir="auto">WERBOT_TRUSTED_PROXIES</code> whenever a proxy sits in front.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="separate-web-ui">Separate web UI</h2><a class="sl-anchor-link" href="#separate-web-ui"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Separate web UI”</span></a></div>
+<p>Run <code dir="auto">werbot server</code> with <code dir="auto">WERBOT_WEB_EMBEDDED=false</code>: it serves only the API, and <code dir="auto">werbot web</code> serves the UI and proxies the API (<code dir="auto">WERBOT_WEB_API_URL</code>). Set <code dir="auto">WERBOT_WEB_URL</code> on the server to the UI address (links in emails; default <code dir="auto">WERBOT_PUBLIC_URL</code>) and <code dir="auto">WERBOT_TRUSTED_PROXIES</code> of the server to the subnet of <code dir="auto">werbot web</code> (client IPs in sessions and audit). See <a href="/web/">web.md</a>.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="email">Email</h2><a class="sl-anchor-link" href="#email"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Email”</span></a></div>
+<p>An empty <code dir="auto">WERBOT_SMTP_HOST</code> writes emails to the log. With <code dir="auto">WERBOT_ENV=development</code> the log has the full text with links; in production it does not.</p>
+<p>On any port but 465 the server requires STARTTLS. With <code dir="auto">WERBOT_ENV=development</code> it uses STARTTLS only when the SMTP server offers it, so a local server such as Mailpit (<code dir="auto">make dev-db</code>, SMTP <code dir="auto">localhost:27025</code>, inbox <a href="http://localhost:27825">http://localhost:27825</a>) works without TLS.</p>
+<p><code dir="auto">WERBOT_ENV=development</code> is for local plain-http runs: the session cookie is <code dir="auto">werbot_session</code> without <code dir="auto">Secure</code>. The production cookie and remote access over plain http: <a href="/install/#remote-access">install.md</a>.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="session-recordings">Session recordings</h2><a class="sl-anchor-link" href="#session-recordings"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Session recordings”</span></a></div>
+<p>By default recordings go to the file system under <code dir="auto">WERBOT_DATA_DIR/recordings</code>. That works only with one server replica or a shared ReadWriteMany volume. With several replicas use an S3-compatible store (AWS S3, Cloudflare R2, SeaweedFS) through <code dir="auto">WERBOT_RECORDINGS_S3_BUCKET</code> and the related variables. See <a href="/scaling/#session-recordings">scaling.md</a>.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="geoip-database">GeoIP database</h2><a class="sl-anchor-link" href="#geoip-database"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “GeoIP database”</span></a></div>
+<p><code dir="auto">geoip.refresh</code> downloads <code dir="auto">WERBOT_GEOIP_URL</code> on start and then once a month (a daily check at 04:00 UTC). The URL must be <code dir="auto">https://</code>; <code dir="auto">http://</code> is accepted only for a loopback host. It may contain one <code dir="auto">%s</code>, replaced with the month as <code dir="auto">2006-01</code>: when this month’s file returns 404, last month’s is used. A URL without <code dir="auto">%s</code> is fetched once a month with no fallback. The body may be a raw <code dir="auto">.mmdb</code>, gzip, or a tar archive (optionally gzipped) whose first <code dir="auto">.mmdb</code> file is used, as MaxMind permalinks serve. The country comes from <code dir="auto">country.iso_code</code> (DB-IP, MaxMind GeoLite2) or a top-level <code dir="auto">country_code</code> (IPinfo Lite).</p>
+<p>The URL may carry a token in the query or as <code dir="auto">user:password@</code>; Werbot never logs it or puts it in errors.</p>
+<p>The UI shows “IP Geolocation by DB-IP” only while the URL is DB-IP Lite (a <code dir="auto">/free/</code> path on <code dir="auto">db-ip.com</code>), as its license requires. The credit appears only where the database is used: the country rules and the access check of a resource. A mirror of DB-IP Lite on another host still requires that attribution: add it yourself.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="metrics">Metrics</h2><a class="sl-anchor-link" href="#metrics"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Metrics”</span></a></div>
+<p>An empty <code dir="auto">WERBOT_METRICS_ADDR</code> (and <code dir="auto">WERBOT_GATEWAY_HTTP_ADDR</code> for a gateway) leaves metrics off. Otherwise a separate listener serves <code dir="auto">/metrics</code>; never expose it on a public port. The metric list is in <a href="/scaling/#metrics">scaling.md</a>.</p>
+<div class="sl-heading-wrapper level-h2"><h2 id="deployment-modes">Deployment modes</h2><a class="sl-anchor-link" href="#deployment-modes"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 1 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 0 0-1.42-1.42m8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 1 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 0 0 0 1.42 1 1 0 0 0 1.42 0l3.88-3.89a4.49 4.49 0 0 0 0-6.33M8.83 15.17a1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.92-4.92a1 1 0 1 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Deployment modes”</span></a></div>
+<ul>
+<li>All-in-one (default): <code dir="auto">werbot server</code> serves the API and the UI on one address.</li>
+<li>Several server replicas: an L4 load balancer in front of the tunnel port; see <a href="#behind-a-reverse-proxy">Behind a reverse proxy</a> and <a href="/scaling/">scaling.md</a>.</li>
+<li>Separate UI: see <a href="#separate-web-ui">Separate web UI</a>.</li>
+</ul>
+<p>Compose setup, files and the cluster example: <a href="/install/">install.md</a> and <a href="/scaling/#cluster-example">scaling.md</a>. <code dir="auto">docker compose config</code> refuses an empty <code dir="auto">WERBOT_VERSION</code>, <code dir="auto">WERBOT_SECRET_KEY</code> or <code dir="auto">POSTGRES_PASSWORD</code> and names the generate command. Keep <code dir="auto">.env</code>: its <code dir="auto">WERBOT_SECRET_KEY</code> decrypts stored credentials.</p>
+</div><footer class="sl-flex astro-ddtxxk7k"><div class="meta sl-flex astro-ddtxxk7k"><a href="https://github.com/werbot/werbot/blob/main/docs/configuration.md" class="sl-flex print:hidden astro-qlekgd3o"><svg aria-hidden="true" class="astro-qlekgd3o astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.2em;"><path d="M22 7.24a1 1 0 0 0-.29-.71l-4.24-4.24a1 1 0 0 0-1.1-.22 1 1 0 0 0-.32.22l-2.83 2.83L2.29 16.05a1 1 0 0 0-.29.71V21a1 1 0 0 0 1 1h4.24a1 1 0 0 0 .76-.29l10.87-10.93L21.71 8c.1-.1.17-.2.22-.33a1 1 0 0 0 0-.24v-.14l.07-.05ZM6.83 20H4v-2.83l9.93-9.93 2.83 2.83L6.83 20ZM18.17 8.66l-2.83-2.83 1.42-1.41 2.82 2.82-1.41 1.42Z"/></svg>Edit page</a></div><div class="pagination-links print:hidden astro-b5raizh3" dir="ltr"><a href="/install/" rel="prev" class="astro-b5raizh3"><svg aria-hidden="true" class="astro-b5raizh3 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.5rem;"><path d="M17 11H9.41l3.3-3.29a1.004 1.004 0 1 0-1.42-1.42l-5 5a1 1 0 0 0-.21.33 1 1 0 0 0 0 .76 1 1 0 0 0 .21.33l5 5a1.002 1.002 0 0 0 1.639-.325 1 1 0 0 0-.219-1.095L9.41 13H17a1 1 0 0 0 0-2Z"/></svg><span class="astro-b5raizh3">Previous<br class="astro-b5raizh3"><span class="link-title astro-b5raizh3">Install</span></span></a><a href="/upgrading/" rel="next" class="astro-b5raizh3"><svg aria-hidden="true" class="astro-b5raizh3 astro-hkc32dio" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="--sl-icon-size: 1.5rem;"><path d="M17.92 11.62a1.001 1.001 0 0 0-.21-.33l-5-5a1.003 1.003 0 1 0-1.42 1.42l3.3 3.29H7a1 1 0 0 0 0 2h7.59l-3.3 3.29a1.002 1.002 0 0 0 .325 1.639 1 1 0 0 0 1.095-.219l5-5a1 1 0 0 0 .21-.33 1 1 0 0 0 0-.76Z"/></svg><span class="astro-b5raizh3">Next<br class="astro-b5raizh3"><span class="link-title astro-b5raizh3">Upgrading</span></span></a></div></footer></div></div></main></div></div></div></div></body></html>
