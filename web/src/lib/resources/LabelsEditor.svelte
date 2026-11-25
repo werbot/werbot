@@ -14,9 +14,9 @@
 	</div>
 	{#each rows as row, i (i)}
 		<div class="row">
-			<FilledField compact label={m.resources_label_key()} bind:value={row.key} />
-			<FilledField compact label={m.resources_label_value()} bind:value={row.value} />
-			<Button type="button" scheme="w" variant="plain" onclick={() => rows.splice(i, 1)}>{m.resources_label_remove()}</Button>
+			<div class="field"><FilledField label={m.resources_label_key()} bind:value={row.key} /></div>
+			<div class="field"><FilledField label={m.resources_label_value()} bind:value={row.value} /></div>
+			<Button type="button" size={40} scheme="w" variant="plain" onclick={() => rows.splice(i, 1)}>{m.resources_label_remove()}</Button>
 		</div>
 	{/each}
 </div>
@@ -38,5 +38,10 @@
 		display: flex;
 		gap: 8px;
 		align-items: center;
+	}
+
+	.field {
+		flex: 1;
+		min-width: 0;
 	}
 </style>

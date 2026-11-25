@@ -125,6 +125,8 @@
 	],
 	"common_cancel": "Cancel",
 	"common_filter": "Filter",
+	"common_find": "Find",
+	"common_nothing_found": "Nothing found",
 	"common_more": "More actions",
 	"common_reset": "Reset",
 	"common_period": "Period",

@@ -1,5 +1,9 @@
 <script lang="ts">
 	import { Dropdown, Icon, Menu, MenuItem, type SelectOption } from '#lib/ui/index.js';
+	import { m } from '#lib/paraglide/messages.js';
+
+	// a longer list gets a search field on top of the menu
+	const searchFrom = 8;
 
 	interface Props {
 		label: string;
@@ -14,13 +18,22 @@
 	const id = $props.id();
 	let open = $state(false);
 	let width = $state(0);
+	let query = $state('');
 	let current = $derived(options.find((o) => o.value === value));
+	let found = $derived(query.trim() ? options.filter((o) => o.label.toLowerCase().includes(query.trim().toLowerCase())) : options);
 
 	function pick(option: SelectOption) {
 		open = false;
 		if (option.value === value) return;
 		value = option.value;
 		onchange?.(value);
+	}
+
+	// Enter in the search picks the first match instead of submitting the form
+	function onsearchkey(event: KeyboardEvent) {
+		if (event.key !== 'Enter') return;
+		event.preventDefault();
+		if (found[0]) pick(found[0]);
 	}
 
 	// Escape closes the menu only: the drawer or modal around it listens later, on the bubble phase.
@@ -37,19 +50,25 @@
 <div class={['fsel', current?.icon && 'fsel--icon', disabled && 'fsel--disabled']} bind:clientWidth={width}>
 	<Dropdown bind:open>
 		{#snippet trigger({ toggle })}
-			<button {id} type="button" class="fsel__control" onclick={toggle} {disabled}>
+			<button {id} type="button" class="fsel__control" onclick={() => ((query = ''), toggle())} {disabled}>
 				{#if current?.icon}<span class="fsel__icon"><Icon name={current.icon} size={20} /></span>{/if}
 				<span class="fsel__value">{current?.label ?? ''}</span>
 				<span class="fsel__chevron"><Icon name="chevron-down" size={16} /></span>
 			</button>
 		{/snippet}
-		<div class="fsel__list">
-			<Menu minWidth={width}>
-				{#each options as option (option.value)}
+		<Menu minWidth={width}>
+			{#if options.length >= searchFrom}
+				<!-- an opened long list is for searching: the field takes the focus -->
+				<input class="fsel__search" type="text" placeholder={m.common_find()} aria-label={m.common_find()} bind:value={query} onkeydown={onsearchkey} {@attach (el) => el.focus()} />
+			{/if}
+			<div class="fsel__list miso-scroll">
+				{#each found as option (option.value)}
 					<MenuItem icon={option.icon} selected={option.value === value} onclick={() => pick(option)}>{option.label}</MenuItem>
+				{:else}
+					<div class="fsel__empty">{m.common_nothing_found()}</div>
 				{/each}
-			</Menu>
-		</div>
+			</div>
+		</Menu>
 	</Dropdown>
 	<label class="fsel__label" for={id}>{label}</label>
 </div>
@@ -134,8 +153,38 @@
 		left: 42px;
 	}
 
-	.fsel__list :global(.miso-menu) {
+	/* the search and empty state follow the miso-ui FieldTypeMenu */
+	.fsel__search {
+		width: 100%;
+		box-sizing: border-box;
+		margin: 0;
+		padding: 8px 10px 8px 8px;
+		border: 0;
+		border-bottom: 1px solid var(--miso-line-tertiary);
+		border-radius: 0;
+		background: transparent;
+		font: var(--miso-font-ui-13-reg);
+		color: var(--miso-txt-primary);
+		outline: none;
+	}
+
+	.fsel__search::placeholder {
+		color: var(--miso-txt-tertiary);
+	}
+
+	.fsel__list {
+		display: flex;
+		flex-direction: column;
+		gap: 1px;
 		max-height: min(320px, 50vh);
+		overflow-x: hidden;
 		overflow-y: auto;
+	}
+
+	.fsel__empty {
+		padding: 12px 10px;
+		font: var(--miso-font-ui-13-reg);
+		color: var(--miso-txt-tertiary);
+		text-align: center;
 	}
 </style>
