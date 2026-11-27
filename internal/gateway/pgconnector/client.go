@@ -28,8 +28,8 @@ type clientSide struct {
 	log     sessionLog
 	buf     []byte
 	hdr     [5]byte
-	stmts   map[string]string // statement name → logged text
-	portals map[string]portal
+	stmts   map[string]named
+	portals map[string]named
 	kept    int   // bytes held by stmts and portals, up to maxRetained
 	last    *item // the last query or execute: client COPY data counts to it
 
@@ -60,8 +60,8 @@ func (c *clientSide) next() error {
 		}
 	}
 	if err != nil {
-		if _, ok := fatalText[err]; ok {
-			sendLimit(c.out, err)
+		if le, ok := errors.AsType[*limitErr](err); ok {
+			sendLimit(c.out, le)
 		}
 		return err
 	}
@@ -85,7 +85,9 @@ func (c *clientSide) message(typ byte, body []byte) error {
 	if err != nil {
 		return err
 	}
-	c.q.push(it)
+	if err := c.q.push(it); err != nil {
+		return err
+	}
 	if err := c.header(typ, len(body)); err != nil {
 		return err
 	}
@@ -98,8 +100,10 @@ func (c *clientSide) stream(typ byte, n int) error {
 	switch typ {
 	case 'B':
 		return c.bigBind(n)
-	case 'D', 'S': // Describe, Sync
-		c.q.push(&item{kind: typ})
+	case 'D', 'S', 'c', 'f': // Describe, Sync, CopyDone, CopyFail
+		if err := c.q.push(&item{kind: typ}); err != nil {
+			return err
+		}
 	case 'd': // CopyData
 		if c.last != nil {
 			c.last.copyIn.Add(int64(n))
@@ -134,7 +138,7 @@ func (c *clientSide) op(typ byte, body []byte) (*item, error) {
 		if c.bind.Decode(body) != nil {
 			return nil, errMalformed
 		}
-		return c.bound(c.bind.DestinationPortal, c.bind.PreparedStatement, bindParams(&c.bind))
+		return c.bound(c.bind.DestinationPortal, c.bind.PreparedStatement, c.loggedParams())
 	case 'E':
 		if c.exec.Decode(body) != nil {
 			return nil, errMalformed
@@ -155,23 +159,35 @@ func (c *clientSide) parsed(body []byte) (*item, error) {
 	if c.parse.Decode(body) != nil {
 		return nil, errMalformed
 	}
-	if err := store(c, c.stmts, c.parse.Name, dbproxy.LogText(c.parse.Query), stmtSize); err != nil {
+	text := dbproxy.LogText(c.parse.Query)
+	if err := c.store(c.stmts, c.parse.Name, named{text: text, size: len(text)}); err != nil {
 		return nil, err
 	}
 	return c.checked('P', dbproxy.Op{Kind: "parse", Text: c.parse.Query, Statement: c.parse.Name, DB: c.log.db})
 }
 
-// bound keeps a new portal; a failed Bind is logged as its execute.
+// bound keeps a new portal; a failed Bind is logged as its execute. params
+// are nil unless the resource records them.
 func (c *clientSide) bound(name, stmt string, params []string) (*item, error) {
-	text := c.stmts[stmt]
-	if err := store(c, c.portals, name, portal{stmt: stmt, text: text, params: params}, portalSize); err != nil {
+	p := named{stmt: stmt, text: c.stmts[stmt].text, params: params}
+	for _, v := range params {
+		p.size += len(v)
+	}
+	if err := c.store(c.portals, name, p); err != nil {
 		return nil, err
 	}
-	it := c.newItem('B', dbproxy.Op{Kind: "execute", Text: text, Statement: stmt})
-	if c.log.params {
-		it.entry.Params = params
-	}
+	it := c.newItem('B', dbproxy.Op{Kind: "execute", Text: p.text, Statement: stmt})
+	it.entry.Params = params
 	return it, nil
+}
+
+// loggedParams are the logged parameters of c.bind: nil unless the resource
+// records them, so they are neither computed nor kept.
+func (c *clientSide) loggedParams() []string {
+	if !c.log.params {
+		return nil
+	}
+	return bindParams(&c.bind)
 }
 
 // closed forgets a closed statement or portal.
@@ -181,9 +197,9 @@ func (c *clientSide) closed(body []byte) (*item, error) {
 	}
 	switch c.close.ObjectType {
 	case 'S':
-		drop(c, c.stmts, c.close.Name, stmtSize)
+		c.drop(c.stmts, c.close.Name)
 	case 'P':
-		drop(c, c.portals, c.close.Name, portalSize)
+		c.drop(c.portals, c.close.Name)
 	}
 	return &item{kind: 'C'}, nil
 }
@@ -207,7 +223,9 @@ func (c *clientSide) bigBind(n int) error {
 	if err != nil {
 		return err
 	}
-	c.q.push(it)
+	if err := c.q.push(it); err != nil {
+		return err
+	}
 	if err := c.header('B', n+len(names[0])+len(names[1])+2); err != nil {
 		return err
 	}

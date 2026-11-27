@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -108,6 +109,22 @@ func TestPreSessionDatabaseNotAllowed(t *testing.T) {
 	out, _, err = preSession(t, cfg, startupMsg(t, map[string]string{"user": "x"}))
 	require.NoError(t, err)
 	assert.Equal(t, "main", out.DBName, "no dbname is the resource database")
+}
+
+// PostgreSQL cuts a start's database name at 63 bytes, multibyte or not;
+// allowed_databases is checked on the name the database will use.
+func TestPreSessionDatabaseNameCut(t *testing.T) {
+	cfg := baseConfig()
+	cfg.AllowedDatabases = []string{"*_ok"}
+	long := strings.Repeat("s", 63)
+	_, w, err := preSession(t, cfg, startupMsg(t, map[string]string{"user": "x", "database": long + "_ok"}))
+	require.ErrorIs(t, err, gateway.ErrDenied)
+	assert.Equal(t, `werbot: database "`+long+`" is not allowed`, fatal(t, w).Message)
+
+	cfg.AllowedDatabases = []string{"a*"}
+	out, _, err := preSession(t, cfg, startupMsg(t, map[string]string{"user": "x", "database": strings.Repeat("a", 62) + "é"}))
+	require.NoError(t, err)
+	assert.Equal(t, strings.Repeat("a", 62)+"\xc3", out.DBName, "cut on the byte, as the database does")
 }
 
 func TestPreSessionGarbage(t *testing.T) {

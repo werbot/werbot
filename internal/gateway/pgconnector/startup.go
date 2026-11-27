@@ -28,6 +28,7 @@ const (
 	maxStartup     = 10000 // bytes of a StartupMessage, length word included
 	maxTLSRequests = 2     // SSLRequest/GSSENCRequest answered N before the start
 	cancelLen      = 16    // a CancelRequest with a 4-byte secret key
+	maxDBName      = 63    // NAMEDATALEN - 1: the database cuts a longer start name
 )
 
 var errUnsupported = fmt.Errorf("%w: unsupported startup packet", gateway.ErrDenied)
@@ -161,9 +162,12 @@ func admit(cfg *postgresv1.Config, params map[string]string) (db, refusal string
 }
 
 // chooseDB is the database of a start ("" is the resource's) and whether
-// allowed_databases admits it; an empty list admits any.
+// allowed_databases admits it; an empty list admits any. A name is cut at
+// maxDBName bytes, as the database does (on the byte, even within a
+// character), so the check and the dial see the name the database uses.
 func chooseDB(cfg *postgresv1.Config, params map[string]string) (string, bool) {
 	db := cmp.Or(params["database"], cfg.GetDatabase())
+	db = db[:min(len(db), maxDBName)]
 	allowed := cfg.GetAllowedDatabases()
 	return db, len(allowed) == 0 || slices.ContainsFunc(allowed, func(g string) bool {
 		ok, _ := path.Match(g, db)

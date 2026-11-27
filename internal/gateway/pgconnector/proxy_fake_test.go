@@ -47,11 +47,17 @@ func fakeLoop(b *pgproto3.Backend, on func(pgproto3.FrontendMessage)) {
 // rawClient is a protocol-level client of p, logged in to database main.
 func rawClient(t *testing.T, p *proxy) (net.Conn, *pgproto3.Frontend) {
 	t.Helper()
+	return rawLogin(t, p, "main")
+}
+
+// rawLogin is a protocol-level client of p, logged in to database db.
+func rawLogin(t *testing.T, p *proxy, db string) (net.Conn, *pgproto3.Frontend) {
+	t.Helper()
 	conn, err := net.Dial("tcp", p.addr)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = conn.Close() })
 	f := pgproto3.NewFrontend(conn, conn)
-	f.Send(&pgproto3.StartupMessage{ProtocolVersion: pgproto3.ProtocolVersion30, Parameters: map[string]string{"user": "nobody", "database": "main"}})
+	f.Send(&pgproto3.StartupMessage{ProtocolVersion: pgproto3.ProtocolVersion30, Parameters: map[string]string{"user": "nobody", "database": db}})
 	require.NoError(t, f.Flush())
 	untilReady(t, f)
 	return conn, f

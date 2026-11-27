@@ -8,7 +8,6 @@ import (
 
 	"github.com/jackc/pgx/v5/pgproto3"
 
-	"github.com/werbot/werbot/internal/gateway"
 	"github.com/werbot/werbot/internal/gateway/dbproxy"
 )
 
@@ -22,8 +21,10 @@ type dbSide struct {
 	lr     io.LimitedReader
 	q      *queue
 	g      *dbproxy.Guard
-	secret gateway.Secret
+	sess   sessionLog
 	cur    *item // the head of q once looked up
+	copyIn bool  // cur runs a COPY FROM STDIN
+	skip   bool  // an extended message failed: the database skips to the next Sync
 	buf    []byte
 	er     pgproto3.ErrorResponse
 }
@@ -66,6 +67,8 @@ func (d *dbSide) message(typ byte, n int) error {
 		if n <= maxReply {
 			return d.parsed(typ, n)
 		}
+	case 'G': // CopyInResponse
+		d.copyIn = true
 	}
 	if err := pass(d.w, &d.lr, d.r, n); err != nil {
 		return err
@@ -107,6 +110,7 @@ func (d *dbSide) reply(typ byte, body []byte) {
 			d.pop()
 		}
 	case typ == 'C':
+		d.endCopy()
 		d.complete(it, body)
 	case typ == 'I' || typ == 's': // EmptyQueryResponse, PortalSuspended
 		if it.kind == 'E' {
@@ -132,31 +136,47 @@ func (d *dbSide) complete(it *item, body []byte) {
 }
 
 // failed applies an ErrorResponse: a query keeps the first error until
-// ReadyForQuery; a failed Parse, Bind or Execute is logged now.
+// ReadyForQuery; a failed Sync (a deferred check at the implicit commit) is
+// an execute line of its own; a failed Parse, Bind or Execute is logged now,
+// and the database skips every message up to the next Sync.
 func (d *dbSide) failed(it *item, body []byte) {
+	text := d.errorText(body)
+	d.endCopy()
 	switch it.kind {
 	case 'Q', 'F':
 		if it.err == "" {
-			it.err = d.errorText(body)
+			it.err = text
 		}
-	case 'P', 'B', 'E':
-		it.err, it.log = d.errorText(body), true
+	case 'S':
+		d.g.Log(dbproxy.Entry{T: time.Since(d.sess.t0), Kind: "execute", DB: d.sess.db, Error: text})
+	default: // Parse, Bind, Execute, Describe, Close
+		d.skip = true
+		it.err, it.log = text, it.kind != 'D' && it.kind != 'C'
 		d.finish(it)
-	case 'D', 'C':
-		d.pop()
+	}
+}
+
+// endCopy ends the COPY FROM STDIN of the head: the Syncs the database read
+// in it get no reply.
+func (d *dbSide) endCopy() {
+	if d.copyIn {
+		d.copyIn = false
+		d.q.copied()
 	}
 }
 
 // ready applies a ReadyForQuery: it ends the cycle up to the Sync, query or
-// function call it answers. Messages before it never ran (the database skips
-// them after an error) and get no line.
+// function call it answers. After an extended-protocol error it answers the
+// Sync: the messages before it, queries too, never ran and get no line.
 func (d *dbSide) ready() {
+	skipped := d.skip
+	d.skip = false
 	for it := d.head(); it != nil; it = d.head() {
 		d.pop()
-		switch it.kind {
-		case 'S':
+		switch {
+		case it.kind == 'S':
 			return
-		case 'Q', 'F':
+		case (it.kind == 'Q' || it.kind == 'F') && !skipped:
 			d.log(it)
 			return
 		}
@@ -197,5 +217,5 @@ func (d *dbSide) errorText(body []byte) string {
 	if body == nil || d.er.Decode(body) != nil {
 		return "unreadable error"
 	}
-	return d.secret.Redact(d.er.Code + ": " + d.er.Message)
+	return d.sess.secret.Redact(d.er.Code + ": " + d.er.Message)
 }

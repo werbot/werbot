@@ -39,18 +39,18 @@ func TestValidateDefaults(t *testing.T) {
 	require.NoError(t, Validate(c))
 	assert.EqualValues(t, DefaultPort, c.GetPort())
 	assert.Equal(t, DefaultDatabase, c.GetDatabase())
-	assert.Equal(t, SSLVerifyFull, c.GetSslmode())
+	assert.Equal(t, sslVerifyFull, c.GetSslmode())
 	require.NotNil(t, c.RecordParams, "record_params unset becomes set")
 	assert.True(t, c.GetRecordParams(), "record_params unset means true")
 
-	off := &postgresv1.Config{Host: "db", Username: "app", Port: 6432, Database: "app", Sslmode: SSLRequire, RecordParams: proto.Bool(false)}
+	off := &postgresv1.Config{Host: "db", Username: "app", Port: 6432, Database: "app", Sslmode: sslRequire, RecordParams: proto.Bool(false)}
 	require.NoError(t, Validate(off))
 	assert.EqualValues(t, 6432, off.GetPort())
 	assert.Equal(t, "app", off.GetDatabase())
-	assert.Equal(t, SSLRequire, off.GetSslmode())
+	assert.Equal(t, sslRequire, off.GetSslmode())
 	assert.False(t, off.GetRecordParams(), "an explicit false stays")
 
-	full := &postgresv1.Config{Host: "::1", Username: "app", Sslmode: SSLDisable, AllowedDatabases: []string{"app_*", "reports"},
+	full := &postgresv1.Config{Host: "::1", Username: "app", Sslmode: sslDisable, AllowedDatabases: []string{"app_*", "reports"},
 		CaPem: testCA(t)}
 	require.NoError(t, Validate(full))
 }

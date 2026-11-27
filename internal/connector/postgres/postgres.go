@@ -21,9 +21,9 @@ const TypeName = "postgres"
 const (
 	DefaultPort     = 5432
 	DefaultDatabase = "postgres"
-	SSLDisable      = "disable"
-	SSLRequire      = "require"
-	SSLVerifyFull   = "verify-full"
+	sslDisable      = "disable"
+	sslRequire      = "require"
+	sslVerifyFull   = "verify-full"
 )
 
 // Limits of a *postgresv1.Config: PostgreSQL identifiers are at most 63
@@ -124,11 +124,11 @@ func validateAllowed(globs []string) error {
 // validateTLS checks sslmode and ca_pem and sets sslmode verify-full when
 // it is empty.
 func validateTLS(c *postgresv1.Config) error {
-	if !slices.Contains([]string{"", SSLDisable, SSLRequire, SSLVerifyFull}, c.GetSslmode()) {
+	if !slices.Contains([]string{"", sslDisable, sslRequire, sslVerifyFull}, c.GetSslmode()) {
 		return errors.New("postgres: invalid sslmode")
 	}
 	if c.GetSslmode() == "" {
-		c.Sslmode = SSLVerifyFull
+		c.Sslmode = sslVerifyFull
 	}
 	if pem := c.GetCaPem(); len(pem) > maxCAPEMSize || (pem != "" && !x509.NewCertPool().AppendCertsFromPEM([]byte(pem))) {
 		return errors.New("postgres: invalid ca_pem")

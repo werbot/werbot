@@ -46,11 +46,11 @@ func (Connector) Serve(ctx context.Context, s *gateway.Session) error {
 	}
 	defer s.Stream.Close()
 	cr := bufio.NewReaderSize(s.Stream, ioBuf)
-	m, db, err := start(cr, s)
+	msg, cfg, db, err := start(cr, s)
 	if err != nil {
 		return err
 	}
-	hc, canceler, err := connect(ctx, s, m.cfg, m.msg.Parameters, db)
+	hc, canceler, err := connect(ctx, s, cfg, msg.Parameters, db)
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil
@@ -67,33 +67,28 @@ func (Connector) Serve(ctx context.Context, s *gateway.Session) error {
 		OnCancel:   func() { g.Log(dbproxy.Entry{T: time.Since(t0), Kind: "cancel", DB: db}) },
 	})
 	defer release()
-	if _, err := s.Stream.Write(handshake(m.msg, hc.ParameterStatuses, key, hc.TxStatus)); err != nil {
+	if _, err := s.Stream.Write(handshake(msg, hc.ParameterStatuses, key, hc.TxStatus)); err != nil {
 		return nil // the client is gone
 	}
-	c, d := newRelay(ctx, cr, hc.Conn, s.Stream, g, sessionLog{t0: t0, db: db, params: m.cfg.GetRecordParams(), secret: s.Secret})
+	c, d := newRelay(ctx, cr, hc.Conn, s.Stream, g, sessionLog{t0: t0, db: db, params: cfg.GetRecordParams(), secret: s.Secret})
 	return relay(ctx, s, hc, c, d)
 }
 
-// startup is the admitted start of a session.
-type startup struct {
-	msg *pgproto3.StartupMessage
-	cfg *postgresv1.Config
-}
-
 // start reads the client's StartupMessage and checks it again against the
-// resource; a refusal tells the client.
-func start(cr *bufio.Reader, s *gateway.Session) (startup, string, error) {
+// resource; a refusal tells the client. It returns the message, the resource
+// config and the database.
+func start(cr *bufio.Reader, s *gateway.Session) (*pgproto3.StartupMessage, *postgresv1.Config, string, error) {
 	cfg, err := resourceConfig(s.Resource)
 	if err != nil {
-		return startup{}, "", err
+		return nil, nil, "", err
 	}
 	m, err := readStartup(cr)
 	if err != nil {
-		return startup{}, "", err
+		return nil, nil, "", err
 	}
 	db, refusal := admit(cfg, m.Parameters)
 	if refusal != "" {
-		return startup{}, "", refuse(s.Stream, refusal)
+		return nil, nil, "", refuse(s.Stream, refusal)
 	}
-	return startup{msg: m, cfg: cfg}, db, nil
+	return m, cfg, db, nil
 }

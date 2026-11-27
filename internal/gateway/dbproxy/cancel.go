@@ -31,10 +31,13 @@ func (r *CancelRegistry) Register(t CancelTarget) (key uint64, release func()) {
 	if r.targets == nil {
 		r.targets = map[uint64]CancelTarget{}
 	}
-	for key == 0 || r.has(key) {
+	for {
 		var b [8]byte
 		_, _ = rand.Read(b[:]) // crypto/rand.Read never returns an error
 		key = binary.BigEndian.Uint64(b[:])
+		if _, taken := r.targets[key]; key != 0 && !taken {
+			break
+		}
 	}
 	r.targets[key] = t
 	return key, func() {
@@ -42,12 +45,6 @@ func (r *CancelRegistry) Register(t CancelTarget) (key uint64, release func()) {
 		delete(r.targets, key)
 		r.mu.Unlock()
 	}
-}
-
-// has reports whether key is registered; the caller holds r.mu.
-func (r *CancelRegistry) has(key uint64) bool {
-	_, ok := r.targets[key]
-	return ok
 }
 
 // Cancel interrupts the session of key when it belongs to resourceID: OnCancel,

@@ -37,10 +37,48 @@ func TestRetainedBytesLimit(t *testing.T) {
 	require.NoError(t, f.Flush())
 	untilReady(t, f) // a Close gives back what its statement kept
 
-	parse(500, 600) // past 16 MiB
+	// up to the first Parse past 16 MiB: the session ends at it, so the client
+	// writes nothing after and reads the FATAL
+	size := len("s500") + len(text)
+	parse(500, 500+(maxRetained-250*size)/size+1)
 	require.NoError(t, f.Flush())
 	e := fatalOf(t, f)
 	assert.Equal(t, "54000", e.Code)
 	assert.Equal(t, "werbot: prepared statements and portals exceed 16 MiB", e.Message)
-	require.Error(t, p.serveErr(t), "the session ends")
+	require.ErrorIs(t, p.serveErr(t), errRetained, "the session ends")
+}
+
+// Messages that wait for a reply are bounded per session: one past
+// maxPending ends it with a FATAL.
+func TestPendingQueueLimit(t *testing.T) {
+	p := fakeProxy(t.Context(), t, func(b *pgproto3.Backend) { fakeLoop(b, func(pgproto3.FrontendMessage) {}) }) // never answers
+	conn, f := rawClient(t, p)
+	require.NoError(t, conn.SetReadDeadline(time.Now().Add(10*time.Second)))
+	for range maxPending + 1 {
+		f.Send(&pgproto3.Sync{})
+	}
+	require.NoError(t, f.Flush())
+	e := fatalOf(t, f)
+	assert.Equal(t, "54000", e.Code)
+	assert.Equal(t, "werbot: too many pending messages", e.Message)
+	require.ErrorIs(t, p.serveErr(t), errPending, "the session ends")
+}
+
+// With record_params off a Bind's parameters are neither computed, kept nor
+// logged; with it on they are all three.
+func TestBindParamsOnlyWhenRecorded(t *testing.T) {
+	body, err := (&pgproto3.Bind{DestinationPortal: "p", Parameters: [][]byte{[]byte("v1"), nil}}).Encode(nil)
+	require.NoError(t, err)
+	for _, record := range []bool{false, true} {
+		c := &clientSide{log: sessionLog{params: record}, stmts: map[string]named{}, portals: map[string]named{}}
+		it, err := c.op('B', body[5:])
+		require.NoError(t, err)
+		kept := []string(nil)
+		if record {
+			kept = []string{"v1", `\N`}
+		}
+		assert.Equal(t, kept, c.portals["p"].params, "record_params %v", record)
+		assert.Equal(t, kept, it.entry.Params, "record_params %v", record)
+		assert.Equal(t, len("p")+len(strings.Join(kept, "")), c.kept, "record_params %v", record)
+	}
 }

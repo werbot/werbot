@@ -22,25 +22,26 @@ const (
 	maxParsed   = 16 << 20 // Query, Parse, Bind, Execute, FunctionCall and Close read whole
 	maxNames    = 10000    // prepared statements plus portals of one connection
 	maxRetained = 16 << 20 // bytes of names, logged texts and parameters they keep
+	maxPending  = 65536    // client messages of one connection that wait for a reply
 	maxReply    = 1 << 20  // CommandComplete, ErrorResponse and ReadyForQuery read whole
 	keepBuf     = 64 << 10 // a message buffer above this is released after its message
 )
 
+// limitErr is a broken relay limit: the client reads "werbot: <msg>" in a
+// FATAL 54000 before the gateway ends its session.
+type limitErr struct{ msg string }
+
+func (e *limitErr) Error() string { return "postgres: " + e.msg }
+
 var (
+	errTooLarge     = &limitErr{"message exceeds 16 MiB"}
+	errTooManyNames = &limitErr{"too many prepared statements"}
+	errRetained     = &limitErr{"prepared statements and portals exceed 16 MiB"}
+	errPending      = &limitErr{"too many pending messages"}
 	errMalformed    = errors.New("postgres: malformed protocol message")
-	errTooLarge     = errors.New("postgres: client message exceeds 16 MiB")
-	errTooManyNames = errors.New("postgres: too many prepared statements")
-	errRetained     = errors.New("postgres: prepared statements and portals exceed 16 MiB")
 	errDenied       = errors.New("postgres: operation denied")
 	errTerminate    = errors.New("postgres: client terminated")
 )
-
-// fatalText is what the client reads before the gateway ends its session.
-var fatalText = map[error]string{
-	errTooLarge:     "werbot: message exceeds 16 MiB",
-	errTooManyNames: "werbot: too many prepared statements",
-	errRetained:     "werbot: prepared statements and portals exceed 16 MiB",
-}
 
 // sessionLog is what the relay stamps on the querylog lines of a session.
 type sessionLog struct {
@@ -57,8 +58,8 @@ func newRelay(ctx context.Context, cr *bufio.Reader, db io.ReadWriter, client io
 	q := &queue{}
 	out := &lockedWriter{w: client}
 	c := &clientSide{ctx: ctx, r: cr, w: bufio.NewWriterSize(db, ioBuf), out: out, q: q, g: g, log: l,
-		stmts: map[string]string{}, portals: map[string]portal{}}
-	d := &dbSide{r: bufio.NewReaderSize(db, ioBuf), w: bufio.NewWriterSize(out, ioBuf), q: q, g: g, secret: l.secret}
+		stmts: map[string]named{}, portals: map[string]named{}}
+	d := &dbSide{r: bufio.NewReaderSize(db, ioBuf), w: bufio.NewWriterSize(out, ioBuf), q: q, g: g, sess: l}
 	return c, d
 }
 
@@ -163,6 +164,6 @@ func (l *lockedWriter) Write(p []byte) (int, error) {
 // sendLimit tells the client which limit ended its session.
 // ponytail: a FATAL may land between two partial flushes of a reply larger
 // than the write buffer; the session ends right after either way.
-func sendLimit(w io.Writer, err error) {
-	sendFatal(w, &pgproto3.ErrorResponse{Severity: "FATAL", SeverityUnlocalized: "FATAL", Code: "54000", Message: fatalText[err]})
+func sendLimit(w io.Writer, e *limitErr) {
+	sendFatal(w, &pgproto3.ErrorResponse{Severity: "FATAL", SeverityUnlocalized: "FATAL", Code: "54000", Message: "werbot: " + e.msg})
 }
