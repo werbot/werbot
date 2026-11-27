@@ -271,7 +271,8 @@ func validID(s string) *uuid.UUID {
 }
 
 // heartbeatHealth converts the probe results and counts the dropped ones:
-// a result without a valid time cannot be ordered against stored ones.
+// a result without a valid time cannot be ordered against stored ones. For
+// the same reason an agent_readonly check without a valid time is left out.
 func heartbeatHealth(in []*gatewayv1.ResourceHealth) (out []ResourceHealth, dropped int) {
 	for _, h := range in {
 		id, err := uuid.Parse(h.GetResourceId())
@@ -279,8 +280,12 @@ func heartbeatHealth(in []*gatewayv1.ResourceHealth) (out []ResourceHealth, drop
 			dropped++
 			continue
 		}
-		out = append(out, ResourceHealth{ResourceID: id, OK: h.GetOk(), Error: h.GetError(), CheckedAt: h.GetCheckedAt().AsTime(),
-			AgentReadonlyStatus: h.GetAgentReadonlyStatus(), AgentReadonlyDetail: h.GetAgentReadonlyDetail(), AgentReadonlyVersion: h.GetAgentReadonlyVersion()})
+		r := ResourceHealth{ResourceID: id, OK: h.GetOk(), Error: h.GetError(), CheckedAt: h.GetCheckedAt().AsTime()}
+		if h.GetAgentReadonlyCheckedAt().CheckValid() == nil {
+			r.AgentReadonlyStatus, r.AgentReadonlyDetail = h.GetAgentReadonlyStatus(), h.GetAgentReadonlyDetail()
+			r.AgentReadonlyVersion, r.AgentReadonlyCheckedAt = h.GetAgentReadonlyVersion(), h.GetAgentReadonlyCheckedAt().AsTime()
+		}
+		out = append(out, r)
 	}
 	return out, dropped
 }

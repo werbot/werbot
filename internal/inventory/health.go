@@ -30,9 +30,10 @@ type Health struct {
 	CheckedAt  time.Time
 	// AgentReadonlyStatus is a check of the agent_readonly credential (ok,
 	// has_write or error; empty: none in this result) of check version
-	// AgentReadonlyVersion, with its findings.
+	// AgentReadonlyVersion, with its findings; it ended at AgentReadonlyCheckedAt.
 	AgentReadonlyStatus, AgentReadonlyDetail string
 	AgentReadonlyVersion                     int64
+	AgentReadonlyCheckedAt                   time.Time
 }
 
 // HealthStatus is the state of a resource over the online instances of its pool:
@@ -76,7 +77,8 @@ func (s *Service) ReportHealth(ctx context.Context, orgID, instanceID uuid.UUID,
 }
 
 // setAgentReadonly stores the agent_readonly checks of hs that match the
-// current check version and audits each change of status or detail.
+// current check version and ended after the stored one, and audits each
+// change of status or detail.
 func setAgentReadonly(ctx context.Context, st Store, tx pgx.Tx, orgID, instanceID uuid.UUID, hs []Health) error {
 	arg := dbq.SetAgentReadonlyCheckedParams{OrgID: orgID, InstanceID: instanceID}
 	for _, h := range hs {
@@ -87,7 +89,7 @@ func setAgentReadonly(ctx context.Context, st Store, tx pgx.Tx, orgID, instanceI
 		arg.Statuses = append(arg.Statuses, h.AgentReadonlyStatus)
 		arg.Details = append(arg.Details, truncate(h.AgentReadonlyDetail, maxHealthError))
 		arg.Versions = append(arg.Versions, h.AgentReadonlyVersion)
-		arg.CheckedAts = append(arg.CheckedAts, h.CheckedAt)
+		arg.CheckedAts = append(arg.CheckedAts, h.AgentReadonlyCheckedAt)
 	}
 	if len(arg.ResourceIds) == 0 {
 		return nil
@@ -97,6 +99,9 @@ func setAgentReadonly(ctx context.Context, st Store, tx pgx.Tx, orgID, instanceI
 		return err
 	}
 	for _, r := range rows {
+		if !r.Changed {
+			continue
+		}
 		e := auditlog.Event{OrgID: &orgID, ActorKind: "gateway", Action: "resource.agent_readonly.check", TargetType: "resource",
 			TargetID: r.ID.String(), Data: map[string]any{"status": r.AgentReadonlyStatus, "detail": r.AgentReadonlyDetail}}
 		if err := auditlog.Write(ctx, tx, e); err != nil {

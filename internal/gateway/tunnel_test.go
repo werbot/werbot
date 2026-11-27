@@ -249,7 +249,7 @@ func TestTunnelStopsOnExpiredCert(t *testing.T) {
 	defer cancel()
 	done := make(chan error, 1)
 	go func() {
-		done <- e.c.Run(ctx, func() *gatewayv1.Heartbeat { return &gatewayv1.Heartbeat{Version: "test"} })
+		done <- e.c.Run(ctx, func() *gatewayv1.Heartbeat { return &gatewayv1.Heartbeat{Version: "test"} }, func(*gatewayv1.Heartbeat) {})
 	}()
 	select {
 	case err := <-done:

@@ -1100,19 +1100,21 @@ func (q *Queries) RevokeJoinToken(ctx context.Context, arg RevokeJoinTokenParams
 
 const setAgentReadonlyChecked = `-- name: SetAgentReadonlyChecked :many
 UPDATE resource r
-SET agent_readonly_status = h.status, agent_readonly_detail = h.detail
-FROM (SELECT DISTINCT ON (u.resource_id) u.resource_id, u.status, u.detail, u.version
+SET agent_readonly_status = h.status, agent_readonly_detail = h.detail, agent_readonly_checked_at = h.checked_at
+FROM (SELECT DISTINCT ON (u.resource_id) u.resource_id, u.status, u.detail, u.version, least(u.checked_at, now()) AS checked_at
       FROM (SELECT unnest($3::uuid[]) AS resource_id, unnest($4::text[]) AS status,
                    unnest($5::text[]) AS detail, unnest($6::bigint[]) AS version,
                    unnest($7::timestamptz[]) AS checked_at) u
       ORDER BY u.resource_id, u.checked_at DESC) h,
-     credential c, gateway_instance i
-WHERE r.id = h.resource_id AND r.org_id = $1
+     credential c, gateway_instance i, resource o
+WHERE r.id = h.resource_id AND r.org_id = $1 AND o.id = r.id
   AND c.resource_id = r.id AND c.org_id = r.org_id AND c.slot = 'agent_readonly'
   AND i.id = $2 AND i.org_id = $1 AND i.gateway_id = r.gateway_id
   AND (extract(epoch FROM greatest(c.updated_at, r.updated_at)) * 1000000)::bigint = h.version
-  AND (r.agent_readonly_status, r.agent_readonly_detail) IS DISTINCT FROM (h.status, h.detail)
-RETURNING r.id, r.agent_readonly_status, r.agent_readonly_detail
+  AND (o.agent_readonly_checked_at IS NULL OR o.agent_readonly_checked_at < h.checked_at
+       OR o.agent_readonly_checked_at < greatest(c.updated_at, r.updated_at))
+RETURNING r.id, r.agent_readonly_status, r.agent_readonly_detail,
+  ((o.agent_readonly_status, o.agent_readonly_detail) IS DISTINCT FROM (h.status, h.detail))::bool AS changed
 `
 
 type SetAgentReadonlyCheckedParams struct {
@@ -1129,13 +1131,16 @@ type SetAgentReadonlyCheckedRow struct {
 	ID                  uuid.UUID
 	AgentReadonlyStatus string
 	AgentReadonlyDetail string
+	Changed             bool
 }
 
 // Check results of the agent_readonly credential from an instance of the
 // resource's pool. A result counts only for the current check version:
 // greatest(updated_at of the credential, resource.updated_at) in microseconds;
-// of repeated ids the newest wins; an unchanged status and detail is no change.
-// resource.updated_at stays: it is part of the version.
+// and only when it ended after the stored result of that version (the end
+// time is clamped to now()); of repeated ids the newest wins. changed is false
+// when status and detail stay. resource.updated_at stays: it is part of the
+// version.
 func (q *Queries) SetAgentReadonlyChecked(ctx context.Context, arg SetAgentReadonlyCheckedParams) ([]SetAgentReadonlyCheckedRow, error) {
 	rows, err := q.db.Query(ctx, setAgentReadonlyChecked,
 		arg.OrgID,
@@ -1153,7 +1158,12 @@ func (q *Queries) SetAgentReadonlyChecked(ctx context.Context, arg SetAgentReado
 	var items []SetAgentReadonlyCheckedRow
 	for rows.Next() {
 		var i SetAgentReadonlyCheckedRow
-		if err := rows.Scan(&i.ID, &i.AgentReadonlyStatus, &i.AgentReadonlyDetail); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.AgentReadonlyStatus,
+			&i.AgentReadonlyDetail,
+			&i.Changed,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

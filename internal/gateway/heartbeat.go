@@ -27,6 +27,10 @@ func (p *Pipeline) heartbeat() *gatewayv1.Heartbeat {
 	return hb
 }
 
+// undelivered takes back what a heartbeat that did not reach the server
+// must not lose: its agent_readonly check results.
+func (p *Pipeline) undelivered(hb *gatewayv1.Heartbeat) { p.health.requeue(hb.GetHealth()) }
+
 // changedCounters lists up to limit sessions whose counters changed since the
 // last call and marks them sent.
 func (a *activeSessions) changedCounters(limit int) []*gatewayv1.SessionCounters {

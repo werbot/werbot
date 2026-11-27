@@ -136,15 +136,29 @@ func TestAuthenticateUserAgentLimits(t *testing.T) {
 	}
 }
 
-// A heartbeat's probe result carries the agent_readonly check unchanged.
+// A heartbeat's probe result carries the agent_readonly check unchanged with
+// the time the check ended; a check without that time is dropped, the probe
+// result stays.
 func TestHeartbeatHealthAgentReadonly(t *testing.T) {
 	id := uuid.New()
+	at := time.Now().Add(-time.Second)
 	got, dropped := heartbeatHealth([]*gatewayv1.ResourceHealth{{ResourceId: id.String(), Ok: true, CheckedAt: timestamppb.Now(),
-		AgentReadonlyStatus: "has_write", AgentReadonlyDetail: "INSERT on db.public.t", AgentReadonlyVersion: 7}})
+		AgentReadonlyStatus: "has_write", AgentReadonlyDetail: "INSERT on db.public.t", AgentReadonlyVersion: 7,
+		AgentReadonlyCheckedAt: timestamppb.New(at)}})
 	if dropped != 0 || len(got) != 1 {
 		t.Fatalf("got %v dropped %d", got, dropped)
 	}
-	if h := got[0]; h.AgentReadonlyStatus != "has_write" || h.AgentReadonlyDetail != "INSERT on db.public.t" || h.AgentReadonlyVersion != 7 {
+	if h := got[0]; h.AgentReadonlyStatus != "has_write" || h.AgentReadonlyDetail != "INSERT on db.public.t" || h.AgentReadonlyVersion != 7 ||
+		!h.AgentReadonlyCheckedAt.Equal(at) {
 		t.Fatalf("health %+v", h)
+	}
+
+	got, dropped = heartbeatHealth([]*gatewayv1.ResourceHealth{{ResourceId: id.String(), Ok: true, CheckedAt: timestamppb.Now(),
+		AgentReadonlyStatus: "ok", AgentReadonlyVersion: 7}})
+	if dropped != 0 || len(got) != 1 || !got[0].OK {
+		t.Fatalf("got %v dropped %d", got, dropped)
+	}
+	if h := got[0]; h.AgentReadonlyStatus != "" || h.AgentReadonlyVersion != 0 {
+		t.Fatalf("a check without its time must be dropped: %+v", h)
 	}
 }

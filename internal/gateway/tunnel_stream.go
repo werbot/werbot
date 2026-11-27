@@ -14,8 +14,11 @@ import (
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
 )
 
-// stream runs one Connect stream until it ends; got reports whether a snapshot arrived.
-func (c *tunnelClient) stream(ctx context.Context, heartbeat func() *gatewayv1.Heartbeat) (got bool, err error) {
+// stream runs one Connect stream until it ends; got reports whether a snapshot
+// arrived. A heartbeat whose send fails goes to undelivered.
+func (c *tunnelClient) stream(ctx context.Context, heartbeat func() *gatewayv1.Heartbeat,
+	undelivered func(*gatewayv1.Heartbeat),
+) (got bool, err error) {
 	ctx, cancel := context.WithCancelCause(ctx)
 	// registered before the conn is loaded: a renewal either precedes the load or cancels this stream
 	c.mu.Lock()
@@ -36,9 +39,7 @@ func (c *tunnelClient) stream(ctx context.Context, heartbeat func() *gatewayv1.H
 		c.setConnected(false)
 	}()
 
-	send := func() error {
-		return st.Send(&gatewayv1.ConnectRequest{Msg: &gatewayv1.ConnectRequest_Heartbeat{Heartbeat: heartbeat()}})
-	}
+	send := func() error { return sendHeartbeat(st, heartbeat(), undelivered) }
 	// io.EOF means the server already ended the stream; Receive returns why.
 	if err := send(); err != nil && !errors.Is(err, io.EOF) {
 		return false, err
@@ -78,6 +79,17 @@ func (c *tunnelClient) stream(ctx context.Context, heartbeat func() *gatewayv1.H
 		}
 		c.dispatch(msg)
 	}
+}
+
+// sendHeartbeat sends hb on st; a heartbeat whose send fails goes to undelivered.
+func sendHeartbeat(st *connect.BidiStreamForClient[gatewayv1.ConnectRequest, gatewayv1.ConnectResponse], hb *gatewayv1.Heartbeat,
+	undelivered func(*gatewayv1.Heartbeat),
+) error {
+	err := st.Send(&gatewayv1.ConnectRequest{Msg: &gatewayv1.ConnectRequest_Heartbeat{Heartbeat: hb}})
+	if err != nil {
+		undelivered(hb)
+	}
+	return err
 }
 
 // setPool stores the online instances of the pool; an id that does not parse is skipped.

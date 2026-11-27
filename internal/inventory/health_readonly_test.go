@@ -37,8 +37,15 @@ func (h healthEnv) version(t *testing.T) int64 {
 
 func (h healthEnv) check(t *testing.T, status, detail string, version int64) {
 	t.Helper()
+	h.checkAt(t, status, detail, version, time.Now())
+}
+
+// checkAt reports a check that ended at.
+func (h healthEnv) checkAt(t *testing.T, status, detail string, version int64, at time.Time) {
+	t.Helper()
 	require.NoError(t, h.svc.ReportHealth(h.ctx, h.org, h.inst[0], []inventory.Health{{ResourceID: h.res.ID, OK: true,
-		CheckedAt: time.Now(), AgentReadonlyStatus: status, AgentReadonlyDetail: detail, AgentReadonlyVersion: version}}))
+		CheckedAt: time.Now(), AgentReadonlyStatus: status, AgentReadonlyDetail: detail, AgentReadonlyVersion: version,
+		AgentReadonlyCheckedAt: at}}))
 }
 
 func (h healthEnv) readonly(t *testing.T) (status, detail string) {
@@ -125,7 +132,7 @@ func TestReportHealthIgnoresStaleCredentialVersion(t *testing.T) {
 	other := h.newPool(t, "other")
 	foreign := h.enroll(t, h.token(t, other.ID, 0), "gw-x")
 	require.NoError(t, h.svc.ReportHealth(h.ctx, h.org, foreign.InstanceID, []inventory.Health{{ResourceID: h.res.ID, OK: true,
-		CheckedAt: time.Now(), AgentReadonlyStatus: "ok", AgentReadonlyVersion: cur}}))
+		CheckedAt: time.Now(), AgentReadonlyStatus: "ok", AgentReadonlyVersion: cur, AgentReadonlyCheckedAt: time.Now()}}))
 	st, _ = h.readonly(t)
 	assert.Equal(t, "pending", st, "an instance of another pool")
 

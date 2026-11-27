@@ -111,6 +111,9 @@ message ResourceHealth {
   string agent_readonly_detail = 6 [(buf.validate.field).string.max_bytes = 512];
   // the check version from GetProbeCredential; the server ignores another one
   int64 agent_readonly_version = 7 [(buf.validate.field).int64.gte = 0];
+  // when the check ended; of two results of one version the server keeps the
+  // newer, and a result without it is dropped
+  google.protobuf.Timestamp agent_readonly_checked_at = 8;
 }
 
 // PoolInstances are the online instances of the caller's pool, sorted.

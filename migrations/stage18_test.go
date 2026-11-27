@@ -3,6 +3,7 @@ package migrations_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
@@ -52,4 +53,29 @@ func TestMigrations18AgentReadonly(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, pool.QueryRow(ctx, "SELECT agent_readonly_status FROM resource WHERE id = $1", f.ResourceID).Scan(&status))
 	assert.Equal(t, "none", status, "an existing resource starts with none")
+}
+
+// TestMigrations18AgentReadonlyCheckedAt: resource.agent_readonly_checked_at
+// starts NULL; 00281 goes down to 00280 and up again.
+func TestMigrations18AgentReadonlyCheckedAt(t *testing.T) {
+	pool, _ := dbtest.New(t)
+	ctx := context.Background()
+	f := dbtest.Seed(t, pool)
+
+	var at *time.Time
+	require.NoError(t, pool.QueryRow(ctx, "SELECT agent_readonly_checked_at FROM resource WHERE id = $1", f.ResourceID).Scan(&at))
+	assert.Nil(t, at)
+
+	sqlDB := stdlib.OpenDBFromPool(pool)
+	defer func() { _ = sqlDB.Close() }()
+	p, err := goose.NewProvider(goose.DialectPostgres, sqlDB, migrations.FS)
+	require.NoError(t, err)
+	_, err = p.DownTo(ctx, 280)
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, "SELECT agent_readonly_checked_at FROM resource")
+	pgCode(t, err, "42703")
+	_, err = p.Up(ctx)
+	require.NoError(t, err)
+	require.NoError(t, pool.QueryRow(ctx, "SELECT agent_readonly_checked_at FROM resource WHERE id = $1", f.ResourceID).Scan(&at))
+	assert.Nil(t, at, "an existing resource starts without a stored check")
 }

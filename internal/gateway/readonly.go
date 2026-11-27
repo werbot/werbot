@@ -3,11 +3,14 @@ package gateway
 import (
 	"context"
 	"log/slog"
+	"maps"
 	"net"
+	"slices"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
 	"github.com/werbot/werbot/internal/platform/metrics"
@@ -137,12 +140,14 @@ func (c *readonlyChecks) run(ctx context.Context, r Resource, rc ReadonlyChecker
 	c.record(r.ID, readonlyCheck{status: status, detail: TruncateUTF8(agent.Redact(detail), maxReadonlyDetail), version: version, at: time.Now()})
 }
 
-// checked reports whether version of resource id was checked within readonlyRecheck.
+// checked reports whether version of resource id was checked within
+// readonlyRecheck and its result left with a heartbeat.
 func (c *readonlyChecks) checked(id uuid.UUID, version int64) bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	last, seen := c.last[id]
-	return seen && last.version == version && time.Since(last.at) < readonlyRecheck
+	_, waiting := c.results[id]
+	return seen && !waiting && last.version == version && time.Since(last.at) < readonlyRecheck
 }
 
 func (c *readonlyChecks) record(id uuid.UUID, res readonlyCheck) {
@@ -158,6 +163,30 @@ func (c *readonlyChecks) release(id uuid.UUID) {
 	delete(c.running, id)
 }
 
+// keep drops the state of every resource but those of mine: deleted ones and
+// those other instances probe now.
+func (c *readonlyChecks) keep(mine []probeTarget) {
+	if c == nil {
+		return
+	}
+	ids := make(map[uuid.UUID]bool, len(mine))
+	for _, t := range mine {
+		ids[t.id] = true
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for id := range c.last {
+		if !ids[id] {
+			delete(c.last, id)
+		}
+	}
+	for id := range c.results {
+		if !ids[id] {
+			delete(c.results, id)
+		}
+	}
+}
+
 // attach moves the check result of resource id, if any, into h.
 func (c *readonlyChecks) attach(id uuid.UUID, h *gatewayv1.ResourceHealth) {
 	if c == nil {
@@ -167,6 +196,34 @@ func (c *readonlyChecks) attach(id uuid.UUID, h *gatewayv1.ResourceHealth) {
 	defer c.mu.Unlock()
 	if res, ok := c.results[id]; ok {
 		h.AgentReadonlyStatus, h.AgentReadonlyDetail, h.AgentReadonlyVersion = res.status, res.detail, res.version
+		h.AgentReadonlyCheckedAt = timestamppb.New(res.at)
 		delete(c.results, id)
+	}
+}
+
+// waiting lists the resources with a result no heartbeat has taken.
+func (c *readonlyChecks) waiting() []uuid.UUID {
+	if c == nil {
+		return nil
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return slices.Collect(maps.Keys(c.results))
+}
+
+// requeue gives back the check result of h that did not reach the server,
+// unless a newer check of the resource replaced it or the instance no longer
+// probes the resource.
+func (c *readonlyChecks) requeue(h *gatewayv1.ResourceHealth) {
+	id, err := uuid.Parse(h.GetResourceId())
+	if c == nil || err != nil || h.GetAgentReadonlyStatus() == "" {
+		return
+	}
+	at := h.GetAgentReadonlyCheckedAt().AsTime()
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if last, ok := c.last[id]; ok && !last.at.After(at) {
+		c.results[id] = readonlyCheck{status: h.GetAgentReadonlyStatus(), detail: h.GetAgentReadonlyDetail(),
+			version: h.GetAgentReadonlyVersion(), at: at}
 	}
 }

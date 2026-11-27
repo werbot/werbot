@@ -71,6 +71,7 @@ type prober struct {
 
 	mu      sync.Mutex
 	pending map[uuid.UUID]*gatewayv1.ResourceHealth
+	latest  map[uuid.UUID]*gatewayv1.ResourceHealth // the results of the last pass
 }
 
 func newProber(policy func() *Policy, dial func(ctx context.Context, addr string) error, reg *metrics.Registry) *prober {
@@ -153,6 +154,7 @@ func (h *prober) pass(ctx context.Context, self uuid.UUID, pool []uuid.UUID) boo
 		}
 		mine = append(mine, t)
 	}
+	h.readonly.keep(mine)
 	results := make([]healthResult, len(mine))
 	sem := make(chan struct{}, probeParallel)
 	var wg sync.WaitGroup
@@ -203,6 +205,7 @@ func (h *prober) record(mine []probeTarget, results []healthResult) {
 	now := timestamppb.Now()
 	h.mu.Lock()
 	defer h.mu.Unlock()
+	h.latest = make(map[uuid.UUID]*gatewayv1.ResourceHealth, len(mine))
 	for i, t := range mine {
 		r := results[i]
 		if r.ok {
@@ -211,22 +214,42 @@ func (h *prober) record(mine []probeTarget, results []healthResult) {
 			h.fail.Inc()
 		}
 		h.pending[t.id] = &gatewayv1.ResourceHealth{ResourceId: t.id.String(), Ok: r.ok, Error: r.err, CheckedAt: now}
+		h.latest[t.id] = h.pending[t.id]
 	}
 }
 
 // take returns up to maxHealth queued results, each with the agent_readonly
 // check of its resource that finished since, and drops them from the queue.
+// A check without a queued result goes with a copy of the latest result of
+// its resource.
 func (h *prober) take() []*gatewayv1.ResourceHealth {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	var out []*gatewayv1.ResourceHealth
 	for id, r := range h.pending {
 		if len(out) == maxHealth {
-			break
+			return out
 		}
 		h.readonly.attach(id, r)
 		out = append(out, r)
 		delete(h.pending, id)
 	}
+	for _, id := range h.readonly.waiting() {
+		r, ok := h.latest[id]
+		if len(out) == maxHealth || !ok {
+			continue
+		}
+		r = &gatewayv1.ResourceHealth{ResourceId: r.GetResourceId(), Ok: r.GetOk(), Error: r.GetError(), CheckedAt: r.GetCheckedAt()}
+		h.readonly.attach(id, r)
+		out = append(out, r)
+	}
 	return out
+}
+
+// requeue gives back the agent_readonly checks of hs, which did not reach
+// the server; the next pass sends the probe results again anyway.
+func (h *prober) requeue(hs []*gatewayv1.ResourceHealth) {
+	for _, r := range hs {
+		h.readonly.requeue(r)
+	}
 }

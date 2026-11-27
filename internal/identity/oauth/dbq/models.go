@@ -448,20 +448,21 @@ type Recording struct {
 }
 
 type Resource struct {
-	ID                  uuid.UUID
-	OrgID               uuid.UUID
-	Name                string
-	Type                string
-	Category            string
-	GatewayID           *uuid.UUID
-	Config              []byte
-	CreatedAt           time.Time
-	UpdatedAt           time.Time
-	IdleTimeout         pgtype.Interval
-	MaxDuration         pgtype.Interval
-	PresetID            *uuid.UUID
-	AgentReadonlyStatus string
-	AgentReadonlyDetail string
+	ID                     uuid.UUID
+	OrgID                  uuid.UUID
+	Name                   string
+	Type                   string
+	Category               string
+	GatewayID              *uuid.UUID
+	Config                 []byte
+	CreatedAt              time.Time
+	UpdatedAt              time.Time
+	IdleTimeout            pgtype.Interval
+	MaxDuration            pgtype.Interval
+	PresetID               *uuid.UUID
+	AgentReadonlyStatus    string
+	AgentReadonlyDetail    string
+	AgentReadonlyCheckedAt *time.Time
 }
 
 type ResourceCountryRule struct {

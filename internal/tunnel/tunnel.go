@@ -62,9 +62,11 @@ type ResourceHealth struct {
 	Error      string
 	CheckedAt  time.Time
 	// AgentReadonlyStatus is a check of the agent_readonly credential
-	// (empty: none) of check version AgentReadonlyVersion, with its findings.
+	// (empty: none) of check version AgentReadonlyVersion, with its findings;
+	// it ended at AgentReadonlyCheckedAt.
 	AgentReadonlyStatus, AgentReadonlyDetail string
 	AgentReadonlyVersion                     int64
+	AgentReadonlyCheckedAt                   time.Time
 }
 
 // Gateways authenticates instances by their verified client certificate.

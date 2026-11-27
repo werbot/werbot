@@ -122,7 +122,7 @@ func serve(ctx context.Context, cfg Config, sshLn, httpLn, wsLn net.Listener, lo
 	var tunnelErr error // read after tunnelDone
 	go func() {
 		defer close(tunnelDone)
-		tunnelErr = tc.Run(tunnelCtx, p.heartbeat) // nil once tunnelCtx ends
+		tunnelErr = tc.Run(tunnelCtx, p.heartbeat, p.undelivered) // nil once tunnelCtx ends
 	}()
 
 	var hs *http.Server
