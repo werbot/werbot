@@ -60,26 +60,17 @@ type Opener func(ctx context.Context, conn net.Conn) (Conn, error)
 // Dialer opens a gateway stream to resource.
 type Dialer func(ctx context.Context, resource string) (net.Conn, error)
 
-var (
-	openersMu sync.Mutex
-	openers   = map[string]Opener{}
-)
+// openers are written only in init (and by tests before they run queries), so
+// they need no lock.
+var openers = map[string]Opener{}
 
 // Register makes o the opener of resource type typ; a second opener of one
 // type panics.
 func Register(typ string, o Opener) {
-	openersMu.Lock()
-	defer openersMu.Unlock()
 	if _, dup := openers[typ]; dup {
 		panic("dbquery: opener of " + typ + " registered twice")
 	}
 	openers[typ] = o
-}
-
-func opener(typ string) Opener {
-	openersMu.Lock()
-	defer openersMu.Unlock()
-	return openers[typ]
 }
 
 var (
@@ -113,7 +104,7 @@ func NewPool(dial Dialer) *Pool {
 // second Conn opens. An error other than the database's, or a query left
 // waiting for an approval, closes the Conn.
 func (p *Pool) Query(ctx context.Context, typ string, q Query) (Result, error) {
-	open := opener(typ)
+	open := openers[typ]
 	if open == nil {
 		return Result{}, errNoQueries
 	}

@@ -44,10 +44,7 @@ func (s *server) dbQuery(ctx context.Context, c call, in DBQueryInput) (dbquery.
 	if err := in.validate(); err != nil {
 		return dbquery.Result{}, "", err
 	}
-	r, err := s.resource(ctx, c.run, in.Resource)
-	if err == nil && r == nil {
-		err = fmt.Errorf("resource %s not found", in.Resource)
-	}
+	r, err := s.mustResource(ctx, c.run, in.Resource)
 	if err != nil {
 		return dbquery.Result{}, "", err
 	}
@@ -71,10 +68,7 @@ func (r refusal) Error() string { return string(r) }
 // first port the gateway lists for it.
 func (s *server) dbDialer(run *clientauth.AgentProfile) dbquery.Dialer {
 	return func(ctx context.Context, name string) (net.Conn, error) {
-		r, err := s.resource(ctx, run, name)
-		if err == nil && r == nil {
-			err = fmt.Errorf("resource %s not found", name)
-		}
+		r, err := s.mustResource(ctx, run, name)
 		if err != nil {
 			return nil, err
 		}

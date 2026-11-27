@@ -3,18 +3,18 @@ package dbtest
 import (
 	"context"
 	"crypto/rand"
-	"encoding/hex"
+	"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
 )
 
-// Role creates, as the cluster's superuser (roles are cluster-wide), a login role with a random name (r_<hex>) and password and
+// Role creates, as the cluster's superuser (roles are cluster-wide), a login role with a random name (r_<base32>) and password and
 // the extra attributes attrs (for example "NOINHERIT"). t.Cleanup drops what
 // the role owns or was granted in every database, then the role.
 func Role(t testing.TB, attrs string) (name, password string) {
 	t.Helper()
-	name, password = "r_"+randHex(8), randHex(16)
+	name, password = "r_"+strings.ToLower(rand.Text()), rand.Text()
 	Exec(t, "CREATE ROLE "+name+" LOGIN PASSWORD '"+password+"' "+attrs)
 	t.Cleanup(func() { dropRole(t, name) })
 	return name, password
@@ -72,10 +72,4 @@ func dropRole(t testing.TB, name string) {
 		execIn(t, db, "DROP OWNED BY "+name)
 	}
 	Exec(t, "DROP ROLE IF EXISTS "+name)
-}
-
-func randHex(n int) string {
-	b := make([]byte, n)
-	_, _ = rand.Read(b) // never fails
-	return hex.EncodeToString(b)
 }

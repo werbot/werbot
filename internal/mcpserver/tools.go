@@ -148,6 +148,15 @@ func (s *server) resource(ctx context.Context, run *clientauth.AgentProfile, nam
 	return nil, nil
 }
 
+// mustResource is resource with an unknown name as an error.
+func (s *server) mustResource(ctx context.Context, run *clientauth.AgentProfile, name string) (*werbotv1.AccessibleResource, error) {
+	r, err := s.resource(ctx, run, name)
+	if err == nil && r == nil {
+		err = fmt.Errorf("resource %s not found", name)
+	}
+	return r, err
+}
+
 type noInput struct{}
 
 type resourceInfo struct {

@@ -74,10 +74,7 @@ func (s *server) sshExec(ctx context.Context, c call, in ExecInput) (ExecOutput,
 	}
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
-	r, err := s.resource(ctx, c.run, in.Resource)
-	if err == nil && r == nil {
-		err = fmt.Errorf("resource %s not found", in.Resource)
-	}
+	r, err := s.mustResource(ctx, c.run, in.Resource)
 	if err != nil {
 		return ExecOutput{}, "", err
 	}
