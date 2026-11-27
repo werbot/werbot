@@ -37,6 +37,21 @@ message AgentLimits {
     expression: "this == duration('0s') || (this >= duration('60s') && this <= duration('3600s'))"
   }];
   int32 max_concurrent = 3 [(buf.validate.field).int32 = {gte: 0, lte: 32}]; // 0: 4
+  // Agents in databases, per session.
+  int32 max_rows = 4 [(buf.validate.field).int32 = {gte: 0, lte: 100000}]; // 0: 1000
+  // 0: 1 MiB; otherwise 1 KiB to 64 MiB.
+  int64 max_result_bytes = 5 [(buf.validate.field).cel = {
+    id: "agent_limits.max_result_bytes"
+    message: "max_result_bytes must be 0 or 1024 to 67108864"
+    expression: "this == 0 || (this >= 1024 && this <= 67108864)"
+  }];
+  // 0 or unset: 30s; otherwise whole seconds from 1s to 10m.
+  google.protobuf.Duration statement_timeout = 6 [(buf.validate.field).cel = {
+    id: "agent_limits.statement_timeout"
+    message: "statement_timeout must be 0 or 1s to 10m"
+    expression: "this == duration('0s') || (this >= duration('1s') && this <= duration('600s'))"
+  }];
+  int32 max_queries = 7 [(buf.validate.field).int32 = {gte: 0, lte: 100000}]; // 0: 1000
 }
 
 message Agent {

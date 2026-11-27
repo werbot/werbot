@@ -76,7 +76,7 @@ func TestRequestValidationTunnelAgents(t *testing.T) {
 }
 
 // TestRequestValidationAgentService covers the bounds of agent.proto (stage
-// 12): names, limits, statuses, paging and tool calls.
+// 12, database limits stage 18): names, limits, statuses, paging and tool calls.
 func TestRequestValidationAgentService(t *testing.T) {
 	id := "0190a000-0000-7000-8000-000000000001"
 	valid := func(m proto.Message, name string) { assert.NoError(t, protovalidate.Validate(m), name) }
@@ -94,6 +94,19 @@ func TestRequestValidationAgentService(t *testing.T) {
 	invalid(limits(-1, 0, 0), "negative max_actions")
 	invalid(limits(0, 0, 59*time.Second), "max_duration below 1m")
 	invalid(limits(0, 0, time.Hour+time.Second), "max_duration above 1h")
+	db := func(rows int32, size int64, timeout time.Duration, queries int32) *werbotv1.CreateAgentRequest {
+		return &werbotv1.CreateAgentRequest{Name: "claude", Limits: &werbotv1.AgentLimits{MaxRows: rows,
+			MaxResultBytes: size, StatementTimeout: durationpb.New(timeout), MaxQueries: queries}}
+	}
+	valid(db(0, 0, 0, 0), "database limits default")
+	valid(db(1, 1024, time.Second, 1), "database limits at their minimum")
+	valid(db(100000, 64<<20, 10*time.Minute, 100000), "database limits at their maximum")
+	invalid(db(100001, 0, 0, 0), "max_rows above 100000")
+	invalid(db(0, 1023, 0, 0), "max_result_bytes below 1 KiB")
+	invalid(db(0, 64<<20+1, 0, 0), "max_result_bytes above 64 MiB")
+	invalid(db(0, 0, 999*time.Millisecond, 0), "statement_timeout below 1s")
+	invalid(db(0, 0, 10*time.Minute+time.Second, 0), "statement_timeout above 10m")
+	invalid(db(0, 0, 0, 100001), "max_queries above 100000")
 	valid(&werbotv1.CreateAgentRequest{Name: strings.Repeat("a", 63), SponsorUserId: id}, "a 63-character name of a sponsor")
 	invalid(&werbotv1.CreateAgentRequest{Name: strings.Repeat("a", 64)}, "a 64-character name")
 	invalid(&werbotv1.CreateAgentRequest{Name: "Claude"}, "an upper-case name")

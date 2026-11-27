@@ -26,7 +26,8 @@ func agentOf(ctx context.Context, agents *agentic.Service, orgID, sponsor uuid.U
 	if run.AgentID != *id.AgentID || run.SponsorID != sponsor {
 		return nil, fmt.Errorf("agent certificate of another run: %w", apperr.ErrUnauthenticated)
 	}
-	return &tunnel.AgentRef{AgentID: run.AgentID, RunID: run.ID}, nil
+	return &tunnel.AgentRef{AgentID: run.AgentID, RunID: run.ID, Limits: tunnel.AgentLimits{MaxRows: run.MaxRows,
+		MaxResultBytes: run.MaxResultBytes, StatementTimeout: run.StatementTimeout, MaxQueries: run.MaxQueries}}, nil
 }
 
 // actionGuard counts an action of the agent run of st in its start

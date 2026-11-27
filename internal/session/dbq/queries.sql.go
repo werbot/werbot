@@ -66,8 +66,8 @@ func (q *Queries) ConsumeStreamTicket(ctx context.Context, id uuid.UUID) (Stream
 }
 
 const createRecording = `-- name: CreateRecording :exec
-INSERT INTO recording (session_id, org_id, store)
-VALUES ($1, $2, $3)
+INSERT INTO recording (session_id, org_id, store, format)
+VALUES ($1, $2, $3, $4)
 ON CONFLICT DO NOTHING
 `
 
@@ -75,10 +75,17 @@ type CreateRecordingParams struct {
 	SessionID uuid.UUID
 	OrgID     uuid.UUID
 	Store     string
+	Format    string
 }
 
+// The first call fixes the format; a later one keeps it.
 func (q *Queries) CreateRecording(ctx context.Context, arg CreateRecordingParams) error {
-	_, err := q.db.Exec(ctx, createRecording, arg.SessionID, arg.OrgID, arg.Store)
+	_, err := q.db.Exec(ctx, createRecording,
+		arg.SessionID,
+		arg.OrgID,
+		arg.Store,
+		arg.Format,
+	)
 	return err
 }
 
@@ -185,8 +192,9 @@ SET ended_at = now(), end_reason = $1::text,
     command = coalesce(nullif($2::text, ''), command), classes = coalesce($3::text[], classes), paths = coalesce($4::text[], paths),
     exit_code = $5::int, output_sha256 = $6::bytea,
     bytes_up = GREATEST(bytes_up, $7::bigint), bytes_down = GREATEST(bytes_down, $8::bigint),
-    datagrams_up = GREATEST(datagrams_up, $9::bigint), datagrams_down = GREATEST(datagrams_down, $10::bigint)
-WHERE id = $11 AND org_id = $12 AND gateway_instance_id = $13::uuid AND ended_at IS NULL
+    datagrams_up = GREATEST(datagrams_up, $9::bigint), datagrams_down = GREATEST(datagrams_down, $10::bigint),
+    queries = GREATEST(queries, $11::bigint)
+WHERE id = $12 AND org_id = $13 AND gateway_instance_id = $14::uuid AND ended_at IS NULL
 RETURNING resource_id
 `
 
@@ -201,6 +209,7 @@ type EndSessionParams struct {
 	BytesDown     int64
 	DatagramsUp   int64
 	DatagramsDown int64
+	Queries       int64
 	ID            uuid.UUID
 	OrgID         uuid.UUID
 	InstanceID    uuid.UUID
@@ -219,6 +228,7 @@ func (q *Queries) EndSession(ctx context.Context, arg EndSessionParams) (*uuid.U
 		arg.BytesDown,
 		arg.DatagramsUp,
 		arg.DatagramsDown,
+		arg.Queries,
 		arg.ID,
 		arg.OrgID,
 		arg.InstanceID,
@@ -386,7 +396,8 @@ SELECT s.id, s.user_id, s.resource_id, s.gateway_id, s.client_ip, s.started_at, 
        coalesce(s.end_reason, '')::text AS end_reason,
        coalesce(rec.chunks, 0)::int AS chunks,
        coalesce(rec.bytes, 0)::bigint AS bytes,
-       (rec.manifest_signature IS NOT NULL)::bool AS finished
+       (rec.manifest_signature IS NOT NULL)::bool AS finished,
+       s.queries, coalesce(rec.format, '')::text AS record_format
 FROM session s
 LEFT JOIN users u ON u.id = s.user_id
 LEFT JOIN resource r ON r.id = s.resource_id AND r.org_id = s.org_id
@@ -439,6 +450,8 @@ type ListSessionsRow struct {
 	Chunks        int32
 	Bytes         int64
 	Finished      bool
+	Queries       int64
+	RecordFormat  string
 }
 
 // LEFT JOINs keep the history of deleted users and resources.
@@ -486,6 +499,8 @@ func (q *Queries) ListSessions(ctx context.Context, arg ListSessionsParams) ([]L
 			&i.Chunks,
 			&i.Bytes,
 			&i.Finished,
+			&i.Queries,
+			&i.RecordFormat,
 		); err != nil {
 			return nil, err
 		}
@@ -660,6 +675,31 @@ func (q *Queries) ObservableSession(ctx context.Context, arg ObservableSessionPa
 	return instance_id, err
 }
 
+const openAgentSession = `-- name: OpenAgentSession :one
+SELECT agent_run_id::uuid AS agent_run_id, resource_id::uuid AS resource_id FROM session
+WHERE id = $1 AND org_id = $2 AND gateway_instance_id = $3::uuid AND ended_at IS NULL
+  AND agent_run_id IS NOT NULL AND resource_id IS NOT NULL
+`
+
+type OpenAgentSessionParams struct {
+	ID         uuid.UUID
+	OrgID      uuid.UUID
+	InstanceID uuid.UUID
+}
+
+type OpenAgentSessionRow struct {
+	AgentRunID uuid.UUID
+	ResourceID uuid.UUID
+}
+
+// An open session of an agent run served by the instance.
+func (q *Queries) OpenAgentSession(ctx context.Context, arg OpenAgentSessionParams) (OpenAgentSessionRow, error) {
+	row := q.db.QueryRow(ctx, openAgentSession, arg.ID, arg.OrgID, arg.InstanceID)
+	var i OpenAgentSessionRow
+	err := row.Scan(&i.AgentRunID, &i.ResourceID)
+	return i, err
+}
+
 const pendingTerminations = `-- name: PendingTerminations :one
 SELECT coalesce(array_agg(id ORDER BY id), '{}')::uuid[] AS ids
 FROM session
@@ -762,6 +802,30 @@ func (q *Queries) SessionOfInstanceExists(ctx context.Context, arg SessionOfInst
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
+}
+
+const sessionResourceType = `-- name: SessionResourceType :one
+SELECT s.kind, r.type
+FROM session s
+JOIN resource r ON r.id = s.resource_id AND r.org_id = s.org_id
+WHERE s.id = $1 AND s.org_id = $2
+`
+
+type SessionResourceTypeParams struct {
+	ID    uuid.UUID
+	OrgID uuid.UUID
+}
+
+type SessionResourceTypeRow struct {
+	Kind string
+	Type string
+}
+
+func (q *Queries) SessionResourceType(ctx context.Context, arg SessionResourceTypeParams) (SessionResourceTypeRow, error) {
+	row := q.db.QueryRow(ctx, sessionResourceType, arg.ID, arg.OrgID)
+	var i SessionResourceTypeRow
+	err := row.Scan(&i.Kind, &i.Type)
+	return i, err
 }
 
 const terminalTarget = `-- name: TerminalTarget :one

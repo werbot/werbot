@@ -197,3 +197,38 @@ func TestToolCallRPCRequiresAgentToken(t *testing.T) {
 	_, err = h.RecordToolCall(ctx, req(&werbotv1.RecordToolCallRequest{Tool: "ssh_exec", Arguments: big}))
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), "arguments above 16 KiB")
 }
+
+// TestAgentLimitsRPCDB: the database limits round-trip through UpdateAgent and
+// ListAgents (0: the default), out-of-range values are InvalidArgument, and a
+// member never changes another sponsor's agent.
+func TestAgentLimitsRPCDB(t *testing.T) {
+	svc, _, f := newTestService(t)
+	h := agentic.NewHandler(svc)
+	member, other := as(f, f.MemberID), as(f, f.OtherMemberID)
+	created, err := h.CreateAgent(member, req(&werbotv1.CreateAgentRequest{Name: "claude"}))
+	require.NoError(t, err)
+	id := created.Msg.GetAgent().GetId()
+	assert.Zero(t, created.Msg.GetAgent().GetLimits().GetMaxRows(), "0: the default")
+	limits := func() *werbotv1.AgentLimits {
+		t.Helper()
+		list, err := h.ListAgents(member, req(&werbotv1.ListAgentsRequest{}))
+		require.NoError(t, err)
+		require.Len(t, list.Msg.GetAgents(), 1)
+		return list.Msg.GetAgents()[0].GetLimits()
+	}
+
+	_, err = h.UpdateAgent(member, req(&werbotv1.UpdateAgentRequest{Id: id, Limits: &werbotv1.AgentLimits{MaxRows: 50,
+		MaxResultBytes: 4096, StatementTimeout: durationpb.New(5 * time.Second), MaxQueries: 9}}))
+	require.NoError(t, err)
+	l := limits()
+	assert.Equal(t, int32(50), l.GetMaxRows())
+	assert.Equal(t, int64(4096), l.GetMaxResultBytes())
+	assert.Equal(t, 5*time.Second, l.GetStatementTimeout().AsDuration())
+	assert.Equal(t, int32(9), l.GetMaxQueries())
+
+	_, err = h.UpdateAgent(member, req(&werbotv1.UpdateAgentRequest{Id: id, Limits: &werbotv1.AgentLimits{MaxRows: 100001}}))
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+	_, err = h.UpdateAgent(other, req(&werbotv1.UpdateAgentRequest{Id: id, Limits: &werbotv1.AgentLimits{MaxRows: 1}}))
+	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err), "another sponsor's agent")
+	assert.Equal(t, int32(50), limits().GetMaxRows(), "refused updates change nothing")
+}

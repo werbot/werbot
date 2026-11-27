@@ -89,8 +89,8 @@ func serve(ctx context.Context, cfg Config, sshLn, httpLn, wsLn net.Listener, lo
 	}
 	var p *Pipeline
 	if cfg.Recording == nil { // tests bring their own
-		cfg.Recording = func(id uuid.UUID, cols, rows int) RecordingSink { // called by Pipeline.Open, after p is set
-			return recorder.New(id, cols, rows, sp, recorder.Options{Terminate: p.active.Terminate, Logger: logger})
+		cfg.Recording = func(id uuid.UUID, cols, rows int, format string) RecordingSink { // called by Pipeline.Open, after p is set
+			return recorder.New(id, cols, rows, sp, recorder.Options{Terminate: p.active.Terminate, Logger: logger, Format: format})
 		}
 	}
 	p = newPipeline(tc, cfg, logger)
@@ -122,7 +122,7 @@ func serve(ctx context.Context, cfg Config, sshLn, httpLn, wsLn net.Listener, lo
 	var tunnelErr error // read after tunnelDone
 	go func() {
 		defer close(tunnelDone)
-		tunnelErr = tc.Run(tunnelCtx, p.heartbeat) // nil once tunnelCtx ends
+		tunnelErr = tc.Run(tunnelCtx, p.heartbeat, p.undelivered) // nil once tunnelCtx ends
 	}()
 
 	var hs *http.Server

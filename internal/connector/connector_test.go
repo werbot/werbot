@@ -108,6 +108,17 @@ func TestShellAction(t *testing.T) {
 	assert.Equal(t, "x.shell", a)
 }
 
+func TestQueryAction(t *testing.T) {
+	ty := valid("x")
+	a, ok := ty.QueryAction()
+	assert.False(t, ok, "no query action")
+	assert.Empty(t, a)
+	ty.Actions = []string{"x.connect", "x.query"}
+	a, ok = ty.QueryAction()
+	assert.True(t, ok)
+	assert.Equal(t, "x.query", a)
+}
+
 func TestRegisterRequiresShellForTerminal(t *testing.T) {
 	t.Cleanup(func() { registry = nil })
 	x := valid("x")
@@ -116,4 +127,22 @@ func TestRegisterRequiresShellForTerminal(t *testing.T) {
 	x.Actions = []string{"x.connect", "x.shell"}
 	assert.NotPanics(t, func() { Register(x) })
 	assert.NotPanics(t, func() { Register(valid("y")) }, "a type without the terminal kind needs no shell action")
+}
+
+func TestRegisterRecordFormat(t *testing.T) {
+	t.Cleanup(func() { registry = nil })
+	a := valid("a")
+	Register(a)
+	got, _ := Lookup("a")
+	assert.Equal(t, RecordAsciicast, got.RecordFormat, "empty format defaults to asciicast")
+
+	q := valid("q")
+	q.RecordFormat = RecordQuerylog
+	Register(q)
+	got, _ = Lookup("q")
+	assert.Equal(t, RecordQuerylog, got.RecordFormat)
+
+	j := valid("j")
+	j.RecordFormat = "json"
+	assert.PanicsWithValue(t, `connector: type "j": unknown record format "json"`, func() { Register(j) })
 }

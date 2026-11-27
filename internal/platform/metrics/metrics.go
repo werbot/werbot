@@ -126,6 +126,7 @@ func (r *Registry) Handler() http.Handler {
 		name, help, typ string
 		labels          []string
 		vals            map[string]func() int64
+		hists           map[string]any
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		// Snapshot under the lock; run value funcs and format outside it.
@@ -134,6 +135,9 @@ func (r *Registry) Handler() http.Handler {
 		for n, f := range r.fams {
 			sn := snap{name: n, help: f.help, typ: f.typ, vals: maps.Clone(f.series)}
 			sn.labels = slices.Sorted(maps.Keys(sn.vals))
+			if f.typ == "histogram" {
+				sn.hists = maps.Clone(f.objs)
+			}
 			snaps = append(snaps, sn)
 		}
 		r.mu.Unlock()
@@ -141,6 +145,10 @@ func (r *Registry) Handler() http.Handler {
 		var b strings.Builder
 		for _, sn := range snaps {
 			fmt.Fprintf(&b, "# HELP %s %s\n# TYPE %s %s\n", sn.name, sn.help, sn.name, sn.typ)
+			if sn.hists != nil {
+				writeHistogram(&b, sn.name, sn.labels, sn.hists)
+				continue
+			}
 			for _, l := range sn.labels {
 				fmt.Fprintf(&b, "%s%s %d\n", sn.name, l, sn.vals[l]())
 			}

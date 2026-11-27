@@ -190,6 +190,7 @@ type Credential struct {
 	KeyID      string
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
+	Slot       string
 }
 
 type CustomPolicy struct {
@@ -443,21 +444,25 @@ type Recording struct {
 	ManifestSignature []byte
 	VerifiedAt        *time.Time
 	CreatedAt         time.Time
+	Format            string
 }
 
 type Resource struct {
-	ID          uuid.UUID
-	OrgID       uuid.UUID
-	Name        string
-	Type        string
-	Category    string
-	GatewayID   *uuid.UUID
-	Config      []byte
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	IdleTimeout pgtype.Interval
-	MaxDuration pgtype.Interval
-	PresetID    *uuid.UUID
+	ID                     uuid.UUID
+	OrgID                  uuid.UUID
+	Name                   string
+	Type                   string
+	Category               string
+	GatewayID              *uuid.UUID
+	Config                 []byte
+	CreatedAt              time.Time
+	UpdatedAt              time.Time
+	IdleTimeout            pgtype.Interval
+	MaxDuration            pgtype.Interval
+	PresetID               *uuid.UUID
+	AgentReadonlyStatus    string
+	AgentReadonlyDetail    string
+	AgentReadonlyCheckedAt *time.Time
 }
 
 type ResourceCountryRule struct {
@@ -559,6 +564,7 @@ type Session struct {
 	TerminateRequestedAt *time.Time
 	TerminateReason      *string
 	Transport            string
+	Queries              int64
 }
 
 type SigningKey struct {

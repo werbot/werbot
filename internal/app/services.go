@@ -51,9 +51,20 @@ func (p policyResources) PolicyResources(ctx context.Context, orgID uuid.UUID) (
 	}
 	out := make([]policy.SnapshotResource, len(rs))
 	for i, r := range rs {
-		out[i] = policy.SnapshotResource{ID: r.ID, Name: r.Name, Type: r.Type, Labels: r.Labels, Host: endpointHost(r)}
+		out[i] = policy.SnapshotResource{ID: r.ID, Name: r.Name, Type: r.Type, Labels: r.Labels, Host: endpointHost(r),
+			AgentReadonly: r.AgentReadonlyStatus == "ok"}
+		if c, ok := r.Config.(queryConfig); ok {
+			out[i].Database, out[i].SecretTables = c.GetDatabase(), c.GetSecretTables()
+		}
 	}
 	return out, nil
+}
+
+// queryConfig is the config of a type with a query action: its default
+// database and secret table globs.
+type queryConfig interface {
+	GetDatabase() string
+	GetSecretTables() []string
 }
 
 // endpointHost is the host of the endpoint of r; "" when its type has none

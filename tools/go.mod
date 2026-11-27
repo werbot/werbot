@@ -30,6 +30,7 @@ require (
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/oschwald/maxminddb-golang/v2 v2.9.0
 	github.com/peterldowns/pgtestdb v0.1.1
+	github.com/pganalyze/pg_query_go/v6 v6.2.2
 	github.com/pires/go-proxyproto v0.16.0
 	github.com/pquerna/otp v1.5.0
 	github.com/pressly/goose/v3 v3.30.1
@@ -37,6 +38,7 @@ require (
 	github.com/riverqueue/river/riverdriver/riverpgxv5 v0.51.0
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
+	github.com/wasilibs/go-pgquery v0.0.0-20250409022910-10ac41983c07
 	github.com/wneessen/go-mail v0.8.1
 	github.com/zitadel/oidc/v3 v3.51.17
 	golang.org/x/crypto v0.58.0
@@ -140,7 +142,6 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/petermattis/goid v0.0.0-20260918085751-abfca077860b // indirect
-	github.com/pganalyze/pg_query_go/v6 v6.2.2 // indirect
 	github.com/philhofer/fwd v1.2.0 // indirect
 	github.com/pingcap/errors v0.11.5-0.20250523034308-74f78ae071ee // indirect
 	github.com/pingcap/failpoint v0.0.0-20240528011301-b51a646c7c86 // indirect
@@ -169,7 +170,6 @@ require (
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/tinylib/msgp v1.6.4 // indirect
-	github.com/wasilibs/go-pgquery v0.0.0-20250409022910-10ac41983c07 // indirect
 	github.com/wasilibs/wazero-helpers v0.0.0-20240620070341-3dff1577cd52 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect

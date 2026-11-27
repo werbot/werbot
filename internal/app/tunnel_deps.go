@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 	"slices"
 	"strings"
@@ -14,11 +13,8 @@ import (
 
 	gatewayv1 "github.com/werbot/werbot/gen/gateway/v1"
 	"github.com/werbot/werbot/internal/agentic"
-	"github.com/werbot/werbot/internal/connector"
-	"github.com/werbot/werbot/internal/credential"
 	"github.com/werbot/werbot/internal/identity"
 	"github.com/werbot/werbot/internal/inventory"
-	"github.com/werbot/werbot/internal/platform/apperr"
 	"github.com/werbot/werbot/internal/platform/metrics"
 	"github.com/werbot/werbot/internal/platform/sshca"
 	"github.com/werbot/werbot/internal/policy"
@@ -32,7 +28,7 @@ func newTunnelDeps(s *services, reg *metrics.Registry, logger *slog.Logger) tunn
 		Gateways:    tunnelGateways{s.Gateways},
 		Users:       tunnelUsers{s.Identity, s.Agents, s.Sessions},
 		Resources:   tunnelResources{s.Inventory},
-		Credentials: tunnelCredentials{s.Credential},
+		Credentials: tunnelCredentials{s.Credential, s.Inventory, s.Sessions, s.Access},
 		Snapshots:   tunnelSnapshots{s: s, logger: logger},
 		Sessions:    tunnelSessions{s.Sessions, s.Agents},
 		Recordings:  s.Recordings,
@@ -102,26 +98,6 @@ func (r tunnelResources) ReportHealth(ctx context.Context, orgID, instanceID uui
 	return r.Service.ReportHealth(ctx, orgID, instanceID, out)
 }
 
-type tunnelCredentials struct{ c *credential.Service }
-
-// Reveal returns an empty secret for a resource without a credential (tcp,
-// udp, telnet without a password); the connector decides whether it needs one.
-// A registered type that accepts no credential kind can have none stored
-// (SetCredential checks the kind, the type never changes): no lookup.
-func (c tunnelCredentials) Reveal(ctx context.Context, orgID, resourceID uuid.UUID, resourceType string) (tunnel.Secret, error) {
-	if t, ok := connector.Lookup(resourceType); ok && len(t.Credentials) == 0 {
-		return tunnel.Secret{}, nil
-	}
-	sec, err := c.c.Reveal(ctx, orgID, resourceID)
-	if errors.Is(err, apperr.ErrNotFound) {
-		return tunnel.Secret{}, nil
-	}
-	if err != nil {
-		return tunnel.Secret{}, err
-	}
-	return tunnel.Secret{Kind: string(sec.Kind), Value: sec.Value}, nil
-}
-
 // tunnelSessions adapts session.Service to the tunnel types; Start records
 // sessions only for members of the organization, an agent's only when its run
 // counts the action.
@@ -134,7 +110,7 @@ func (s tunnelSessions) Start(ctx context.Context, st tunnel.SessionStart) (uuid
 	id, err := s.Service.Start(ctx, session.Start{OrgID: st.OrgID, UserID: st.UserID, ResourceID: st.ResourceID,
 		GatewayID: st.GatewayID, InstanceID: st.InstanceID, ClientIP: st.ClientIP, Kind: st.Kind, Front: st.Front, Transport: st.Transport, Target: st.Target,
 		Command: st.Command, Classes: st.Classes, Paths: st.Paths, AgentRunID: st.AgentRunID, ToolCallID: st.ToolCallID,
-		Guard: actionGuard(s.agents, st)})
+		DBName: st.DBName, Guard: actionGuard(s.agents, st)})
 	if st.AgentRunID == nil {
 		return id, err
 	}
@@ -256,7 +232,8 @@ func (t tunnelSnapshots) Pool(ctx context.Context, org *gatewayv1.Snapshot, orgI
 		if err != nil {
 			return nil, err
 		}
-		res := &gatewayv1.Resource{Id: r.ID.String(), Name: r.Name, Type: r.Type, ConfigJson: cfg}
+		res := &gatewayv1.Resource{Id: r.ID.String(), Name: r.Name, Type: r.Type, ConfigJson: cfg,
+			AgentReadonlyStatus: r.AgentReadonlyStatus, ConfigVersion: r.UpdatedAt.UnixMicro()}
 		if r.IdleTimeout != nil {
 			res.IdleTimeout = durationpb.New(*r.IdleTimeout)
 		}

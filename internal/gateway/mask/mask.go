@@ -78,6 +78,16 @@ func NewWriter(w io.Writer, secrets [][]byte, patterns bool) io.WriteCloser {
 	return m
 }
 
+// Bytes is p with the secrets and, with patterns, credential-shaped text
+// masked as one whole write (a database cell): nothing is held back.
+func Bytes(p []byte, secrets [][]byte, patterns bool) []byte {
+	var out bytes.Buffer
+	w := NewWriter(&out, secrets, patterns)
+	_, _ = w.Write(p) // a bytes.Buffer never fails
+	_ = w.Close()
+	return out.Bytes()
+}
+
 func (m *writer) Write(p []byte) (int, error) {
 	m.buf = m.literal(append(m.buf, p...))
 	cut := len(m.buf) - m.held()

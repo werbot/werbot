@@ -18,7 +18,7 @@ test('every mapped icon exists and unknown names fall back', () => {
 	for (const c of ['servers', 'databases', 'applications', 'desktops', 'containers', 'clouds']) {
 		expect(resolveIcon(categoryIcon(c))).toBeDefined();
 	}
-	for (const n of ['ssh', 'tcp', 'telnet', 'udp']) expect(resolveIcon(typeIcon(n))).toBeDefined();
+	for (const n of ['ssh', 'tcp', 'telnet', 'udp', 'postgres']) expect(resolveIcon(typeIcon(n))).toBeDefined();
 	expect(categoryIcon('nope')).toBe('powerplug');
 	expect(typeIcon('nope')).toBe('powerplug');
 	expect(resolveIcon('powerplug')).toBeDefined();

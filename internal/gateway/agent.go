@@ -37,10 +37,11 @@ func agentRunText(err error) string {
 const agentSnapshotGrace = 30 * time.Second
 
 // Agent is the agent run of a user certificate; the user is its sponsor.
-// AuthAt is when AuthenticateUser accepted it.
+// AuthAt is when AuthenticateUser accepted it; Limits are its database limits.
 type Agent struct {
 	ID, RunID uuid.UUID
 	AuthAt    time.Time
+	Limits    AgentLimits
 }
 
 // AuthorizeAgent decides r of the agent r.User.Agent twice: as its sponsor

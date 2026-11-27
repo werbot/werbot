@@ -90,7 +90,7 @@ func captureEnv(t *testing.T) (*pipeEnv, *capturedSink) {
 	t.Helper()
 	e := newPipeEnv(t, 50)
 	c := &capturedSink{sum: sha256.New()}
-	e.p.cfg.Recording = func(uuid.UUID, int, int) RecordingSink { return c }
+	e.p.cfg.Recording = func(uuid.UUID, int, int, string) RecordingSink { return c }
 	return e, c
 }
 

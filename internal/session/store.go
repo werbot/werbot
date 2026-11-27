@@ -16,11 +16,13 @@ type Store interface {
 	EndSession(ctx context.Context, arg dbq.EndSessionParams) (*uuid.UUID, error)
 	SessionOfInstanceExists(ctx context.Context, arg dbq.SessionOfInstanceExistsParams) (bool, error)
 	SessionInOrg(ctx context.Context, arg dbq.SessionInOrgParams) (bool, error)
+	OpenAgentSession(ctx context.Context, arg dbq.OpenAgentSessionParams) (dbq.OpenAgentSessionRow, error)
 	EndMissingSessions(ctx context.Context, arg dbq.EndMissingSessionsParams) ([]dbq.EndMissingSessionsRow, error)
 	EndLostSessions(ctx context.Context, lostAfterSecs float64) ([]dbq.EndLostSessionsRow, error)
 	GetSigningKey(ctx context.Context) (dbq.GetSigningKeyRow, error)
 	InsertSigningKey(ctx context.Context, arg dbq.InsertSigningKeyParams) error
 	CreateRecording(ctx context.Context, arg dbq.CreateRecordingParams) error
+	SessionResourceType(ctx context.Context, arg dbq.SessionResourceTypeParams) (dbq.SessionResourceTypeRow, error)
 	LockRecording(ctx context.Context, arg dbq.LockRecordingParams) (dbq.LockRecordingRow, error)
 	AppendRecordingChunk(ctx context.Context, arg dbq.AppendRecordingChunkParams) error
 	FinishRecording(ctx context.Context, arg dbq.FinishRecordingParams) error

@@ -1,6 +1,7 @@
 package connectcli
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -85,25 +86,34 @@ func open(ctx context.Context, ep Endpoint, conf *ssh.ClientConfig, sp Spec, std
 	return b, nil
 }
 
+// RequestResource asks the gateway behind c for the resource its login
+// names. A refusal is the gateway's text ("Access denied" when it gives none)
+// with a zero info and a nil error.
+func RequestResource(c *ssh.Client) (info sshdgram.ResourceInfo, refusal string, err error) {
+	ok, payload, err := c.SendRequest(sshdgram.ResourceRequest, true, nil)
+	if err != nil {
+		return info, "", err
+	}
+	if !ok {
+		return info, cmp.Or(string(payload), "Access denied"), nil // the gateway may refuse without a reason
+	}
+	if err := json.Unmarshal(payload, &info); err != nil {
+		return info, "", fmt.Errorf("resource info: %w", err)
+	}
+	return info, "", nil
+}
+
 // setup reads the resource info through c and opens the local port.
 func setup(ctx context.Context, c *ssh.Client, sp Spec, stdout, stderr io.Writer) (*binding, error) {
 	stop := context.AfterFunc(ctx, func() { _ = c.Close() })
 	defer stop()
-	ok, payload, err := c.SendRequest(sshdgram.ResourceRequest, true, nil)
+	info, refusal, err := RequestResource(c)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", sp.Resource, err)
 	}
-	if !ok {
-		text := string(payload)
-		if text == "" {
-			text = "Access denied" // the gateway refuses without a reason
-		}
-		_, _ = fmt.Fprintln(stderr, text)
+	if refusal != "" {
+		_, _ = fmt.Fprintln(stderr, refusal)
 		return nil, fmt.Errorf("%s: refused by the gateway", sp.Resource)
-	}
-	var info sshdgram.ResourceInfo
-	if err := json.Unmarshal(payload, &info); err != nil {
-		return nil, fmt.Errorf("%s: resource info: %w", sp.Resource, err)
 	}
 	udp := slices.Contains(info.Kinds, "datagram")
 	if !udp && !slices.Contains(info.Kinds, "stream") {
@@ -149,10 +159,10 @@ func (b *binding) serve(ctx context.Context) error {
 	return err
 }
 
-// openData is the channel open data of direct-tcpip and datagram@werbot.com:
-// the resource name and the target port, from the local address.
-func (b *binding) openData(from net.Addr) []byte {
-	d := sshdgram.OpenData{Host: b.link.resource, Port: b.target, OriginAddr: "127.0.0.1"}
+// OpenData is the channel open data of direct-tcpip and datagram@werbot.com:
+// the resource name and the target port, from the local address when there is one.
+func OpenData(resource string, port uint32, from net.Addr) []byte {
+	d := sshdgram.OpenData{Host: resource, Port: port, OriginAddr: "127.0.0.1"}
 	if a, ok := from.(interface{ AddrPort() netip.AddrPort }); ok {
 		d.OriginPort = uint32(a.AddrPort().Port())
 	}
@@ -165,7 +175,7 @@ func (b *binding) openChannel(ctx context.Context, typ string, from net.Addr) (s
 	if err != nil {
 		return nil, nil, err
 	}
-	return c.OpenChannel(typ, b.openData(from))
+	return c.OpenChannel(typ, OpenData(b.link.resource, b.target, from))
 }
 
 // openText is what the user reads about a failed channel open: a gateway

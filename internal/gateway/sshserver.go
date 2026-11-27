@@ -203,7 +203,8 @@ func handshakeUser(ctx ssh.Context) *User {
 // forward serves direct-tcpip as a stream and datagram@werbot.com as a datagram
 // session; both carry the same open data. The channel is accepted only after
 // Open succeeded, so an unreachable target closes an accepted channel and a
-// refusal is Prohibited.
+// refusal is Prohibited. A connector with PreSession has Open accept the
+// stream before StartSession: a refusal after that closes the channel.
 func (h *sshHandler) forward(_ *ssh.Server, conn *gossh.ServerConn, nc gossh.NewChannel, ctx ssh.Context) {
 	kind := KindStream
 	if nc.ChannelType() == sshdgram.ChannelType {
@@ -223,30 +224,27 @@ func (h *sshHandler) forward(_ *ssh.Server, conn *gossh.ServerConn, nc gossh.New
 		_ = nc.Reject(gossh.Prohibited, usageText)
 		return
 	}
-	target := net.JoinHostPort(d.Host, strconv.FormatUint(uint64(d.Port), 10))
-	sess, err := h.p.Open(ctx, h.request(ctx, resource, kind, Window{}, target))
+	ec := &earlyChannel{nc: nc}
+	r := h.request(ctx, resource, kind, Window{}, net.JoinHostPort(d.Host, strconv.FormatUint(uint64(d.Port), 10)))
+	r.Accept = ec.accept
+	sess, err := h.p.Open(ctx, r)
 	if err != nil {
-		_ = nc.Reject(gossh.Prohibited, openText(err, resource, kind, h.p.ctl.Policy()))
+		ec.reject(openText(err, resource, kind, h.p.ctl.Policy()))
 		return
 	}
 	c, ok := LookupConnector(sess.Resource.Type)
 	if !ok { // Open found it; registrations are never removed
 		h.p.abort(sess)
-		_ = nc.Reject(gossh.Prohibited, openText(ErrUnsupportedType, resource, kind, h.p.ctl.Policy()))
+		ec.reject(openText(ErrUnsupportedType, resource, kind, h.p.ctl.Policy()))
 		return
 	}
-	ch, reqs, err := nc.Accept()
+	ch, err := ec.open()
 	if err != nil {
 		h.p.abort(sess)
 		return
 	}
 	defer ch.Close() //nolint:errcheck // the client may be gone
-	go gossh.DiscardRequests(reqs)
-	if kind == KindDatagram {
-		sess.Datagram = &channelDatagrams{ch: ch}
-	} else {
-		sess.Stream = ch
-	}
+	attach(sess, kind, ch)
 	defer session(ctx)()
 	_ = h.p.Run(ctx, sess, c) // the pipeline logs connector errors
 }

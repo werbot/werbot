@@ -24,14 +24,20 @@ func timestamp(t *time.Time) *timestamppb.Timestamp {
 // limitsFromProto converts l; unset is all defaults.
 func limitsFromProto(l *werbotv1.AgentLimits) Limits {
 	return Limits{MaxActions: int(l.GetMaxActions()), MaxDuration: l.GetMaxDuration().AsDuration(),
-		MaxConcurrent: int(l.GetMaxConcurrent())}
+		MaxConcurrent: int(l.GetMaxConcurrent()), MaxRows: int(l.GetMaxRows()), MaxResultBytes: l.GetMaxResultBytes(),
+		StatementTimeout: l.GetStatementTimeout().AsDuration(), MaxQueries: int(l.GetMaxQueries())}
+}
+
+// limitsToProto converts l; Limits.Validate bounds every field to int32.
+func limitsToProto(l Limits) *werbotv1.AgentLimits {
+	return &werbotv1.AgentLimits{MaxActions: int32(l.MaxActions), MaxDuration: durationpb.New(l.MaxDuration), //nolint:gosec // Limits.Validate bounds them
+		MaxConcurrent: int32(l.MaxConcurrent), MaxRows: int32(l.MaxRows), MaxResultBytes: l.MaxResultBytes, //nolint:gosec // Limits.Validate bounds them
+		StatementTimeout: durationpb.New(l.StatementTimeout), MaxQueries: int32(l.MaxQueries)} //nolint:gosec // Limits.Validate bounds it
 }
 
 func agentToProto(v AgentView) *werbotv1.Agent {
 	return &werbotv1.Agent{Id: v.ID.String(), Name: v.Name, SponsorUserId: v.SponsorID.String(), SponsorLogin: v.SponsorLogin,
-		Kind: v.Kind, Status: v.Status, CreatedAt: timestamppb.New(v.CreatedAt),
-		Limits: &werbotv1.AgentLimits{MaxActions: int32(v.Limits.MaxActions), MaxDuration: durationpb.New(v.Limits.MaxDuration), //nolint:gosec // Limits.Validate bounds them
-			MaxConcurrent: int32(v.Limits.MaxConcurrent)}, //nolint:gosec // Limits.Validate bounds it
+		Kind: v.Kind, Status: v.Status, CreatedAt: timestamppb.New(v.CreatedAt), Limits: limitsToProto(v.Limits),
 		ActiveRuns: int32(v.ActiveRuns)} //nolint:gosec // live runs of one agent
 }
 

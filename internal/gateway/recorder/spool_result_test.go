@@ -33,3 +33,23 @@ func TestSpoolEndResultSurvivesRestart(t *testing.T) {
 		return slices.Equal(slices.Sorted(slices.Values(up.journal())), slices.Sorted(slices.Values(want)))
 	}, 5*time.Second, 5*time.Millisecond)
 }
+
+// end.json carries the querylog line count of a session that has one.
+func TestSpoolEndKeepsQueries(t *testing.T) {
+	dir := t.TempDir()
+	down := &fakeUploader{}
+	down.down.Store(true)
+	sp := openSpool(t, dir, down, 0)
+	a, b := uuid.New(), uuid.New()
+	require.NoError(t, sp.End(a, "closed", nil, &recorder.SessionResult{Queries: 4}))
+	require.NoError(t, sp.End(b, "closed", nil, &recorder.SessionResult{Command: "ls"}))
+	root, err := os.OpenRoot(dir)
+	require.NoError(t, err)
+	defer root.Close()
+	got, err := root.ReadFile(filepath.Join(a.String(), "end.json"))
+	require.NoError(t, err)
+	require.Contains(t, string(got), `"queries":4`)
+	got, err = root.ReadFile(filepath.Join(b.String(), "end.json"))
+	require.NoError(t, err)
+	require.NotContains(t, string(got), `"queries"`)
+}

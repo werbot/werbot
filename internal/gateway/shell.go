@@ -132,9 +132,12 @@ func newCommandDenial(reason string, id uuid.UUID, r OpenRequest, req AccessRequ
 	d := newDenial(reason, req.User.ID, r.Identity.fingerprint(), r.Resource, KindTerminal, req.Command, r.ClientIP)
 	d.SessionId, d.Classes = id.String(), req.Classes
 	d.Paths = truncateAll(req.Paths, maxDenialPaths, 1024)
-	d.Reasons = truncateAll(reasons, maxDenialReasons, 128)
+	d.Reasons = denialReasons(reasons)
 	return d
 }
+
+// denialReasons are the deciding policies of a denial, cut to the wire bounds.
+func denialReasons(reasons []string) []string { return truncateAll(reasons, maxDenialReasons, 128) }
 
 // truncateAll is the first n values, each cut to size bytes.
 func truncateAll(values []string, n, size int) []string {
@@ -147,10 +150,10 @@ func truncateAll(values []string, n, size int) []string {
 
 // result is the result of s for the session end: an exec's exit status and
 // output hash; a console's last line run, the classes and paths of every
-// line; nil for any other session.
+// line; a querylog session's accepted lines; nil for any other session.
 func (s *Session) result() *recorder.SessionResult {
 	if !s.Console || s.Command == "" {
-		return s.outcome.result()
+		return withQueries(s.outcome.result(), s.Recording)
 	}
 	return &recorder.SessionResult{Command: s.Command, Classes: s.Classes, Paths: s.Paths}
 }

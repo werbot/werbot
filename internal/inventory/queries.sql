@@ -8,7 +8,10 @@ RETURNING id;
 UPDATE resource
 SET name = @name, gateway_id = @gateway_id, config = coalesce(sqlc.narg(config)::jsonb, config),
     idle_timeout = make_interval(secs => sqlc.narg(idle_secs)::bigint),
-    max_duration = make_interval(secs => sqlc.narg(max_secs)::bigint), updated_at = now()
+    max_duration = make_interval(secs => sqlc.narg(max_secs)::bigint), updated_at = now(),
+    -- A configuration change invalidates the check of the agent_readonly credential.
+    agent_readonly_status = CASE WHEN agent_readonly_status = 'none' THEN 'none' ELSE 'pending' END,
+    agent_readonly_detail = CASE WHEN agent_readonly_status = 'none' THEN agent_readonly_detail ELSE '' END
 WHERE id = @id AND org_id = @org_id;
 
 -- name: DeleteResource :execrows
@@ -24,7 +27,8 @@ SELECT r.id, r.org_id, r.name, r.type, r.category, r.gateway_id, r.config, r.pre
        coalesce(extract(epoch FROM r.max_duration), 0)::bigint AS max_secs,
        CASE WHEN hs.n = 0 THEN 'unknown' WHEN hs.any_ok THEN 'healthy' ELSE 'unhealthy' END::text AS health_state,
        coalesce(hs.checked_at, 'epoch'::timestamptz)::timestamptz AS health_checked_at,
-       coalesce(hs.last_error, '')::text AS health_error
+       coalesce(hs.last_error, '')::text AS health_error,
+       r.agent_readonly_status, r.agent_readonly_detail
 FROM resource r
 LEFT JOIN resource_host_key h ON h.resource_id = r.id
 -- Fresh (3 min) probes of the online instances of the resource's pool.
@@ -48,7 +52,8 @@ SELECT r.id, r.org_id, r.name, r.type, r.category, r.gateway_id, r.config, r.pre
        coalesce(extract(epoch FROM r.max_duration), 0)::bigint AS max_secs,
        CASE WHEN hs.n = 0 THEN 'unknown' WHEN hs.any_ok THEN 'healthy' ELSE 'unhealthy' END::text AS health_state,
        coalesce(hs.checked_at, 'epoch'::timestamptz)::timestamptz AS health_checked_at,
-       coalesce(hs.last_error, '')::text AS health_error
+       coalesce(hs.last_error, '')::text AS health_error,
+       r.agent_readonly_status, r.agent_readonly_detail
 FROM resource r
 LEFT JOIN resource_host_key h ON h.resource_id = r.id
 -- Fresh (3 min) probes of the online instances of the resource's pool.
@@ -227,6 +232,31 @@ ORDER BY r.id, h.checked_at DESC
 ON CONFLICT (resource_id, gateway_instance_id)
 DO UPDATE SET ok = EXCLUDED.ok, error = EXCLUDED.error, checked_at = EXCLUDED.checked_at
 WHERE resource_health.checked_at <= EXCLUDED.checked_at;
+
+-- name: SetAgentReadonlyChecked :many
+-- Check results of the agent_readonly credential from an instance of the
+-- resource's pool. A result counts only for the current check version:
+-- greatest(updated_at of the credential, resource.updated_at) in microseconds;
+-- and only when it ended after the stored result of that version (the end
+-- time is clamped to now()); of repeated ids the newest wins. changed is false
+-- when status and detail stay. resource.updated_at stays: it is part of the
+-- version.
+UPDATE resource r
+SET agent_readonly_status = h.status, agent_readonly_detail = h.detail, agent_readonly_checked_at = h.checked_at
+FROM (SELECT DISTINCT ON (u.resource_id) u.resource_id, u.status, u.detail, u.version, least(u.checked_at, now()) AS checked_at
+      FROM (SELECT unnest(@resource_ids::uuid[]) AS resource_id, unnest(@statuses::text[]) AS status,
+                   unnest(@details::text[]) AS detail, unnest(@versions::bigint[]) AS version,
+                   unnest(@checked_ats::timestamptz[]) AS checked_at) u
+      ORDER BY u.resource_id, u.checked_at DESC) h,
+     credential c, gateway_instance i, resource o
+WHERE r.id = h.resource_id AND r.org_id = @org_id AND o.id = r.id
+  AND c.resource_id = r.id AND c.org_id = r.org_id AND c.slot = 'agent_readonly'
+  AND i.id = @instance_id AND i.org_id = @org_id AND i.gateway_id = r.gateway_id
+  AND (extract(epoch FROM greatest(c.updated_at, r.updated_at)) * 1000000)::bigint = h.version
+  AND (o.agent_readonly_checked_at IS NULL OR o.agent_readonly_checked_at < h.checked_at
+       OR o.agent_readonly_checked_at < greatest(c.updated_at, r.updated_at))
+RETURNING r.id, r.agent_readonly_status, r.agent_readonly_detail,
+  ((o.agent_readonly_status, o.agent_readonly_detail) IS DISTINCT FROM (h.status, h.detail))::bool AS changed;
 
 -- name: OnlineInstanceIDs :many
 SELECT id FROM gateway_instance

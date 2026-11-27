@@ -22,30 +22,39 @@ import (
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
 	"github.com/werbot/werbot/internal/connector"
+	_ "github.com/werbot/werbot/internal/connector/postgres"
 	"github.com/werbot/werbot/internal/inventory"
 	"github.com/werbot/werbot/internal/platform/db/dbtest"
 	"github.com/werbot/werbot/internal/platform/principal"
 )
 
-// fakeCreds keeps credentials in memory.
+// credKey is one credential slot of a resource.
+type credKey struct {
+	id   uuid.UUID
+	slot string
+}
+
+// fakeCreds keeps credentials in memory per slot.
 type fakeCreds struct {
-	m map[uuid.UUID]connector.CredentialKind
+	m map[credKey]connector.CredentialKind
 }
 
-func (f fakeCreds) Set(_ context.Context, _, id uuid.UUID, k connector.CredentialKind, _ []byte) error {
-	f.m[id] = k
+func newFakeCreds() fakeCreds { return fakeCreds{map[credKey]connector.CredentialKind{}} }
+
+func (f fakeCreds) Set(_ context.Context, _, id uuid.UUID, slot string, k connector.CredentialKind, _ []byte) error {
+	f.m[credKey{id, slot}] = k
 	return nil
 }
 
-func (f fakeCreds) Clear(_ context.Context, _, id uuid.UUID) error {
-	delete(f.m, id)
+func (f fakeCreds) Clear(_ context.Context, _, id uuid.UUID, slot string) error {
+	delete(f.m, credKey{id, slot})
 	return nil
 }
 
-func (f fakeCreds) Kinds(_ context.Context, _ uuid.UUID, ids []uuid.UUID) (map[uuid.UUID]connector.CredentialKind, error) {
+func (f fakeCreds) Kinds(_ context.Context, _ uuid.UUID, ids []uuid.UUID, slot string) (map[uuid.UUID]connector.CredentialKind, error) {
 	out := map[uuid.UUID]connector.CredentialKind{}
 	for _, id := range ids {
-		if k, ok := f.m[id]; ok {
+		if k, ok := f.m[credKey{id, slot}]; ok {
 			out[id] = k
 		}
 	}
@@ -55,7 +64,7 @@ func (f fakeCreds) Kinds(_ context.Context, _ uuid.UUID, ids []uuid.UUID) (map[u
 func newHandler(t *testing.T) (*inventory.Handler, env) {
 	t.Helper()
 	e := setup(t)
-	return inventory.NewHandler(e.svc, fakeCreds{map[uuid.UUID]connector.CredentialKind{}}, nil, nil, nil), e
+	return inventory.NewHandler(e.svc, newFakeCreds(), nil, nil, nil), e
 }
 
 func createReq(name string, cfg *sshv1.Config) *connect.Request[werbotv1.CreateResourceRequest] {
@@ -228,4 +237,19 @@ func TestResourceTimeoutsAndHealthOverRPC(t *testing.T) {
 		_, err = c.CreateResource(context.Background(), connect.NewRequest(bad))
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), d.String())
 	}
+}
+
+func TestSetCredentialPostgresKinds(t *testing.T) {
+	h, e := newHandler(t)
+	res, err := h.CreateResource(e.ctx, connect.NewRequest(&werbotv1.CreateResourceRequest{Name: "pg", Type: "postgres",
+		ConfigJson: `{"host":"db","username":"app"}`}))
+	require.NoError(t, err)
+	id := res.Msg.GetResource().GetId()
+	set := func(kind string) error {
+		_, err := h.SetCredential(e.ctx, connect.NewRequest(&werbotv1.SetCredentialRequest{ResourceId: id, Kind: kind, Value: []byte("x")}))
+		return err
+	}
+	require.NoError(t, set("password"))
+	require.NoError(t, set("client_cert"))
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(set("private_key")))
 }

@@ -237,7 +237,7 @@ func newPipeEnv(t *testing.T, maxSessions int) *pipeEnv {
 		res{"rstream", "streamonly", "streamonly"}, res{"rnope", "nope", "nope"}, res{"rdenied", "denied", "fake"})
 	e := &pipeEnv{reg: metrics.NewRegistry(), log: &syncBuffer{}, m: m}
 	e.f = &fakeControl{policy: pol, connected: true, user: User{ID: m["u1"], Login: "alice", Country: "NL"}}
-	rec := func(id uuid.UUID, cols, rows int) RecordingSink {
+	rec := func(id uuid.UUID, cols, rows int, _ string) RecordingSink {
 		e.f.with(func(f *fakeControl) { f.recs = append(f.recs, fmt.Sprintf("%s %d %d", id, cols, rows)) })
 		return spySink{f: e.f, p: e.p, id: id}
 	}

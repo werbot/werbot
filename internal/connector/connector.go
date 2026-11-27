@@ -2,6 +2,7 @@
 package connector
 
 import (
+	"cmp"
 	"fmt"
 	"regexp"
 	"slices"
@@ -31,6 +32,14 @@ type CredentialKind string
 const (
 	CredentialPassword   CredentialKind = "password"
 	CredentialPrivateKey CredentialKind = "private_key"
+	CredentialClientCert CredentialKind = "client_cert" // PEM certificate and key in one value
+)
+
+// Recording formats of a type: asciicast for terminals, querylog (NDJSON, one
+// line per database operation).
+const (
+	RecordAsciicast = "asciicast"
+	RecordQuerylog  = "querylog"
 )
 
 // Kind is a session kind served by the gateway connector of a type.
@@ -51,16 +60,17 @@ var nameRe = regexp.MustCompile(`^[a-z][a-z0-9]{0,31}$`)
 
 // Type describes a resource type.
 type Type struct {
-	Name        string
-	Category    Category
-	NewConfig   func() proto.Message
-	Validate    func(proto.Message) error // may normalize the message (defaults)
-	Credentials []CredentialKind
-	Actions     []string
-	Level       string // "L1" | "L2" | "L3"
-	Kinds       []Kind
-	Recorded    []Kind                           // ⊆ Kinds: kinds whose sessions are recorded
-	Endpoint    func(cfg proto.Message) Endpoint // required when Kinds has stream or datagram
+	Name         string
+	Category     Category
+	NewConfig    func() proto.Message
+	Validate     func(proto.Message) error // may normalize the message (defaults)
+	Credentials  []CredentialKind
+	Actions      []string
+	Level        string // "L1" | "L2" | "L3"
+	Kinds        []Kind
+	Recorded     []Kind                           // ⊆ Kinds: kinds whose sessions are recorded
+	RecordFormat string                           // RecordAsciicast (default) or RecordQuerylog
+	Endpoint     func(cfg proto.Message) Endpoint // required when Kinds has stream or datagram
 }
 
 var (
@@ -70,6 +80,7 @@ var (
 
 // Register adds a type; it panics on a duplicate or an invalid definition.
 func Register(t Type) {
+	t.RecordFormat = cmp.Or(t.RecordFormat, RecordAsciicast)
 	check(t)
 	mu.Lock()
 	defer mu.Unlock()
@@ -127,6 +138,13 @@ func checkActions(t Type) string {
 	if slices.Contains(t.Kinds, KindTerminal) && !slices.Contains(t.Actions, t.Name+".shell") {
 		return fmt.Sprintf("terminal kind needs action %q", t.Name+".shell")
 	}
+	return checkRecordFormat(t)
+}
+
+func checkRecordFormat(t Type) string {
+	if t.RecordFormat != RecordAsciicast && t.RecordFormat != RecordQuerylog {
+		return fmt.Sprintf("unknown record format %q", t.RecordFormat)
+	}
 	return ""
 }
 
@@ -173,6 +191,15 @@ func (t Type) ExecAction() (string, bool) {
 // command ("<name>.shell"); "" and false when t has none.
 func (t Type) ShellAction() (string, bool) {
 	if a := t.Name + ".shell"; slices.Contains(t.Actions, a) {
+		return a, true
+	}
+	return "", false
+}
+
+// QueryAction returns the action of t that runs one database query
+// ("<name>.query"); "" and false when t has none.
+func (t Type) QueryAction() (string, bool) {
+	if a := t.Name + ".query"; slices.Contains(t.Actions, a) {
 		return a, true
 	}
 	return "", false

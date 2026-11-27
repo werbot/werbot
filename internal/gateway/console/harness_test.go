@@ -55,6 +55,7 @@ func (s *spySink) Marker(text string) {
 	s.markers = append(s.markers, text)
 	s.mu.Unlock()
 }
+func (*spySink) Event(any) error { return nil }
 func (s *spySink) Close(context.Context) error {
 	return nil
 }

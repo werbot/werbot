@@ -264,6 +264,6 @@ func TestFormatWait(t *testing.T) {
 		59*time.Second + 400*time.Millisecond:    "59s",
 		time.Hour + 30*time.Second + time.Second: "3631s",
 	} {
-		require.Equal(t, want, formatWait(d), d.String())
+		require.Equal(t, want, FormatWait(d), d.String())
 	}
 }

@@ -12,6 +12,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
+	"github.com/werbot/werbot/internal/credential"
 	"github.com/werbot/werbot/internal/platform/apperr"
 	"github.com/werbot/werbot/internal/policy"
 )
@@ -88,7 +89,7 @@ func TestCrossOrgIsolation(t *testing.T) {
 	require.Len(t, binds.Msg.GetBindings(), 1)
 	assert.Equal(t, ra.GetId(), binds.Msg.GetBindings()[0].GetResourceId())
 
-	_, err = s.d.Credential.Reveal(actx, orgA, uuid.MustParse(id))
+	_, err = s.d.Credential.Reveal(actx, orgA, uuid.MustParse(id), credential.SlotPrimary)
 	assert.ErrorIs(t, err, apperr.ErrNotFound)
 }
 

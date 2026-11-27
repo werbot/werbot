@@ -193,7 +193,7 @@ func (f *fake) PinHostKey(_ context.Context, _, _ uuid.UUID, key gossh.PublicKey
 	return nil
 }
 
-func (f *fake) Reveal(_ context.Context, _, _ uuid.UUID, resourceType string) (Secret, error) {
+func (f *fake) Reveal(_ context.Context, _, _ uuid.UUID, resourceType string, _ bool) (Secret, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.reveals++

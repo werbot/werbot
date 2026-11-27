@@ -3,6 +3,7 @@ package tunnel
 import (
 	"context"
 	"errors"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
@@ -12,7 +13,17 @@ import (
 )
 
 // AgentRef is the agent run an agent certificate belongs to.
-type AgentRef struct{ AgentID, RunID uuid.UUID }
+type AgentRef struct {
+	AgentID, RunID uuid.UUID
+	Limits         AgentLimits
+}
+
+// AgentLimits bound the database sessions of an agent run.
+type AgentLimits struct {
+	MaxRows, MaxQueries int
+	MaxResultBytes      int64
+	StatementTimeout    time.Duration
+}
 
 // AgentDenial is an action of an agent run a gateway refused by policy.
 type AgentDenial struct {
@@ -70,7 +81,10 @@ func agentInfo(u User) *gatewayv1.AgentInfo {
 	if u.Agent == nil {
 		return nil
 	}
-	return &gatewayv1.AgentInfo{AgentId: u.Agent.AgentID.String(), RunId: u.Agent.RunID.String(), SponsorUserId: u.ID.String()}
+	l := u.Agent.Limits
+	return &gatewayv1.AgentInfo{AgentId: u.Agent.AgentID.String(), RunId: u.Agent.RunID.String(), SponsorUserId: u.ID.String(),
+		Limits: &gatewayv1.AgentLimits{MaxRows: int32(l.MaxRows), MaxResultBytes: l.MaxResultBytes, //nolint:gosec // agentic.Limits.Validate caps rows, queries and the timeout far below int32
+			StatementTimeoutMs: int32(l.StatementTimeout.Milliseconds()), MaxQueries: int32(l.MaxQueries)}} //nolint:gosec // as above
 }
 
 // optionalID parses an id that may be absent: "" is nil.

@@ -99,12 +99,14 @@ func timeouts(idle, maxDur *durationpb.Duration) (*time.Duration, *time.Duration
 	return conv(idle), conv(maxDur)
 }
 
-// resourceToProto never carries a credential value, only its kind.
-func resourceToProto(r Resource, kinds map[uuid.UUID]connector.CredentialKind) (*werbotv1.Resource, error) {
+// resourceToProto never carries a credential value, only the kinds of the
+// primary and agent_readonly slots ("" for none).
+func resourceToProto(r Resource, kind, agentKind connector.CredentialKind) (*werbotv1.Resource, error) {
 	out := &werbotv1.Resource{
 		Id: r.ID.String(), Name: r.Name, Type: r.Type, Category: string(r.Category), Labels: r.Labels,
-		CredentialKind: string(kinds[r.ID]),
-		CreatedAt:      timestamppb.New(r.CreatedAt), UpdatedAt: timestamppb.New(r.UpdatedAt),
+		CredentialKind: string(kind), AgentCredentialKind: string(agentKind),
+		AgentReadonlyStatus: r.AgentReadonlyStatus, AgentReadonlyDetail: r.AgentReadonlyDetail,
+		CreatedAt: timestamppb.New(r.CreatedAt), UpdatedAt: timestamppb.New(r.UpdatedAt),
 	}
 	if r.GatewayID != nil {
 		out.GatewayId = r.GatewayID.String()

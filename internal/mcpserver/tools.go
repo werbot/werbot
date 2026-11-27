@@ -20,7 +20,7 @@ import (
 	"github.com/werbot/werbot/internal/clientauth"
 )
 
-// ResourceCacheTTL is how long list_resources and ssh_exec reuse the resource list.
+// ResourceCacheTTL is how long list_resources, ssh_exec and db_query reuse the resource list.
 const ResourceCacheTTL = 60 * time.Second
 
 // maxTraceparent is the longest traceparent RecordToolCall accepts.
@@ -41,6 +41,9 @@ func (s *server) addTools() {
 	addTool(s, &mcp.Tool{Name: "ssh_exec",
 		Description: "Run one command on a resource over SSH, without a terminal. Output is capped at 64 KiB. " +
 			"A command that needs an approval returns pending_approval: call again with the same resource and command once it is approved."}, s.sshExec)
+	addTool(s, &mcp.Tool{Name: "db_query", Annotations: &mcp.ToolAnnotations{DestructiveHint: new(true)},
+		Description: "Run one statement on a database resource and return its rows, each value as text or null. " +
+			"A statement that needs an approval returns pending_approval: call again with the same resource and query once it is approved."}, s.dbQuery)
 	addTool(s, &mcp.Tool{Name: "request_access",
 		Description: "Ask for access to a resource for a time (Go duration such as 2h; empty: the organization default)."}, s.requestAccess)
 	addTool(s, &mcp.Tool{Name: "run_status",
@@ -143,6 +146,15 @@ func (s *server) resource(ctx context.Context, run *clientauth.AgentProfile, nam
 		}
 	}
 	return nil, nil
+}
+
+// mustResource is resource with an unknown name as an error.
+func (s *server) mustResource(ctx context.Context, run *clientauth.AgentProfile, name string) (*werbotv1.AccessibleResource, error) {
+	r, err := s.resource(ctx, run, name)
+	if err == nil && r == nil {
+		err = fmt.Errorf("resource %s not found", name)
+	}
+	return r, err
 }
 
 type noInput struct{}

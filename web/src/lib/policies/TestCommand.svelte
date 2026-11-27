@@ -11,7 +11,15 @@
 	import { verdictOf, type Verdict } from './classes.js';
 	import { reasonName } from './reasons.js';
 
-	let { users, resources, rules }: { users: SelectOption[]; resources: SelectOption[]; rules: CommandRule[] } = $props();
+	interface Props {
+		users: SelectOption[];
+		resources: SelectOption[];
+		/** the resources whose type takes SQL: the command is a query, without a working folder */
+		queryResources: Set<string>;
+		rules: CommandRule[];
+	}
+
+	let { users, resources, queryResources, rules }: Props = $props();
 
 	let userId = $state('');
 	let resourceId = $state('');
@@ -27,12 +35,13 @@
 		approval: { tone: 'upcoming', text: m.policies_test_needs_approval }
 	};
 	const verdict = $derived(result ? verdicts[verdictOf(result)] : undefined);
+	const sql = $derived(queryResources.has(resourceId));
 
 	async function run(e: SubmitEvent) {
 		e.preventDefault();
 		try {
 			const [res, custom, paths, terminals] = await Promise.all([
-				policy.testCommand({ subject: { case: 'userId', value: userId }, resourceId, command, cwd }),
+				policy.testCommand({ subject: { case: 'userId', value: userId }, resourceId, command, cwd: sql ? '' : cwd }),
 				policy.listCustomPolicies({}),
 				policy.listPathRules({}),
 				policy.listTerminalRules({})
@@ -53,10 +62,14 @@
 			<FilledSelect label={m.policies_test_user()} options={users} bind:value={userId} />
 			<FilledSelect label={m.policies_test_resource()} options={resources} bind:value={resourceId} />
 		</div>
-		<div class="pair">
-			<FormField label={m.policies_test_command()} bind:value={command} required maxlength={65536} />
-			<FormField label={m.policies_test_cwd()} bind:value={cwd} placeholder="~" maxlength={1024} />
-		</div>
+		{#if sql}
+			<FormField label={m.policies_test_sql()} bind:value={command} required maxlength={65536} multiline rows={3} spellcheck="false" />
+		{:else}
+			<div class="pair">
+				<FormField label={m.policies_test_command()} bind:value={command} required maxlength={65536} />
+				<FormField label={m.policies_test_cwd()} bind:value={cwd} placeholder="~" maxlength={1024} />
+			</div>
+		{/if}
 		<div><Button size={40} type="submit" variant="solid" disabled={!userId || !resourceId}>{m.policies_test_run()}</Button></div>
 	</form>
 	{#if result && verdict}
@@ -65,6 +78,7 @@
 			<ClassChips classes={result.classes} />
 			<PathChips paths={result.paths} />
 			{#each result.reasons as r (r)}<Label variant="soft">{reasonName(r, names)}</Label>{/each}
+			{#each result.obligations as o (o)}<Label variant="soft" color="yellow">{o}</Label>{/each}
 		</div>
 		{#if result.message}<InfoBlock>{result.message}</InfoBlock>{/if}
 	{/if}

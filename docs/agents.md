@@ -48,10 +48,15 @@ The MCP Registry entry ([`server.json`](../server.json), name `io.github.werbot/
 | --- | --- | --- |
 | `list_resources` | none | Resources with `name`, `type`, `kinds`, `labels`, `allowed_classes`, `approval_classes`, `requestable`. A resource the sponsor cannot reach is never listed. |
 | `ssh_exec` | `resource`, `command`, `timeout` (seconds, 1 to 600, default 60), `approval_id` (for the transcript only) | `status` (`ok`, `denied`, `error`, `pending_approval`), `exit_code`, `stdout`, `stderr`, `truncated`, `approval_id`, `approval_url`, `message` |
+| `db_query` | `resource`, `query` (one statement), `max_rows` (0 to 100000; 0: only the agent's limit), `approval_id` (for the transcript only) | `status` (`ok`, `denied`, `pending_approval`), `columns`, `rows` (each value text or `null`), `row_count`, `truncated`, `approval_id`, `approval_url`, `message` |
 | `request_access` | `resource`, `duration` (Go duration, empty: the organization default), `reason` | `request_id`, `status`, `url` |
 | `run_status` | none | Status, actions used and left, expiry and the approvals the run waits for |
 
 `ssh_exec` runs one command without a terminal through the resource's gateway, with the run certificate and the gateway host key from `list_resources` (no trust on first use). A relative path starts at the login's home directory. Output is stdout and stderr together, at most 64 KiB; the rest is dropped and `truncated` is set. A command that waits for an approval longer than 50 seconds returns `pending_approval` with the link; call `ssh_exec` again with the same resource and command once it is approved. A refusal of the gateway is `denied` with its message (`Command denied: …`, `Access denied`); `Agent limit exceeded`, `Agent run is not active`, `Gateway is not ready, try again later`, `Gateway is busy, try again later` and a target the gateway could not reach (`Connection to <resource> failed`, `Login to <resource> failed`, `SSH host key mismatch for <resource>`) are `error`: the command did not run. A command the gateway ends (a lock, a revoke, the idle timeout or the max duration) has no exit code and is `error` with `the session ended without an exit status`.
+
+`db_query` runs one statement on a database resource ([databases.md](databases.md#agent-sessions)) through a warm session: the first call opens it, later calls of the run reuse it, and it closes with the run. The gateway logs in to the database with the agent credential; the agent never sees a credential. Only a database whose agent credential is verified (`ok`) is listed and reachable: any other is `resource <name> not found`. A refused query is `denied` with the gateway's message (`werbot: query denied: …`); an error of the database is a tool error and the session stays open. A query that waits for an approval longer than 50 seconds returns `pending_approval` (only the gateway's notice `werbot: Waiting for approval …` starts that wait); call `db_query` again with the same resource and query once it is approved. An approved write runs as one statement outside a transaction, with the resource's primary credential. For 10 minutes after the approval the same text with the same parameters in the same database runs again without a new approval. The tool is marked destructive (`destructiveHint`): its text can change data where a rule allows it.
+
+A warm session is an open session of the run: each database the run queries holds one `max_concurrent` slot (default 4) until the run ends, so four warm databases leave no slot for `ssh_exec`.
 
 ## `werbot agent run`
 
@@ -114,12 +119,15 @@ Every agent gets built-in policies (`agent:baseline:<name>` in the decision reas
 
 | Baseline | Effect |
 | --- | --- |
-| `connect` | An agent opens exec sessions only (`<type>.connect` with kind `exec`). |
+| `connect` | An agent opens exec sessions only (`<type>.connect` with kind `exec`); databases follow `db_connect`. |
 | `read` | A command whose classes are exactly `read` runs. |
 | `dangerous` | `destructive`, `secrets` and `egress` are denied, even under an `allow` rule. |
 | `terminal` | No shell, no PTY and no command console. |
 | `sftp` | No file transfer. |
 | `remote_forward` | No remote port forwarding (`ssh -R`), even under a custom `permit`. |
+| `db_connect` | An agent opens a database only when its [agent credential](databases.md#agent-credential) is verified. |
+| `db_read` | A query whose classes are exactly `read` runs. |
+| `db_readonly` | Without a verified agent credential the database is denied, even under a custom `permit`. |
 | `frozen` | A frozen agent is denied everything. |
 | `blocked_runs` | A paused or locked run is denied everything. |
 
@@ -162,8 +170,12 @@ Each agent has limits; a run takes them when it starts, so a change applies to n
 | `max_actions` | 100 | 1 to 10000 sessions per run |
 | `max_duration` | 1h | 1m to 1h |
 | `max_concurrent` | 4 | 1 to 32 open sessions per run |
+| `max_rows` | 1000 | 1 to 100000 rows per query result |
+| `max_result_bytes` | 1 MiB | 1 KiB to 64 MiB of row data per query result |
+| `statement_timeout` | 30s | 1s to 10m, whole seconds, per statement |
+| `max_queries` | 1000 | 1 to 100000 queries per database session |
 
-An action is a session the gateway opens. Past a limit the gateway refuses the command with `Agent limit exceeded` before it connects to the resource; that refusal is not a denial. A run also records at most 1000 tool calls, each with arguments up to 16 KiB.
+The four database limits apply to every database session of the agent ([databases.md](databases.md#agent-sessions)); set them on **AI agents**, **Limits**. An action is a session the gateway opens. Past a limit the gateway refuses the command with `Agent limit exceeded` before it connects to the resource; that refusal is not a denial. A run also records at most 1000 tool calls, each with arguments up to 16 KiB.
 
 - A run past its `max_duration` refuses new actions at once, but its open sessions end when the expiry job ends the run, which runs every minute: up to about one minute later.
 - If the server fails to sign the run token after it started the run, the client gets no token and the run stays `running` without one until it expires.
@@ -210,4 +222,5 @@ Agents are `Werbot::Agent` entities with `sponsor` (a `Werbot::User`) and `statu
 - The shared profile mode does not isolate the agent from its sponsor ([Profile modes](#profile-modes)).
 - A run token sent to `/oauth/revoke` ends the CLI session it was exchanged from: in the shared mode that is the sponsor's login. An agent can only cut access this way, never gain it.
 - The tool call record comes from the client; the sessions, approvals and denials come from the gateway.
-- Phase 2 serves MCP over stdio only, a run lasts at most 1 hour, and there is no `db_query` or `propose_plan` tool.
+- MCP is served over stdio only, a run lasts at most 1 hour, and there is no `propose_plan` tool.
+- `db_query` speaks PostgreSQL only; the guarantee that an agent cannot write is the rights of the agent credential, not the query classifier.

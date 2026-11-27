@@ -49,6 +49,30 @@ type Connector interface {
 // before StartSession, so a refusal is a target_not_allowed denial, not a failed session.
 type TargetDialer interface{ DialsTarget() }
 
+// PreSession is an optional Connector interface: Open runs it on an accepted
+// KindStream before StartSession, within PreSessionTimeout. peek returns the next
+// n bytes of conn without consuming them (at most PreSessionBuffer); conn takes
+// the protocol's answers. An error refuses the stream before any session exists;
+// Handled closes it as served (ErrHandled). Serve later reads the stream from
+// its first byte.
+type PreSession interface {
+	PreSession(ctx context.Context, r Resource, peek func(n int) ([]byte, error), conn io.ReadWriteCloser) (PreSessionResult, error)
+}
+
+// PreSessionResult is what a PreSession learned: Handled ends the stream without
+// a session, DBName is the database StartSession records.
+type PreSessionResult struct {
+	Handled bool
+	DBName  string
+}
+
+// Prober is an optional Connector interface: the health prober calls Probe
+// instead of its TCP connect, within the probe timeout. dial is the pipeline's
+// guarded dialer; Probe sends no credentials.
+type Prober interface {
+	Probe(ctx context.Context, r Resource, dial func(ctx context.Context, network, address string) (net.Conn, error)) error
+}
+
 var (
 	connMu   sync.RWMutex
 	connRegs = map[string]Connector{}

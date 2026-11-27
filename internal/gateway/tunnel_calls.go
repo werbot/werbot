@@ -86,7 +86,10 @@ func withAgent(u User, cert *sshca.Identity, a *gatewayv1.AgentInfo) (User, erro
 		a.GetSponsorUserId() != u.ID.String():
 		return User{}, errAgentMismatch
 	}
-	u.Agent = &Agent{ID: *cert.AgentID, RunID: *cert.RunID, AuthAt: time.Now()}
+	l := a.GetLimits()
+	u.Agent = &Agent{ID: *cert.AgentID, RunID: *cert.RunID, AuthAt: time.Now(), Limits: AgentLimits{
+		MaxRows: int(l.GetMaxRows()), MaxResultBytes: l.GetMaxResultBytes(),
+		StatementTimeout: time.Duration(l.GetStatementTimeoutMs()) * time.Millisecond, MaxQueries: int(l.GetMaxQueries())}}
 	return u, nil
 }
 
@@ -108,7 +111,8 @@ func authRequest(id Identity, ip netip.Addr) *gatewayv1.AuthenticateUserRequest 
 
 // StartSession records a session of kind (target: host:port for a stream; an
 // exec: its authorized command, cut to the wire bound, and classes; its
-// front and transport; an agent's: its run and tool call) and reveals the resource credential.
+// front and transport; the database of a pre-session, cut to the wire bound;
+// an agent's: its run and tool call) and reveals the resource credential.
 func (c *tunnelClient) StartSession(ctx context.Context, userID, resourceID uuid.UUID, ip netip.Addr, kind Kind, target, command string, classes, paths []string, args startArgs) (uuid.UUID, Secret, error) {
 	ctx, cancel := context.WithTimeout(ctx, c.callTimeout)
 	defer cancel()
@@ -116,6 +120,7 @@ func (c *tunnelClient) StartSession(ctx context.Context, userID, resourceID uuid
 		UserId: userID.String(), ResourceId: resourceID.String(), ClientIp: ip.String(), Kind: string(kind), Target: target,
 		Command: TruncateUTF8(command, 65536), Classes: classes, Paths: paths[:min(len(paths), shellclass.MaxPaths)],
 		AgentRunId: idString(args.RunID), ToolCallId: idString(args.ToolCall), Front: args.Front, Transport: args.Transport,
+		DbName: TruncateUTF8(args.DBName, 63),
 	}))
 	if err != nil {
 		return uuid.Nil, Secret{}, err
@@ -145,6 +150,7 @@ func (c *tunnelClient) EndSession(ctx context.Context, sessionID uuid.UUID, reas
 		req.Command, req.Classes = TruncateUTF8(r.Command, 65536), r.Classes
 		req.Paths = r.Paths[:min(len(r.Paths), shellclass.MaxPaths)]
 		req.ExitCode, req.OutputSha256 = r.ExitCode, r.OutputSHA256
+		req.Queries = r.Queries
 	}
 	_, err := c.conn.Load().rpc.EndSession(ctx, connect.NewRequest(req))
 	return err

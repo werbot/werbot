@@ -5,13 +5,16 @@ import { ConfigSchema } from '#lib/gen/werbot/connector/ssh/v1/ssh_pb.js';
 import { ConfigSchema as TelnetConfigSchema } from '#lib/gen/werbot/connector/telnet/v1/telnet_pb.js';
 import { ConfigSchema as TcpConfigSchema } from '#lib/gen/werbot/connector/tcp/v1/tcp_pb.js';
 import { ConfigSchema as UdpConfigSchema } from '#lib/gen/werbot/connector/udp/v1/udp_pb.js';
+import { ConfigSchema as PostgresConfigSchema } from '#lib/gen/werbot/connector/postgres/v1/postgres_pb.js';
 import type { Resource, ResourceType } from '#lib/gen/werbot/v1/resource_pb.js';
 import SshConfigForm from './SshConfigForm.svelte';
 import TelnetConfigForm from './TelnetConfigForm.svelte';
 import TcpConfigForm from './TcpConfigForm.svelte';
 import UdpConfigForm from './UdpConfigForm.svelte';
+import PostgresConfigForm from './PostgresConfigForm.svelte';
 import JsonConfigForm from './JsonConfigForm.svelte';
 import { parsePorts } from './ports';
+import { splitList } from '#lib/resources/agentCredential.js';
 
 export type ConfigValue = { config?: Any; configJson?: string };
 export type ConfigFormProps = { type: ResourceType; initial?: Resource; onchange: (v: ConfigValue) => void };
@@ -20,7 +23,8 @@ export const configForms: Record<string, Component<ConfigFormProps>> = {
 	ssh: SshConfigForm,
 	telnet: TelnetConfigForm,
 	tcp: TcpConfigForm,
-	udp: UdpConfigForm
+	udp: UdpConfigForm,
+	postgres: PostgresConfigForm
 };
 
 export function configFormFor(type: string): Component<ConfigFormProps> {
@@ -51,4 +55,37 @@ export function udpConfigValue(v: { host: string; ports: string; flowIdle: strin
 	if (v.flowIdle && !/^\d+$/.test(v.flowIdle)) throw new Error('flow idle must be whole seconds');
 	const flowIdle = v.flowIdle ? create(DurationSchema, { seconds: BigInt(v.flowIdle) }) : undefined;
 	return { config: anyPack(UdpConfigSchema, create(UdpConfigSchema, { host: v.host, ports: requiredPorts(v.ports), flowIdle })) };
+}
+
+export const sslmodes = ['verify-full', 'verify-ca', 'disable'];
+
+export type PostgresFields = {
+	host: string;
+	port: string;
+	database: string;
+	/** comma separated path.Match globs; empty allows any database */
+	allowedDatabases: string;
+	sslmode: string;
+	caPem: string;
+	recordParams: boolean;
+	username: string;
+	/** comma separated table globs whose reads are class secrets */
+	secretTables: string;
+	agentUsername: string;
+};
+
+// Throws when the server would refuse the port, sslmode or a verify-ca without ca_pem; the form treats that as an invalid value.
+export function postgresConfigValue(v: PostgresFields): ConfigValue {
+	const port = v.port ? Number(v.port) : 0;
+	if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('port out of range');
+	if (!sslmodes.includes(v.sslmode)) throw new Error('unknown sslmode');
+	if (v.sslmode === 'verify-ca' && !v.caPem.trim()) throw new Error('verify-ca needs ca_pem');
+	const [allowedDatabases, secretTables] = [splitList(v.allowedDatabases), splitList(v.secretTables)];
+	const { host, database, sslmode, caPem, recordParams, username, agentUsername } = v;
+	return {
+		config: anyPack(
+			PostgresConfigSchema,
+			create(PostgresConfigSchema, { host, port, database, allowedDatabases, sslmode, caPem, recordParams, username, secretTables, agentUsername })
+		)
+	};
 }

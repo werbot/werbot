@@ -787,7 +787,7 @@ func (q *Queries) RunDenials(ctx context.Context, arg RunDenialsParams) ([]RunDe
 }
 
 const runGate = `-- name: RunGate :one
-SELECT r.id, r.org_id, r.agent_id, r.sponsor_user_id, r.client, r.reason, r.status, r.actions, r.denials_in_row, r.max_actions, r.max_concurrent, r.expires_at, r.started_at, r.ended_at, r.end_reason, a.status AS agent_status,
+SELECT r.id, r.org_id, r.agent_id, r.sponsor_user_id, r.client, r.reason, r.status, r.actions, r.denials_in_row, r.max_actions, r.max_concurrent, r.expires_at, r.started_at, r.ended_at, r.end_reason, a.status AS agent_status, a.limits AS agent_limits,
     (r.status = 'running' AND r.expires_at > now())::bool AS active,
     agent_locked(r.org_id, a.id, a.sponsor_user_id, r.id)::bool AS locked
 FROM agent_run r
@@ -803,11 +803,12 @@ type RunGateParams struct {
 type RunGateRow struct {
 	AgentRun    AgentRun
 	AgentStatus string
+	AgentLimits []byte
 	Active      bool
 	Locked      bool
 }
 
-// A run with its agent's status. active: running and not expired. locked: an
+// A run with its agent's status and limits. active: running and not expired. locked: an
 // active lock of the run, the agent, its sponsor (agents_of_user or user) or
 // all agents (agent_locked).
 func (q *Queries) RunGate(ctx context.Context, arg RunGateParams) (RunGateRow, error) {
@@ -830,6 +831,7 @@ func (q *Queries) RunGate(ctx context.Context, arg RunGateParams) (RunGateRow, e
 		&i.AgentRun.EndedAt,
 		&i.AgentRun.EndReason,
 		&i.AgentStatus,
+		&i.AgentLimits,
 		&i.Active,
 		&i.Locked,
 	)

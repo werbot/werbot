@@ -29,6 +29,8 @@ type AgentInfo struct {
 	AgentId       string                 `protobuf:"bytes,1,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
 	RunId         string                 `protobuf:"bytes,2,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	SponsorUserId string                 `protobuf:"bytes,3,opt,name=sponsor_user_id,json=sponsorUserId,proto3" json:"sponsor_user_id,omitempty"`
+	// the run's limits in databases, defaults applied
+	Limits        *AgentLimits `protobuf:"bytes,4,opt,name=limits,proto3" json:"limits,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -84,6 +86,83 @@ func (x *AgentInfo) GetSponsorUserId() string {
 	return ""
 }
 
+func (x *AgentInfo) GetLimits() *AgentLimits {
+	if x != nil {
+		return x.Limits
+	}
+	return nil
+}
+
+// AgentLimits bound an agent's database session: rows and bytes of one
+// result, the time of one statement and the queries of the session.
+type AgentLimits struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	MaxRows            int32                  `protobuf:"varint,1,opt,name=max_rows,json=maxRows,proto3" json:"max_rows,omitempty"`
+	MaxResultBytes     int64                  `protobuf:"varint,2,opt,name=max_result_bytes,json=maxResultBytes,proto3" json:"max_result_bytes,omitempty"`
+	StatementTimeoutMs int32                  `protobuf:"varint,3,opt,name=statement_timeout_ms,json=statementTimeoutMs,proto3" json:"statement_timeout_ms,omitempty"`
+	MaxQueries         int32                  `protobuf:"varint,4,opt,name=max_queries,json=maxQueries,proto3" json:"max_queries,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *AgentLimits) Reset() {
+	*x = AgentLimits{}
+	mi := &file_gateway_v1_tunnel_agent_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AgentLimits) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AgentLimits) ProtoMessage() {}
+
+func (x *AgentLimits) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_tunnel_agent_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AgentLimits.ProtoReflect.Descriptor instead.
+func (*AgentLimits) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_tunnel_agent_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *AgentLimits) GetMaxRows() int32 {
+	if x != nil {
+		return x.MaxRows
+	}
+	return 0
+}
+
+func (x *AgentLimits) GetMaxResultBytes() int64 {
+	if x != nil {
+		return x.MaxResultBytes
+	}
+	return 0
+}
+
+func (x *AgentLimits) GetStatementTimeoutMs() int32 {
+	if x != nil {
+		return x.StatementTimeoutMs
+	}
+	return 0
+}
+
+func (x *AgentLimits) GetMaxQueries() int32 {
+	if x != nil {
+		return x.MaxQueries
+	}
+	return 0
+}
+
 // RecordDenialRequest reports an action of an agent run the gateway refused
 // by policy; the run counts it toward its pause.
 type RecordDenialRequest struct {
@@ -101,7 +180,7 @@ type RecordDenialRequest struct {
 
 func (x *RecordDenialRequest) Reset() {
 	*x = RecordDenialRequest{}
-	mi := &file_gateway_v1_tunnel_agent_proto_msgTypes[1]
+	mi := &file_gateway_v1_tunnel_agent_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -113,7 +192,7 @@ func (x *RecordDenialRequest) String() string {
 func (*RecordDenialRequest) ProtoMessage() {}
 
 func (x *RecordDenialRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_tunnel_agent_proto_msgTypes[1]
+	mi := &file_gateway_v1_tunnel_agent_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -126,7 +205,7 @@ func (x *RecordDenialRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecordDenialRequest.ProtoReflect.Descriptor instead.
 func (*RecordDenialRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_tunnel_agent_proto_rawDescGZIP(), []int{1}
+	return file_gateway_v1_tunnel_agent_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *RecordDenialRequest) GetRunId() string {
@@ -174,7 +253,7 @@ type RecordDenialResponse struct {
 
 func (x *RecordDenialResponse) Reset() {
 	*x = RecordDenialResponse{}
-	mi := &file_gateway_v1_tunnel_agent_proto_msgTypes[2]
+	mi := &file_gateway_v1_tunnel_agent_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -186,7 +265,7 @@ func (x *RecordDenialResponse) String() string {
 func (*RecordDenialResponse) ProtoMessage() {}
 
 func (x *RecordDenialResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_tunnel_agent_proto_msgTypes[2]
+	mi := &file_gateway_v1_tunnel_agent_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -199,7 +278,7 @@ func (x *RecordDenialResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecordDenialResponse.ProtoReflect.Descriptor instead.
 func (*RecordDenialResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_tunnel_agent_proto_rawDescGZIP(), []int{2}
+	return file_gateway_v1_tunnel_agent_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *RecordDenialResponse) GetPaused() bool {
@@ -214,11 +293,18 @@ var File_gateway_v1_tunnel_agent_proto protoreflect.FileDescriptor
 const file_gateway_v1_tunnel_agent_proto_rawDesc = "" +
 	"\n" +
 	"\x1dgateway/v1/tunnel_agent.proto\x12\n" +
-	"gateway.v1\x1a\x1bbuf/validate/validate.proto\"e\n" +
+	"gateway.v1\x1a\x1bbuf/validate/validate.proto\"\x96\x01\n" +
 	"\tAgentInfo\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12\x15\n" +
 	"\x06run_id\x18\x02 \x01(\tR\x05runId\x12&\n" +
-	"\x0fsponsor_user_id\x18\x03 \x01(\tR\rsponsorUserId\"\x90\x02\n" +
+	"\x0fsponsor_user_id\x18\x03 \x01(\tR\rsponsorUserId\x12/\n" +
+	"\x06limits\x18\x04 \x01(\v2\x17.gateway.v1.AgentLimitsR\x06limits\"\xa5\x01\n" +
+	"\vAgentLimits\x12\x19\n" +
+	"\bmax_rows\x18\x01 \x01(\x05R\amaxRows\x12(\n" +
+	"\x10max_result_bytes\x18\x02 \x01(\x03R\x0emaxResultBytes\x120\n" +
+	"\x14statement_timeout_ms\x18\x03 \x01(\x05R\x12statementTimeoutMs\x12\x1f\n" +
+	"\vmax_queries\x18\x04 \x01(\x05R\n" +
+	"maxQueries\"\x90\x02\n" +
 	"\x13RecordDenialRequest\x12\x1f\n" +
 	"\x06run_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x05runId\x12#\n" +
 	"\bresource\x18\x02 \x01(\tB\a\xbaH\x04r\x02(?R\bresource\x12\"\n" +
@@ -243,18 +329,20 @@ func file_gateway_v1_tunnel_agent_proto_rawDescGZIP() []byte {
 	return file_gateway_v1_tunnel_agent_proto_rawDescData
 }
 
-var file_gateway_v1_tunnel_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_gateway_v1_tunnel_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_gateway_v1_tunnel_agent_proto_goTypes = []any{
 	(*AgentInfo)(nil),            // 0: gateway.v1.AgentInfo
-	(*RecordDenialRequest)(nil),  // 1: gateway.v1.RecordDenialRequest
-	(*RecordDenialResponse)(nil), // 2: gateway.v1.RecordDenialResponse
+	(*AgentLimits)(nil),          // 1: gateway.v1.AgentLimits
+	(*RecordDenialRequest)(nil),  // 2: gateway.v1.RecordDenialRequest
+	(*RecordDenialResponse)(nil), // 3: gateway.v1.RecordDenialResponse
 }
 var file_gateway_v1_tunnel_agent_proto_depIdxs = []int32{
-	0, // [0:0] is the sub-list for method output_type
-	0, // [0:0] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	1, // 0: gateway.v1.AgentInfo.limits:type_name -> gateway.v1.AgentLimits
+	1, // [1:1] is the sub-list for method output_type
+	1, // [1:1] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_gateway_v1_tunnel_agent_proto_init() }
@@ -268,7 +356,7 @@ func file_gateway_v1_tunnel_agent_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gateway_v1_tunnel_agent_proto_rawDesc), len(file_gateway_v1_tunnel_agent_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

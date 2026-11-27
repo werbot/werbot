@@ -93,6 +93,10 @@ Owners and admins manage command rules on **Policies**, **Command rules** (`Crea
 
 Rules reach the gateways with the next policy snapshot (within about 2 seconds). A running command is checked again on every new snapshot: a new `deny` rule ends it with `access_revoked`, a new `approval` rule does not. Audit: `command_rule.create`, `command_rule.update`, `command_rule.delete` with the name, effect and classes.
 
+## Queries
+
+Database resources decide each query as the action `<type>.query` (`postgres.query`) with SQL classes and the context keys `db_name`, `tables` and `write_tables`. Command rules cover queries with the same classes; a query the classifier cannot parse is only `opaque`. Classes, approvals of queries and the agent credential: [databases.md](databases.md#query-checks).
+
 ## Folders
 
 Folder rules limit the paths a command may touch. Owners and admins manage them on **Policies**, **Folders** (`CreatePathRule`, `UpdatePathRule`, `DeletePathRule`). A rule has a `name`, `subjects` (agents included), a `resource_selector` and a `message` as a command rule, and:
@@ -186,6 +190,9 @@ AI agents ([agents.md](agents.md)) go through the same rules, in two passes: the
 | `agent:baseline:remote_forward` | Agents get no remote port forwarding (`ssh -R`), even under a custom `permit`. |
 | `agent:baseline:frozen` | The agent is frozen. |
 | `agent:baseline:blocked_runs` | The run is paused, ended or locked. |
+| `agent:baseline:db_connect` | Agents open a database only when its agent credential is verified. |
+| `agent:baseline:db_read` | Agents run queries of exactly the `read` class. |
+| `agent:baseline:db_readonly` | Without a verified agent credential agents are denied the database, even under a custom `permit`. |
 
 A command rule that names agents with `approval` appears as `command:<id>:agent`.
 
@@ -276,7 +283,7 @@ What is masked, each match replaced by `[masked]`:
 
 Limits:
 
-- Only exec output (stdout and stderr, without a PTY) is masked. A terminal, including `ssh -t … <command>`, is never masked: holding back output would break interactive programs.
+- Only exec output (stdout and stderr, without a PTY) and the rows of database sessions ([databases.md](databases.md#agent-sessions)) are masked. A terminal, including `ssh -t … <command>`, is never masked: holding back output would break interactive programs.
 - A secret shorter than 4 bytes is not masked.
 - The gateway checks whole lines and holds an unfinished line up to 4 KiB. In a longer line, a match split at a 4 KiB boundary is not masked.
 - A `BEGIN … PRIVATE KEY` line without a matching `END` hides the rest of that command's output.
@@ -284,4 +291,4 @@ Limits:
 
 ## Testing a command
 
-The test box on **Policies**, **Command rules** (`PolicyService` `TestCommand`, owners and admins) takes a user or an agent, a resource, a command and an optional working directory (`cwd`, default `~`) and shows its classes, its paths and the decision now: allowed or denied, the rules that decided, whether an approval would be asked and the message. It uses the same class overrides, command rules, folder rules and custom policies as the gateways and does not run anything.
+The test box on **Policies**, **Command rules** (`PolicyService` `TestCommand`, owners and admins) takes a user or an agent, a resource, a command and an optional working directory (`cwd`, default `~`; a database resource takes an SQL query instead, without `cwd`) and shows its classes, its paths and the decision now: allowed or denied, the rules that decided, whether an approval would be asked and the message. It uses the same class overrides, command rules, folder rules and custom policies as the gateways and does not run anything.

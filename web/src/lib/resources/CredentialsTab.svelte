@@ -7,11 +7,13 @@
 	import { readPrivateKeyFile } from '#lib/sshkey.js';
 	import type { Resource, ResourceType } from '#lib/gen/werbot/v1/resource_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
+	import AgentCredential from './AgentCredential.svelte';
+	import { hasQuery } from './agentCredential.js';
 
 	let { resource = $bindable(), type }: { resource: Resource; type?: ResourceType } = $props();
 
-	const labels: Record<string, () => string> = { password: m.cred_kind_password, private_key: m.cred_kind_private_key };
-	const setLabels: Record<string, () => string> = { password: m.cred_set_password, private_key: m.cred_set_private_key };
+	const labels: Record<string, () => string> = { password: m.cred_kind_password, private_key: m.cred_kind_private_key, client_cert: m.cred_kind_client_cert };
+	const setLabels: Record<string, () => string> = { password: m.cred_set_password, private_key: m.cred_set_private_key, client_cert: m.cred_set_client_cert };
 	const label = (kind: string) => (labels[kind] ?? (() => kind))();
 
 	let picked = $state('');
@@ -21,16 +23,22 @@
 	let fileValue = '';
 	let fileError = $state('');
 
-	async function run(action: () => Promise<unknown>) {
+	// a credential change reloads the resource: its kinds and agent status
+	async function change(action: () => Promise<unknown>): Promise<boolean> {
 		try {
 			await action();
-			value = fileName = fileValue = fileError = '';
 			const res = await resources.getResource({ id: resource.id });
 			if (res.resource) resource = res.resource;
 			toast({ tone: 'success', text: m.common_saved() });
+			return true;
 		} catch (e) {
 			failToast(e);
+			return false;
 		}
+	}
+
+	async function run(action: () => Promise<unknown>) {
+		if (await change(action)) value = fileName = fileValue = fileError = '';
 	}
 
 	async function readKeyFile(file: File) {
@@ -73,8 +81,8 @@
 		value={kind}
 		onchange={(v) => ((picked = v), (fileError = ''))}
 	/>
-	{#if kind === 'private_key'}
-		<KeyFileDrop hint={m.cred_drop_hint()} {fileName} error={fileError} onfile={readKeyFile} onclear={clearFile} />
+	{#if kind === 'private_key' || kind === 'client_cert'}
+		<KeyFileDrop hint={kind === 'client_cert' ? m.cred_client_cert_hint() : m.cred_drop_hint()} {fileName} error={fileError} onfile={readKeyFile} onclear={clearFile} />
 		<Textarea label={label(kind)} bind:value rows={8} autocomplete="off" spellcheck="false" required />
 	{:else}
 		<FilledField type="password" label={label(kind)} bind:value autocomplete="new-password" required />
@@ -92,6 +100,9 @@
 		</Button>
 	</div>
 </form>
+{#if type && hasQuery([type], type.name)}
+	<AgentCredential {resource} run={change} />
+{/if}
 
 <style>
 	form {

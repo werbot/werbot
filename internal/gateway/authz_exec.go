@@ -114,9 +114,9 @@ func compilePathRule(r *gatewayv1.PathRule) (shellclass.PathRule, error) {
 // Decide decides r: an agent's request in two passes (AuthorizeAgent), a
 // person's in one. It mirrors policy.(*PolicySet).Authorize in
 // internal/policy/policy.go, which the gateway may not import;
-// TestPolicyParity, TestPolicyParityExec and TestPolicyParityAgents keep the
-// two equal. An invalid IP, an action the resource type lacks or any policy
-// evaluation error denies.
+// TestPolicyParity, TestPolicyParityExec, TestPolicyParityAgents and
+// TestPolicyParityQuery keep the two equal. An invalid IP, an action the
+// resource type lacks or any policy evaluation error denies.
 func (p *Policy) Decide(r AccessRequest) Decision {
 	if p == nil {
 		return Decision{Reasons: []string{"error:compile"}}
@@ -236,6 +236,9 @@ func (p *Policy) evaluate(r AccessRequest, agent *cedar.Entity) (cedar.Decision,
 			"kind":             cedar.String(r.Kind),
 			"mfa_age":          cedar.Long(r.mfaAge()),
 			"mfa_method":       cedar.String(r.MFAMethod),
+			"db_name":          cedar.String(r.DBName),
+			"tables":           stringSet(r.Tables),
+			"write_tables":     stringSet(r.WriteTables),
 		}),
 	}
 	return cedar.Authorize(p.policies, getter, req)

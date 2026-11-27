@@ -23,24 +23,48 @@
 	let maxDuration = $state('');
 	let maxConcurrent = $state('');
 	let durationError = $state('');
+	let maxRows = $state('');
+	let maxResultBytes = $state('');
+	let statementTimeout = $state('');
+	let maxQueries = $state('');
+	let timeoutError = $state('');
 
-	// a new agent: its limits fill the form; 0 and unset show as empty (the default)
+	// 0 and unset show as empty (the default)
+	const shownNumber = (n?: number | bigint) => (n ? String(n) : '');
+	// empty is unset; null is not a duration
+	const optionalDuration = (text: string) => (text.trim() ? parseDuration(text) : undefined);
+
+	// a new agent: its limits fill the form
 	$effect(() => {
-		maxActions = agent?.limits?.maxActions ? String(agent.limits.maxActions) : '';
-		maxDuration = formatDuration(agent?.limits?.maxDuration);
-		maxConcurrent = agent?.limits?.maxConcurrent ? String(agent.limits.maxConcurrent) : '';
-		durationError = '';
+		const l = agent?.limits;
+		maxActions = shownNumber(l?.maxActions);
+		maxDuration = formatDuration(l?.maxDuration);
+		maxConcurrent = shownNumber(l?.maxConcurrent);
+		maxRows = shownNumber(l?.maxRows);
+		maxResultBytes = shownNumber(l?.maxResultBytes);
+		statementTimeout = formatDuration(l?.statementTimeout);
+		maxQueries = shownNumber(l?.maxQueries);
+		durationError = timeoutError = '';
 	});
 
 	async function save(e: SubmitEvent) {
 		e.preventDefault();
-		const duration = maxDuration.trim() ? parseDuration(maxDuration) : undefined;
+		const [duration, timeout] = [optionalDuration(maxDuration), optionalDuration(statementTimeout)];
 		durationError = duration === null ? m.common_duration_invalid() : '';
-		if (!agent || duration === null) return;
+		timeoutError = timeout === null ? m.common_duration_invalid() : '';
+		if (!agent || duration === null || timeout === null) return;
 		try {
 			await agents.updateAgent({
 				id: agent.id,
-				limits: { maxActions: Number(maxActions) || 0, maxDuration: duration, maxConcurrent: Number(maxConcurrent) || 0 }
+				limits: {
+					maxActions: Number(maxActions) || 0,
+					maxDuration: duration,
+					maxConcurrent: Number(maxConcurrent) || 0,
+					maxRows: Number(maxRows) || 0,
+					maxResultBytes: BigInt(Number(maxResultBytes) || 0),
+					statementTimeout: timeout,
+					maxQueries: Number(maxQueries) || 0
+				}
 			});
 			toast({ tone: 'success', text: m.agents_limits_saved() });
 			onsaved();
@@ -59,6 +83,15 @@
 			<FormField label={m.agents_limits_max_concurrent()} type="number" min="0" max="32" placeholder={m.agents_limits_default()} bind:value={maxConcurrent} />
 		</FieldRow>
 		<p class="hint">{m.agents_limits_hint()}</p>
+		<FieldRow even>
+			<FormField label={m.agents_limits_max_rows()} type="number" min="0" max="100000" placeholder={m.agents_limits_default()} bind:value={maxRows} />
+			<FormField label={m.agents_limits_max_queries()} type="number" min="0" max="100000" placeholder={m.agents_limits_default()} bind:value={maxQueries} />
+		</FieldRow>
+		<FieldRow even>
+			<FormField label={m.agents_limits_max_result_bytes()} type="number" min="0" max="67108864" placeholder={m.agents_limits_default()} bind:value={maxResultBytes} />
+			<FormField label={m.agents_limits_statement_timeout()} placeholder={m.agents_limits_default()} error={timeoutError} bind:value={statementTimeout} />
+		</FieldRow>
+		<p class="hint">{m.agents_limits_db_hint()}</p>
 	</form>
 	{#snippet footer()}
 		<Button size={40} scheme="g" variant="plain" onclick={onclose}>{m.common_cancel()}</Button>

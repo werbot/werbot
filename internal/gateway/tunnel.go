@@ -148,8 +148,9 @@ func (c *tunnelClient) setConnected(v bool) {
 
 // Run keeps the stream open and the certificate fresh until ctx ends, then returns nil.
 // A broken stream leaves active sessions and the last snapshot alone. Once the client
-// certificate has expired, the next stream end returns ErrCertExpired.
-func (c *tunnelClient) Run(ctx context.Context, heartbeat func() *gatewayv1.Heartbeat) error {
+// certificate has expired, the next stream end returns ErrCertExpired. A
+// heartbeat whose send fails goes to undelivered.
+func (c *tunnelClient) Run(ctx context.Context, heartbeat func() *gatewayv1.Heartbeat, undelivered func(*gatewayv1.Heartbeat)) error {
 	ctx, cancel := context.WithCancel(ctx)
 	var wg sync.WaitGroup
 	wg.Go(func() { c.renewLoop(ctx) })
@@ -158,7 +159,7 @@ func (c *tunnelClient) Run(ctx context.Context, heartbeat func() *gatewayv1.Hear
 	defer func() { c.conn.Load().tr.CloseIdleConnections() }()
 	failures := 0
 	for {
-		got, err := c.stream(ctx, heartbeat)
+		got, err := c.stream(ctx, heartbeat, undelivered)
 		if ctx.Err() != nil {
 			return nil
 		}

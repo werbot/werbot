@@ -16,6 +16,7 @@ import (
 
 	"github.com/werbot/werbot/internal/clientauth"
 	"github.com/werbot/werbot/internal/connectcli"
+	"github.com/werbot/werbot/internal/mcpserver/dbquery"
 	"github.com/werbot/werbot/internal/platform/version"
 )
 
@@ -35,8 +36,9 @@ type server struct {
 	opts Options
 	mcp  *mcp.Server
 
-	mu  sync.Mutex // one exchange at a time
-	run *clientauth.AgentProfile
+	mu   sync.Mutex // one exchange at a time
+	run  *clientauth.AgentProfile
+	pool *dbquery.Pool // the run's warm db_query sessions
 
 	cache resourceCache
 }
@@ -74,7 +76,7 @@ func (s *server) agent(ctx context.Context, req *mcp.CallToolRequest) (*clientau
 	if err != nil {
 		return nil, err
 	}
-	s.run = run
+	s.run, s.pool = run, dbquery.NewPool(s.dbDialer(run))
 	return run, nil
 }
 
@@ -84,13 +86,15 @@ func (s *server) agentName(client string) string {
 	return AgentName(cmp.Or(s.opts.Agent, s.opts.Profile.Agent), client)
 }
 
-// end finishes the run (client_exit) even after ctx ended.
+// end closes the run's database sessions, then finishes the run
+// (client_exit) even after ctx ended.
 func (s *server) end(ctx context.Context) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.run == nil {
 		return
 	}
+	_ = s.pool.Close() // a session that fails to close ends with its SSH connection
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), endTimeout)
 	defer cancel()
 	if err := s.run.End(ctx); err != nil {

@@ -132,7 +132,7 @@ func (p *Pipeline) wait(ctx context.Context, t approvalTicket, notice io.Writer)
 	if notice == nil {
 		return p.awaitApproval(ctx, t)
 	}
-	_, _ = fmt.Fprintf(notice, "Waiting for approval %s, timeout %s\r\n%s\r\n", t.ID, formatWait(t.ExpiresAt.Sub(p.now())), t.URL)
+	_, _ = fmt.Fprintf(notice, "Waiting for approval %s, timeout %s\r\n%s\r\n", t.ID, FormatWait(t.ExpiresAt.Sub(p.now())), t.URL)
 	err := p.awaitApproval(ctx, t)
 	if err == nil {
 		_, _ = io.WriteString(notice, "Approved\r\n")
@@ -181,8 +181,8 @@ func (p *Pipeline) approvalStatus(ctx context.Context, id string) string {
 	return status
 }
 
-// formatWait is d to the second: whole minutes as "5m", else seconds as "90s".
-func formatWait(d time.Duration) string {
+// FormatWait is d to the second: whole minutes as "5m", else seconds as "90s".
+func FormatWait(d time.Duration) string {
 	d = d.Round(time.Second)
 	if d%time.Minute == 0 {
 		return fmt.Sprintf("%dm", d/time.Minute)

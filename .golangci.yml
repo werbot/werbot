@@ -396,6 +396,12 @@ linters:
           deny:
             - { pkg: golang.zx2c4.com/wireguard, desc: the TUN device and the userspace stack live only in internal/vnet }
             - { pkg: gvisor.dev/gvisor, desc: the TUN device and the userspace stack live only in internal/vnet }
+        pgquery-sqlclass-only:
+          files: ["**/*.go", "!**/internal/platform/sqlclass/pg/**"]
+          deny:
+            - { pkg: github.com/wasilibs/go-pgquery, desc: the PostgreSQL parser lives only in internal/platform/sqlclass/pg }
+            - { pkg: github.com/tetratelabs/wazero, desc: the PostgreSQL parser lives only in internal/platform/sqlclass/pg }
+            - { pkg: github.com/pganalyze/pg_query_go/v6, desc: the PostgreSQL parser lives only in internal/platform/sqlclass/pg }
         cedar-exp-policy-only:
           files: ["**/*.go", "!**/internal/policy/custom.go", "!**/*_test.go"]
           deny:

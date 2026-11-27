@@ -57,16 +57,21 @@ type healthResult struct {
 	err string
 }
 
-// prober checks the TCP targets of the pool resources this instance is a prober
-// of and keeps the latest result of each until the next heartbeat takes them.
+// prober checks the targets of the pool resources this instance is a prober of
+// (TCP, or the type's Prober) and keeps the latest result of each until the
+// next heartbeat takes them.
 type prober struct {
 	policy func() *Policy
 	dial   func(ctx context.Context, addr string) error
-	ok     *metrics.Counter
-	fail   *metrics.Counter
+	// probeDial is the guarded dialer a type's Prober gets; the pipeline sets it.
+	probeDial func(ctx context.Context, network, address string) (net.Conn, error)
+	readonly  *readonlyChecks // checks of agent_readonly credentials; the pipeline sets it
+	ok        *metrics.Counter
+	fail      *metrics.Counter
 
 	mu      sync.Mutex
 	pending map[uuid.UUID]*gatewayv1.ResourceHealth
+	latest  map[uuid.UUID]*gatewayv1.ResourceHealth // the results of the last pass
 }
 
 func newProber(policy func() *Policy, dial func(ctx context.Context, addr string) error, reg *metrics.Registry) *prober {
@@ -109,11 +114,21 @@ func (h *prober) run(ctx context.Context, self uuid.UUID, instances func() []uui
 	}
 }
 
-// probeTarget is a resource this instance checks.
+// probeTarget is a resource this instance checks; probe is the Prober of its
+// type, nil for the TCP probe.
 type probeTarget struct {
 	id    uuid.UUID
 	host  string
 	ports []uint16
+	res   Resource
+	probe Prober
+}
+
+// proberOf is the Prober of the connector of typ; nil when it has none.
+func proberOf(typ string) Prober {
+	c, _ := LookupConnector(typ)
+	pr, _ := c.(Prober)
+	return pr
 }
 
 // pass checks the resources of the snapshot this instance is a prober of, at most
@@ -133,12 +148,13 @@ func (h *prober) pass(ctx context.Context, self uuid.UUID, pool []uuid.UUID) boo
 		if err != nil || !ok || ep.NoHealth || ep.Host == "" || !slices.Contains(probers(r.ID, pool, probersPerResource), self) {
 			continue
 		}
-		t := probeTarget{id: r.ID, host: ep.Host}
+		t := probeTarget{id: r.ID, host: ep.Host, res: r, probe: proberOf(r.Type)}
 		for _, p := range ep.Ports {
 			t.ports = append(t.ports, p.Port)
 		}
 		mine = append(mine, t)
 	}
+	h.readonly.keep(mine)
 	results := make([]healthResult, len(mine))
 	sem := make(chan struct{}, probeParallel)
 	var wg sync.WaitGroup
@@ -156,10 +172,21 @@ func (h *prober) pass(ctx context.Context, self uuid.UUID, pool []uuid.UUID) boo
 	return true
 }
 
-// check connects to the first port of each range; the result is ok when all
-// succeed, else the error of the first that failed. The text is cut to the
-// server's bound and holds only what the dial reported: no credentials.
+// check starts the agent_readonly check of the resource when one is due, then
+// runs the Prober of the type or else connects to the first port of
+// each range; the result is ok when all succeed, else the error of the first
+// that failed. The text is cut to the server's bound and holds only what the
+// probe reported: no credentials.
 func (h *prober) check(ctx context.Context, t probeTarget) healthResult {
+	h.readonly.start(ctx, t.res)
+	if t.probe != nil {
+		cctx, cancel := context.WithTimeout(ctx, probeTimeout)
+		defer cancel()
+		if err := t.probe.Probe(cctx, t.res, h.probeDial); err != nil {
+			return healthResult{err: TruncateUTF8(err.Error(), maxHealthError)}
+		}
+		return healthResult{ok: true}
+	}
 	for _, port := range t.ports {
 		cctx, cancel := context.WithTimeout(ctx, probeTimeout)
 		err := h.dial(cctx, net.JoinHostPort(t.host, strconv.Itoa(int(port))))
@@ -178,6 +205,7 @@ func (h *prober) record(mine []probeTarget, results []healthResult) {
 	now := timestamppb.Now()
 	h.mu.Lock()
 	defer h.mu.Unlock()
+	h.latest = make(map[uuid.UUID]*gatewayv1.ResourceHealth, len(mine))
 	for i, t := range mine {
 		r := results[i]
 		if r.ok {
@@ -186,20 +214,42 @@ func (h *prober) record(mine []probeTarget, results []healthResult) {
 			h.fail.Inc()
 		}
 		h.pending[t.id] = &gatewayv1.ResourceHealth{ResourceId: t.id.String(), Ok: r.ok, Error: r.err, CheckedAt: now}
+		h.latest[t.id] = h.pending[t.id]
 	}
 }
 
-// take returns up to maxHealth queued results and drops them from the queue.
+// take returns up to maxHealth queued results, each with the agent_readonly
+// check of its resource that finished since, and drops them from the queue.
+// A check without a queued result goes with a copy of the latest result of
+// its resource.
 func (h *prober) take() []*gatewayv1.ResourceHealth {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	var out []*gatewayv1.ResourceHealth
 	for id, r := range h.pending {
 		if len(out) == maxHealth {
-			break
+			return out
 		}
+		h.readonly.attach(id, r)
 		out = append(out, r)
 		delete(h.pending, id)
 	}
+	for _, id := range h.readonly.waiting() {
+		r, ok := h.latest[id]
+		if len(out) == maxHealth || !ok {
+			continue
+		}
+		r = &gatewayv1.ResourceHealth{ResourceId: r.GetResourceId(), Ok: r.GetOk(), Error: r.GetError(), CheckedAt: r.GetCheckedAt()}
+		h.readonly.attach(id, r)
+		out = append(out, r)
+	}
 	return out
+}
+
+// requeue gives back the agent_readonly checks of hs, which did not reach
+// the server; the next pass sends the probe results again anyway.
+func (h *prober) requeue(hs []*gatewayv1.ResourceHealth) {
+	for _, r := range hs {
+		h.readonly.requeue(r)
+	}
 }

@@ -96,7 +96,7 @@ func TestMigrations15Preset(t *testing.T) {
 	defer func() { _ = sqlDB.Close() }()
 	p, err := goose.NewProvider(goose.DialectPostgres, sqlDB, migrations.FS)
 	require.NoError(t, err)
-	_, err = p.Down(ctx)
+	_, err = p.DownTo(ctx, 220)
 	require.NoError(t, err)
 	_, err = pool.Exec(ctx, "SELECT preset_id FROM resource")
 	pgCode(t, err, "42703")

@@ -14,12 +14,13 @@ import (
 )
 
 // startArgs is what StartSession records besides the access request: the
-// front and transport of the session and, for an agent's, its run and the
-// tool call it serves (zero for a person's session).
+// front and transport of the session, the database a PreSession chose and,
+// for an agent's, its run and the tool call it serves (zero for a person's session).
 type startArgs struct {
 	Front           string
 	Transport       string // "tcp" | "ws" | "internal"
 	RunID, ToolCall uuid.UUID
+	DBName          string // "": none
 }
 
 // startOf is the start of u's session for r: the front and transport of r
@@ -113,7 +114,7 @@ func (p *Pipeline) reportAgentDenial(ctx context.Context, r OpenRequest, req Acc
 		return false
 	}
 	target := cmp.Or(r.Command, r.Target)
-	reasons := truncateAll(deniedReasons(err), maxDenialReasons, 128)
+	reasons := denialReasons(deniedReasons(err))
 	if stateDenial(reasons) {
 		p.denyAgentLater(r, req, err, target, reasons)
 		return true

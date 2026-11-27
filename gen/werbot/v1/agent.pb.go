@@ -32,8 +32,15 @@ type AgentLimits struct {
 	// 0 or unset: 1h; otherwise 1m to 1h.
 	MaxDuration   *durationpb.Duration `protobuf:"bytes,2,opt,name=max_duration,json=maxDuration,proto3" json:"max_duration,omitempty"`
 	MaxConcurrent int32                `protobuf:"varint,3,opt,name=max_concurrent,json=maxConcurrent,proto3" json:"max_concurrent,omitempty"` // 0: 4
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Agents in databases, per session.
+	MaxRows int32 `protobuf:"varint,4,opt,name=max_rows,json=maxRows,proto3" json:"max_rows,omitempty"` // 0: 1000
+	// 0: 1 MiB; otherwise 1 KiB to 64 MiB.
+	MaxResultBytes int64 `protobuf:"varint,5,opt,name=max_result_bytes,json=maxResultBytes,proto3" json:"max_result_bytes,omitempty"`
+	// 0 or unset: 30s; otherwise whole seconds from 1s to 10m.
+	StatementTimeout *durationpb.Duration `protobuf:"bytes,6,opt,name=statement_timeout,json=statementTimeout,proto3" json:"statement_timeout,omitempty"`
+	MaxQueries       int32                `protobuf:"varint,7,opt,name=max_queries,json=maxQueries,proto3" json:"max_queries,omitempty"` // 0: 1000
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *AgentLimits) Reset() {
@@ -83,6 +90,34 @@ func (x *AgentLimits) GetMaxDuration() *durationpb.Duration {
 func (x *AgentLimits) GetMaxConcurrent() int32 {
 	if x != nil {
 		return x.MaxConcurrent
+	}
+	return 0
+}
+
+func (x *AgentLimits) GetMaxRows() int32 {
+	if x != nil {
+		return x.MaxRows
+	}
+	return 0
+}
+
+func (x *AgentLimits) GetMaxResultBytes() int64 {
+	if x != nil {
+		return x.MaxResultBytes
+	}
+	return 0
+}
+
+func (x *AgentLimits) GetStatementTimeout() *durationpb.Duration {
+	if x != nil {
+		return x.StatementTimeout
+	}
+	return nil
+}
+
+func (x *AgentLimits) GetMaxQueries() int32 {
+	if x != nil {
+		return x.MaxQueries
 	}
 	return 0
 }
@@ -1701,14 +1736,21 @@ var File_werbot_v1_agent_proto protoreflect.FileDescriptor
 
 const file_werbot_v1_agent_proto_rawDesc = "" +
 	"\n" +
-	"\x15werbot/v1/agent.proto\x12\twerbot.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc7\x02\n" +
+	"\x15werbot/v1/agent.proto\x12\twerbot.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc1\x06\n" +
 	"\vAgentLimits\x12+\n" +
 	"\vmax_actions\x18\x01 \x01(\x05B\n" +
 	"\xbaH\a\x1a\x05\x18\x90N(\x00R\n" +
 	"maxActions\x12\xd8\x01\n" +
 	"\fmax_duration\x18\x02 \x01(\v2\x19.google.protobuf.DurationB\x99\x01\xbaH\x95\x01\xba\x01\x91\x01\n" +
 	"\x19agent_limits.max_duration\x12\"max_duration must be 0 or 1m to 1h\x1aPthis == duration('0s') || (this >= duration('60s') && this <= duration('3600s'))R\vmaxDuration\x120\n" +
-	"\x0emax_concurrent\x18\x03 \x01(\x05B\t\xbaH\x06\x1a\x04\x18 (\x00R\rmaxConcurrent\"\xb0\x02\n" +
+	"\x0emax_concurrent\x18\x03 \x01(\x05B\t\xbaH\x06\x1a\x04\x18 (\x00R\rmaxConcurrent\x12&\n" +
+	"\bmax_rows\x18\x04 \x01(\x05B\v\xbaH\b\x1a\x06\x18\xa0\x8d\x06(\x00R\amaxRows\x12\xb3\x01\n" +
+	"\x10max_result_bytes\x18\x05 \x01(\x03B\x88\x01\xbaH\x84\x01\xba\x01\x80\x01\n" +
+	"\x1dagent_limits.max_result_bytes\x12.max_result_bytes must be 0 or 1024 to 67108864\x1a/this == 0 || (this >= 1024 && this <= 67108864)R\x0emaxResultBytes\x12\xeb\x01\n" +
+	"\x11statement_timeout\x18\x06 \x01(\v2\x19.google.protobuf.DurationB\xa2\x01\xbaH\x9e\x01\xba\x01\x9a\x01\n" +
+	"\x1eagent_limits.statement_timeout\x12(statement_timeout must be 0 or 1s to 10m\x1aNthis == duration('0s') || (this >= duration('1s') && this <= duration('600s'))R\x10statementTimeout\x12,\n" +
+	"\vmax_queries\x18\a \x01(\x05B\v\xbaH\b\x1a\x06\x18\xa0\x8d\x06(\x00R\n" +
+	"maxQueries\"\xb0\x02\n" +
 	"\x05Agent\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12&\n" +
@@ -1901,56 +1943,57 @@ var file_werbot_v1_agent_proto_goTypes = []any{
 }
 var file_werbot_v1_agent_proto_depIdxs = []int32{
 	27, // 0: werbot.v1.AgentLimits.max_duration:type_name -> google.protobuf.Duration
-	0,  // 1: werbot.v1.Agent.limits:type_name -> werbot.v1.AgentLimits
-	28, // 2: werbot.v1.Agent.created_at:type_name -> google.protobuf.Timestamp
-	28, // 3: werbot.v1.AgentRun.started_at:type_name -> google.protobuf.Timestamp
-	28, // 4: werbot.v1.AgentRun.expires_at:type_name -> google.protobuf.Timestamp
-	28, // 5: werbot.v1.AgentRun.ended_at:type_name -> google.protobuf.Timestamp
-	29, // 6: werbot.v1.ToolCall.arguments:type_name -> google.protobuf.Struct
-	28, // 7: werbot.v1.ToolCall.started_at:type_name -> google.protobuf.Timestamp
-	28, // 8: werbot.v1.ToolCall.ended_at:type_name -> google.protobuf.Timestamp
-	28, // 9: werbot.v1.RunSession.started_at:type_name -> google.protobuf.Timestamp
-	28, // 10: werbot.v1.RunSession.ended_at:type_name -> google.protobuf.Timestamp
-	28, // 11: werbot.v1.RunApproval.created_at:type_name -> google.protobuf.Timestamp
-	28, // 12: werbot.v1.RunApproval.decided_at:type_name -> google.protobuf.Timestamp
-	28, // 13: werbot.v1.RunDenial.at:type_name -> google.protobuf.Timestamp
-	1,  // 14: werbot.v1.ListAgentsResponse.agents:type_name -> werbot.v1.Agent
-	0,  // 15: werbot.v1.CreateAgentRequest.limits:type_name -> werbot.v1.AgentLimits
-	1,  // 16: werbot.v1.CreateAgentResponse.agent:type_name -> werbot.v1.Agent
-	0,  // 17: werbot.v1.UpdateAgentRequest.limits:type_name -> werbot.v1.AgentLimits
-	1,  // 18: werbot.v1.UpdateAgentResponse.agent:type_name -> werbot.v1.Agent
-	2,  // 19: werbot.v1.ListRunsResponse.runs:type_name -> werbot.v1.AgentRun
-	2,  // 20: werbot.v1.GetRunResponse.run:type_name -> werbot.v1.AgentRun
-	3,  // 21: werbot.v1.GetRunResponse.tool_calls:type_name -> werbot.v1.ToolCall
-	4,  // 22: werbot.v1.GetRunResponse.sessions:type_name -> werbot.v1.RunSession
-	5,  // 23: werbot.v1.GetRunResponse.approvals:type_name -> werbot.v1.RunApproval
-	6,  // 24: werbot.v1.GetRunResponse.denials:type_name -> werbot.v1.RunDenial
-	29, // 25: werbot.v1.RecordToolCallRequest.arguments:type_name -> google.protobuf.Struct
-	7,  // 26: werbot.v1.AgentService.ListAgents:input_type -> werbot.v1.ListAgentsRequest
-	9,  // 27: werbot.v1.AgentService.CreateAgent:input_type -> werbot.v1.CreateAgentRequest
-	11, // 28: werbot.v1.AgentService.UpdateAgent:input_type -> werbot.v1.UpdateAgentRequest
-	13, // 29: werbot.v1.AgentService.DeleteAgent:input_type -> werbot.v1.DeleteAgentRequest
-	15, // 30: werbot.v1.AgentService.ListRuns:input_type -> werbot.v1.ListRunsRequest
-	17, // 31: werbot.v1.AgentService.GetRun:input_type -> werbot.v1.GetRunRequest
-	19, // 32: werbot.v1.AgentService.EndRun:input_type -> werbot.v1.EndRunRequest
-	21, // 33: werbot.v1.AgentService.ResumeRun:input_type -> werbot.v1.ResumeRunRequest
-	23, // 34: werbot.v1.AgentService.RecordToolCall:input_type -> werbot.v1.RecordToolCallRequest
-	25, // 35: werbot.v1.AgentService.FinishToolCall:input_type -> werbot.v1.FinishToolCallRequest
-	8,  // 36: werbot.v1.AgentService.ListAgents:output_type -> werbot.v1.ListAgentsResponse
-	10, // 37: werbot.v1.AgentService.CreateAgent:output_type -> werbot.v1.CreateAgentResponse
-	12, // 38: werbot.v1.AgentService.UpdateAgent:output_type -> werbot.v1.UpdateAgentResponse
-	14, // 39: werbot.v1.AgentService.DeleteAgent:output_type -> werbot.v1.DeleteAgentResponse
-	16, // 40: werbot.v1.AgentService.ListRuns:output_type -> werbot.v1.ListRunsResponse
-	18, // 41: werbot.v1.AgentService.GetRun:output_type -> werbot.v1.GetRunResponse
-	20, // 42: werbot.v1.AgentService.EndRun:output_type -> werbot.v1.EndRunResponse
-	22, // 43: werbot.v1.AgentService.ResumeRun:output_type -> werbot.v1.ResumeRunResponse
-	24, // 44: werbot.v1.AgentService.RecordToolCall:output_type -> werbot.v1.RecordToolCallResponse
-	26, // 45: werbot.v1.AgentService.FinishToolCall:output_type -> werbot.v1.FinishToolCallResponse
-	36, // [36:46] is the sub-list for method output_type
-	26, // [26:36] is the sub-list for method input_type
-	26, // [26:26] is the sub-list for extension type_name
-	26, // [26:26] is the sub-list for extension extendee
-	0,  // [0:26] is the sub-list for field type_name
+	27, // 1: werbot.v1.AgentLimits.statement_timeout:type_name -> google.protobuf.Duration
+	0,  // 2: werbot.v1.Agent.limits:type_name -> werbot.v1.AgentLimits
+	28, // 3: werbot.v1.Agent.created_at:type_name -> google.protobuf.Timestamp
+	28, // 4: werbot.v1.AgentRun.started_at:type_name -> google.protobuf.Timestamp
+	28, // 5: werbot.v1.AgentRun.expires_at:type_name -> google.protobuf.Timestamp
+	28, // 6: werbot.v1.AgentRun.ended_at:type_name -> google.protobuf.Timestamp
+	29, // 7: werbot.v1.ToolCall.arguments:type_name -> google.protobuf.Struct
+	28, // 8: werbot.v1.ToolCall.started_at:type_name -> google.protobuf.Timestamp
+	28, // 9: werbot.v1.ToolCall.ended_at:type_name -> google.protobuf.Timestamp
+	28, // 10: werbot.v1.RunSession.started_at:type_name -> google.protobuf.Timestamp
+	28, // 11: werbot.v1.RunSession.ended_at:type_name -> google.protobuf.Timestamp
+	28, // 12: werbot.v1.RunApproval.created_at:type_name -> google.protobuf.Timestamp
+	28, // 13: werbot.v1.RunApproval.decided_at:type_name -> google.protobuf.Timestamp
+	28, // 14: werbot.v1.RunDenial.at:type_name -> google.protobuf.Timestamp
+	1,  // 15: werbot.v1.ListAgentsResponse.agents:type_name -> werbot.v1.Agent
+	0,  // 16: werbot.v1.CreateAgentRequest.limits:type_name -> werbot.v1.AgentLimits
+	1,  // 17: werbot.v1.CreateAgentResponse.agent:type_name -> werbot.v1.Agent
+	0,  // 18: werbot.v1.UpdateAgentRequest.limits:type_name -> werbot.v1.AgentLimits
+	1,  // 19: werbot.v1.UpdateAgentResponse.agent:type_name -> werbot.v1.Agent
+	2,  // 20: werbot.v1.ListRunsResponse.runs:type_name -> werbot.v1.AgentRun
+	2,  // 21: werbot.v1.GetRunResponse.run:type_name -> werbot.v1.AgentRun
+	3,  // 22: werbot.v1.GetRunResponse.tool_calls:type_name -> werbot.v1.ToolCall
+	4,  // 23: werbot.v1.GetRunResponse.sessions:type_name -> werbot.v1.RunSession
+	5,  // 24: werbot.v1.GetRunResponse.approvals:type_name -> werbot.v1.RunApproval
+	6,  // 25: werbot.v1.GetRunResponse.denials:type_name -> werbot.v1.RunDenial
+	29, // 26: werbot.v1.RecordToolCallRequest.arguments:type_name -> google.protobuf.Struct
+	7,  // 27: werbot.v1.AgentService.ListAgents:input_type -> werbot.v1.ListAgentsRequest
+	9,  // 28: werbot.v1.AgentService.CreateAgent:input_type -> werbot.v1.CreateAgentRequest
+	11, // 29: werbot.v1.AgentService.UpdateAgent:input_type -> werbot.v1.UpdateAgentRequest
+	13, // 30: werbot.v1.AgentService.DeleteAgent:input_type -> werbot.v1.DeleteAgentRequest
+	15, // 31: werbot.v1.AgentService.ListRuns:input_type -> werbot.v1.ListRunsRequest
+	17, // 32: werbot.v1.AgentService.GetRun:input_type -> werbot.v1.GetRunRequest
+	19, // 33: werbot.v1.AgentService.EndRun:input_type -> werbot.v1.EndRunRequest
+	21, // 34: werbot.v1.AgentService.ResumeRun:input_type -> werbot.v1.ResumeRunRequest
+	23, // 35: werbot.v1.AgentService.RecordToolCall:input_type -> werbot.v1.RecordToolCallRequest
+	25, // 36: werbot.v1.AgentService.FinishToolCall:input_type -> werbot.v1.FinishToolCallRequest
+	8,  // 37: werbot.v1.AgentService.ListAgents:output_type -> werbot.v1.ListAgentsResponse
+	10, // 38: werbot.v1.AgentService.CreateAgent:output_type -> werbot.v1.CreateAgentResponse
+	12, // 39: werbot.v1.AgentService.UpdateAgent:output_type -> werbot.v1.UpdateAgentResponse
+	14, // 40: werbot.v1.AgentService.DeleteAgent:output_type -> werbot.v1.DeleteAgentResponse
+	16, // 41: werbot.v1.AgentService.ListRuns:output_type -> werbot.v1.ListRunsResponse
+	18, // 42: werbot.v1.AgentService.GetRun:output_type -> werbot.v1.GetRunResponse
+	20, // 43: werbot.v1.AgentService.EndRun:output_type -> werbot.v1.EndRunResponse
+	22, // 44: werbot.v1.AgentService.ResumeRun:output_type -> werbot.v1.ResumeRunResponse
+	24, // 45: werbot.v1.AgentService.RecordToolCall:output_type -> werbot.v1.RecordToolCallResponse
+	26, // 46: werbot.v1.AgentService.FinishToolCall:output_type -> werbot.v1.FinishToolCallResponse
+	37, // [37:47] is the sub-list for method output_type
+	27, // [27:37] is the sub-list for method input_type
+	27, // [27:27] is the sub-list for extension type_name
+	27, // [27:27] is the sub-list for extension extendee
+	0,  // [0:27] is the sub-list for field type_name
 }
 
 func init() { file_werbot_v1_agent_proto_init() }

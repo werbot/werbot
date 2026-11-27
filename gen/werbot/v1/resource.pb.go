@@ -359,8 +359,13 @@ type Resource struct {
 	MaxDuration    *durationpb.Duration   `protobuf:"bytes,14,opt,name=max_duration,json=maxDuration,proto3" json:"max_duration,omitempty"` // unset: the gateway default
 	Health         *ResourceHealth        `protobuf:"bytes,15,opt,name=health,proto3" json:"health,omitempty"`
 	PresetId       string                 `protobuf:"bytes,16,opt,name=preset_id,json=presetId,proto3" json:"preset_id,omitempty"` // empty unless created from a preset
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Agents in databases: the kind of the agent_readonly credential ("" means none; the value is never
+	// returned) and its verification status: none, pending, ok, has_write or error, with the findings.
+	AgentCredentialKind string `protobuf:"bytes,17,opt,name=agent_credential_kind,json=agentCredentialKind,proto3" json:"agent_credential_kind,omitempty"`
+	AgentReadonlyStatus string `protobuf:"bytes,18,opt,name=agent_readonly_status,json=agentReadonlyStatus,proto3" json:"agent_readonly_status,omitempty"`
+	AgentReadonlyDetail string `protobuf:"bytes,19,opt,name=agent_readonly_detail,json=agentReadonlyDetail,proto3" json:"agent_readonly_detail,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *Resource) Reset() {
@@ -501,6 +506,27 @@ func (x *Resource) GetHealth() *ResourceHealth {
 func (x *Resource) GetPresetId() string {
 	if x != nil {
 		return x.PresetId
+	}
+	return ""
+}
+
+func (x *Resource) GetAgentCredentialKind() string {
+	if x != nil {
+		return x.AgentCredentialKind
+	}
+	return ""
+}
+
+func (x *Resource) GetAgentReadonlyStatus() string {
+	if x != nil {
+		return x.AgentReadonlyStatus
+	}
+	return ""
+}
+
+func (x *Resource) GetAgentReadonlyDetail() string {
+	if x != nil {
+		return x.AgentReadonlyDetail
 	}
 	return ""
 }
@@ -1362,6 +1388,7 @@ type SetCredentialRequest struct {
 	ResourceId    string                 `protobuf:"bytes,1,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
 	Kind          string                 `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
 	Value         []byte                 `protobuf:"bytes,3,opt,name=value,proto3" json:"value,omitempty"`
+	Slot          string                 `protobuf:"bytes,4,opt,name=slot,proto3" json:"slot,omitempty"` // "": primary, or agent_readonly (types with a query action); else unknown credential slot
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1417,6 +1444,13 @@ func (x *SetCredentialRequest) GetValue() []byte {
 	return nil
 }
 
+func (x *SetCredentialRequest) GetSlot() string {
+	if x != nil {
+		return x.Slot
+	}
+	return ""
+}
+
 type SetCredentialResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -1456,6 +1490,7 @@ func (*SetCredentialResponse) Descriptor() ([]byte, []int) {
 type ClearCredentialRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ResourceId    string                 `protobuf:"bytes,1,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
+	Slot          string                 `protobuf:"bytes,2,opt,name=slot,proto3" json:"slot,omitempty"` // "": primary, or agent_readonly (types with a query action); else unknown credential slot
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1493,6 +1528,13 @@ func (*ClearCredentialRequest) Descriptor() ([]byte, []int) {
 func (x *ClearCredentialRequest) GetResourceId() string {
 	if x != nil {
 		return x.ResourceId
+	}
+	return ""
+}
+
+func (x *ClearCredentialRequest) GetSlot() string {
+	if x != nil {
+		return x.Slot
 	}
 	return ""
 }
@@ -1648,7 +1690,7 @@ const file_werbot_v1_resource_proto_rawDesc = "" +
 	"\x11STATE_UNSPECIFIED\x10\x00\x12\x11\n" +
 	"\rSTATE_UNKNOWN\x10\x01\x12\x11\n" +
 	"\rSTATE_HEALTHY\x10\x02\x12\x13\n" +
-	"\x0fSTATE_UNHEALTHY\x10\x03\"\xda\x05\n" +
+	"\x0fSTATE_UNHEALTHY\x10\x03\"\xf6\x06\n" +
 	"\bResource\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
@@ -1670,7 +1712,10 @@ const file_werbot_v1_resource_proto_rawDesc = "" +
 	"\fidle_timeout\x18\r \x01(\v2\x19.google.protobuf.DurationR\vidleTimeout\x12<\n" +
 	"\fmax_duration\x18\x0e \x01(\v2\x19.google.protobuf.DurationR\vmaxDuration\x121\n" +
 	"\x06health\x18\x0f \x01(\v2\x19.werbot.v1.ResourceHealthR\x06health\x12\x1b\n" +
-	"\tpreset_id\x18\x10 \x01(\tR\bpresetId\x1a9\n" +
+	"\tpreset_id\x18\x10 \x01(\tR\bpresetId\x122\n" +
+	"\x15agent_credential_kind\x18\x11 \x01(\tR\x13agentCredentialKind\x122\n" +
+	"\x15agent_readonly_status\x18\x12 \x01(\tR\x13agentReadonlyStatus\x122\n" +
+	"\x15agent_readonly_detail\x18\x13 \x01(\tR\x13agentReadonlyDetail\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x1a\n" +
@@ -1748,16 +1793,18 @@ const file_werbot_v1_resource_proto_rawDesc = "" +
 	"\bresource\x18\x01 \x01(\v2\x13.werbot.v1.ResourceR\bresource\"1\n" +
 	"\x15DeleteResourceRequest\x12\x18\n" +
 	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"\x18\n" +
-	"\x16DeleteResourceResponse\"\x83\x01\n" +
+	"\x16DeleteResourceResponse\"\x97\x01\n" +
 	"\x14SetCredentialRequest\x12)\n" +
 	"\vresource_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\n" +
 	"resourceId\x12\x1d\n" +
 	"\x04kind\x18\x02 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18 R\x04kind\x12!\n" +
-	"\x05value\x18\x03 \x01(\fB\v\xbaH\bz\x06\x10\x01\x18\x80\x80\x04R\x05value\"\x17\n" +
-	"\x15SetCredentialResponse\"C\n" +
+	"\x05value\x18\x03 \x01(\fB\v\xbaH\bz\x06\x10\x01\x18\x80\x80\x04R\x05value\x12\x12\n" +
+	"\x04slot\x18\x04 \x01(\tR\x04slot\"\x17\n" +
+	"\x15SetCredentialResponse\"W\n" +
 	"\x16ClearCredentialRequest\x12)\n" +
 	"\vresource_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\n" +
-	"resourceId\"\x19\n" +
+	"resourceId\x12\x12\n" +
+	"\x04slot\x18\x02 \x01(\tR\x04slot\"\x19\n" +
 	"\x17ClearCredentialResponse\"@\n" +
 	"\x13ClearHostKeyRequest\x12)\n" +
 	"\vresource_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\n" +

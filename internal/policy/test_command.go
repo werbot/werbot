@@ -35,7 +35,9 @@ const maxCwdBytes = 1024
 
 // TestCommand analyzes command from cwd ("" is "~") with the class rules of
 // orgID and the host of the resource and decides it for userID from ip at the
-// time at (zero: now): connect first, then the exec action of the resource type.
+// time at (zero: now): connect first, then the exec action of the resource
+// type. A type with a query action and no exec action classifies command as
+// SQL instead (testQuery); cwd is not used.
 func (s *Service) TestCommand(ctx context.Context, orgID, userID, resourceID uuid.UUID, command, cwd string, ip netip.Addr, at time.Time) (CommandResult, error) {
 	if err := s.requireMember(ctx, orgID, userID); err != nil {
 		return CommandResult{}, err
@@ -54,11 +56,14 @@ func (s *Service) testCommand(ctx context.Context, orgID uuid.UUID, sub subject,
 	if err != nil {
 		return CommandResult{}, err
 	}
-	c.req.Kind = "exec"
 	exec, ok := c.typ.ExecAction()
 	if !ok {
-		return CommandResult{}, fmt.Errorf("resource type has no exec action: %w", apperr.ErrFailedPrecondition)
+		if query, ok := c.typ.QueryAction(); ok {
+			return c.testQuery(query, command), nil
+		}
+		return CommandResult{}, fmt.Errorf("resource type has no exec or query action: %w", apperr.ErrFailedPrecondition)
 	}
+	c.req.Kind = "exec"
 	a, err := analyze(c.snap, command, c.res.Host, cwd)
 	if err != nil {
 		return CommandResult{}, err

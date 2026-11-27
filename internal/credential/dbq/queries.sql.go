@@ -7,21 +7,23 @@ package dbq
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 const deleteCredential = `-- name: DeleteCredential :execrows
-DELETE FROM credential WHERE resource_id = $1 AND org_id = $2
+DELETE FROM credential WHERE resource_id = $1 AND org_id = $2 AND slot = $3
 `
 
 type DeleteCredentialParams struct {
 	ResourceID uuid.UUID
 	OrgID      uuid.UUID
+	Slot       string
 }
 
 func (q *Queries) DeleteCredential(ctx context.Context, arg DeleteCredentialParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteCredential, arg.ResourceID, arg.OrgID)
+	result, err := q.db.Exec(ctx, deleteCredential, arg.ResourceID, arg.OrgID, arg.Slot)
 	if err != nil {
 		return 0, err
 	}
@@ -29,33 +31,41 @@ func (q *Queries) DeleteCredential(ctx context.Context, arg DeleteCredentialPara
 }
 
 const getCredential = `-- name: GetCredential :one
-SELECT kind, ciphertext, key_id FROM credential WHERE resource_id = $1 AND org_id = $2
+SELECT kind, ciphertext, key_id, updated_at FROM credential WHERE resource_id = $1 AND org_id = $2 AND slot = $3
 `
 
 type GetCredentialParams struct {
 	ResourceID uuid.UUID
 	OrgID      uuid.UUID
+	Slot       string
 }
 
 type GetCredentialRow struct {
 	Kind       string
 	Ciphertext []byte
 	KeyID      string
+	UpdatedAt  time.Time
 }
 
 func (q *Queries) GetCredential(ctx context.Context, arg GetCredentialParams) (GetCredentialRow, error) {
-	row := q.db.QueryRow(ctx, getCredential, arg.ResourceID, arg.OrgID)
+	row := q.db.QueryRow(ctx, getCredential, arg.ResourceID, arg.OrgID, arg.Slot)
 	var i GetCredentialRow
-	err := row.Scan(&i.Kind, &i.Ciphertext, &i.KeyID)
+	err := row.Scan(
+		&i.Kind,
+		&i.Ciphertext,
+		&i.KeyID,
+		&i.UpdatedAt,
+	)
 	return i, err
 }
 
 const listCredentialKinds = `-- name: ListCredentialKinds :many
-SELECT resource_id, kind FROM credential WHERE org_id = $1 AND resource_id = ANY($2::uuid[])
+SELECT resource_id, kind FROM credential WHERE org_id = $1 AND slot = $2 AND resource_id = ANY($3::uuid[])
 `
 
 type ListCredentialKindsParams struct {
 	OrgID       uuid.UUID
+	Slot        string
 	ResourceIds []uuid.UUID
 }
 
@@ -65,7 +75,7 @@ type ListCredentialKindsRow struct {
 }
 
 func (q *Queries) ListCredentialKinds(ctx context.Context, arg ListCredentialKindsParams) ([]ListCredentialKindsRow, error) {
-	rows, err := q.db.Query(ctx, listCredentialKinds, arg.OrgID, arg.ResourceIds)
+	rows, err := q.db.Query(ctx, listCredentialKinds, arg.OrgID, arg.Slot, arg.ResourceIds)
 	if err != nil {
 		return nil, err
 	}
@@ -84,10 +94,28 @@ func (q *Queries) ListCredentialKinds(ctx context.Context, arg ListCredentialKin
 	return items, nil
 }
 
+const setAgentReadonlyStatus = `-- name: SetAgentReadonlyStatus :exec
+UPDATE resource SET agent_readonly_status = $1, agent_readonly_detail = ''
+WHERE id = $2 AND org_id = $3
+`
+
+type SetAgentReadonlyStatusParams struct {
+	Status     string
+	ResourceID uuid.UUID
+	OrgID      uuid.UUID
+}
+
+// The verification state of the agent_readonly slot; resource.updated_at is
+// part of the check version and stays. The resource trigger notifies the snapshot.
+func (q *Queries) SetAgentReadonlyStatus(ctx context.Context, arg SetAgentReadonlyStatusParams) error {
+	_, err := q.db.Exec(ctx, setAgentReadonlyStatus, arg.Status, arg.ResourceID, arg.OrgID)
+	return err
+}
+
 const upsertCredential = `-- name: UpsertCredential :execrows
-INSERT INTO credential (org_id, resource_id, kind, ciphertext, key_id)
-VALUES ($1, $2, $3, $4, $5)
-ON CONFLICT (resource_id) DO UPDATE
+INSERT INTO credential (org_id, resource_id, kind, ciphertext, key_id, slot)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (resource_id, slot) DO UPDATE
 SET kind = EXCLUDED.kind, ciphertext = EXCLUDED.ciphertext, key_id = EXCLUDED.key_id, updated_at = now()
 WHERE credential.org_id = EXCLUDED.org_id
 `
@@ -98,6 +126,7 @@ type UpsertCredentialParams struct {
 	Kind       string
 	Ciphertext []byte
 	KeyID      string
+	Slot       string
 }
 
 // The DO UPDATE only touches a row of the same organization.
@@ -108,6 +137,7 @@ func (q *Queries) UpsertCredential(ctx context.Context, arg UpsertCredentialPara
 		arg.Kind,
 		arg.Ciphertext,
 		arg.KeyID,
+		arg.Slot,
 	)
 	if err != nil {
 		return 0, err

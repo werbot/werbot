@@ -4,17 +4,20 @@ import (
 	"bufio"
 	"cmp"
 	"compress/gzip"
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
 
+	"github.com/werbot/werbot/internal/connector"
 	"github.com/werbot/werbot/internal/platform/apperr"
 	"github.com/werbot/werbot/internal/platform/principal"
 )
@@ -31,8 +34,25 @@ var errChunkTooLarge = fmt.Errorf("recording chunk decompresses past %d bytes", 
 // ponytail: one cap per replica; per-principal limits if one user can starve the others.
 const maxReplays = 4
 
-// NewReplayHandler serves GET /api/recordings/{session_id}.cast: the recording
-// of a session the principal may see, as one asciicast v2 stream. The store is
+// replayExt maps a replay file extension to the recording format it serves.
+var replayExt = map[string]string{".cast": connector.RecordAsciicast, ".querylog": connector.RecordQuerylog}
+
+// replayType is the Content-Type of each recording format.
+var replayType = map[string]string{connector.RecordAsciicast: "application/x-asciicast", connector.RecordQuerylog: "application/x-ndjson"}
+
+// replayFile parses "<session_id>.cast" or "<session_id>.querylog" into the
+// session id and the recording format; ok is false for any other name.
+func replayFile(name string) (id uuid.UUID, format string, ok bool) {
+	ext := path.Ext(name)
+	format, ok = replayExt[ext]
+	id, err := uuid.Parse(strings.TrimSuffix(name, ext))
+	return id, format, ok && err == nil
+}
+
+// NewReplayHandler serves GET /api/recordings/{session_id}.cast and
+// {session_id}.querylog: the recording of a session the principal may see, as
+// one asciicast v2 stream or one NDJSON querylog; an extension that is not the
+// format of the session's recording is not found. The store is
 // read once into a temporary file while the chain is checked, so the bytes sent
 // are exactly the ones X-Werbot-Recording-Verified speaks for. An unfinished or
 // tampered recording is served as far as it goes with the header "false".
@@ -48,13 +68,12 @@ func NewReplayHandler(svc *Service, rec *Recordings, logger *slog.Logger) http.H
 			http.Error(w, "unauthenticated", http.StatusUnauthorized)
 			return
 		}
-		raw, ok := strings.CutSuffix(r.PathValue("file"), ".cast")
-		id, err := uuid.Parse(raw)
-		if !ok || err != nil {
+		id, format, ok := replayFile(r.PathValue("file"))
+		if !ok {
 			http.NotFound(w, r)
 			return
 		}
-		if _, err := svc.GetSession(ctx, p, id); err != nil {
+		if err := recordedAs(ctx, svc, p, id, format); err != nil {
 			replayError(w, r, logger, err)
 			return
 		}
@@ -85,8 +104,8 @@ func NewReplayHandler(svc *Service, rec *Recordings, logger *slog.Logger) http.H
 		}
 
 		h := w.Header()
-		h.Set("Content-Type", "application/x-asciicast")
-		h.Set("Content-Disposition", `attachment; filename="`+id.String()+`.cast"`)
+		h.Set("Content-Type", replayType[format])
+		h.Set("Content-Disposition", `attachment; filename="`+id.String()+path.Ext(r.PathValue("file"))+`"`)
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("Cache-Control", "no-store")
 		h.Set("X-Werbot-Recording-Verified", strconv.FormatBool(v.Verified))
@@ -96,6 +115,19 @@ func NewReplayHandler(svc *Service, rec *Recordings, logger *slog.Logger) http.H
 			logger.WarnContext(ctx, "replay: recording cut short", "session_id", id, "err", err)
 		}
 	})
+}
+
+// recordedAs is nil when the principal may see the session and its recording
+// has format; otherwise it is apperr.ErrNotFound or the lookup error.
+func recordedAs(ctx context.Context, svc *Service, p principal.Principal, id uuid.UUID, format string) error {
+	s, err := svc.GetSession(ctx, p, id)
+	if err != nil {
+		return err
+	}
+	if s.RecordFormat != format {
+		return fmt.Errorf("session has no %s recording: %w", format, apperr.ErrNotFound)
+	}
+	return nil
 }
 
 // gunzipChunks writes the decompressed gzip members of src to w, at most

@@ -18,7 +18,7 @@ export default defineConfig({
         { label: 'Agents', items: [{ slug: 'agents' }] },
         {
           label: 'Sessions',
-          items: [{ slug: 'web-terminal' }, { slug: 'connect' }, { slug: 'vnet' }, { slug: 'connectors' }],
+          items: [{ slug: 'web-terminal' }, { slug: 'connect' }, { slug: 'databases' }, { slug: 'vnet' }, { slug: 'connectors' }],
         },
         {
           label: 'Operations',

@@ -24,10 +24,10 @@ VALUES (@org_id, @agent_id, @sponsor_user_id, @client, @reason, 'running', @max_
 RETURNING *;
 
 -- name: RunGate :one
--- A run with its agent's status. active: running and not expired. locked: an
+-- A run with its agent's status and limits. active: running and not expired. locked: an
 -- active lock of the run, the agent, its sponsor (agents_of_user or user) or
 -- all agents (agent_locked).
-SELECT sqlc.embed(r), a.status AS agent_status,
+SELECT sqlc.embed(r), a.status AS agent_status, a.limits AS agent_limits,
     (r.status = 'running' AND r.expires_at > now())::bool AS active,
     agent_locked(r.org_id, a.id, a.sponsor_user_id, r.id)::bool AS locked
 FROM agent_run r

@@ -2,14 +2,15 @@ import { anyUnpack } from '@bufbuild/protobuf/wkt';
 import { expect, test } from 'vitest';
 import { ConfigSchema as SshConfigSchema } from '#lib/gen/werbot/connector/ssh/v1/ssh_pb.js';
 import { ConfigSchema as UdpConfigSchema } from '#lib/gen/werbot/connector/udp/v1/udp_pb.js';
+import { ConfigSchema as PostgresConfigSchema } from '#lib/gen/werbot/connector/postgres/v1/postgres_pb.js';
 import { ConfigSchema as TcpConfigSchema } from '#lib/gen/werbot/connector/tcp/v1/tcp_pb.js';
-import { configForms, configFormFor, sshConfigValue, tcpConfigValue, telnetConfigValue, udpConfigValue } from './index';
+import { configForms, configFormFor, sshConfigValue, postgresConfigValue, tcpConfigValue, telnetConfigValue, udpConfigValue } from './index';
 import { parsePorts } from './ports';
 import SshConfigForm from './SshConfigForm.svelte';
 import JsonConfigForm from './JsonConfigForm.svelte';
 
-test('ssh, telnet, tcp and udp have dedicated forms, unknown types fall back to JSON', () => {
-	expect(Object.keys(configForms)).toEqual(['ssh', 'telnet', 'tcp', 'udp']);
+test('ssh, telnet, tcp, udp and postgres have dedicated forms, unknown types fall back to JSON', () => {
+	expect(Object.keys(configForms)).toEqual(['ssh', 'telnet', 'tcp', 'udp', 'postgres']);
 	expect(configFormFor('ssh')).toBe(SshConfigForm);
 	expect(configFormFor('echo')).toBe(JsonConfigForm);
 });
@@ -66,4 +67,28 @@ test('udp flow idle is packed in seconds and must be whole', () => {
 
 test('spaces inside a range are rejected', () => {
 	expect(() => parsePorts('22 - 80')).toThrow();
+});
+
+const pg = { host: 'db', port: '5432', database: 'app', allowedDatabases: 'app, reports_* ,', sslmode: 'verify-full', caPem: '', recordParams: true, username: 'svc', secretTables: '', agentUsername: '' };
+
+test('postgres value round-trips and splits allowed databases and secret tables', () => {
+	const c = anyUnpack(postgresConfigValue({ ...pg, secretTables: ' t ,', agentUsername: 'ro' }).config!, PostgresConfigSchema);
+	expect(c).toMatchObject({ host: 'db', port: 5432, database: 'app', allowedDatabases: ['app', 'reports_*'], sslmode: 'verify-full', recordParams: true, username: 'svc', secretTables: ['t'], agentUsername: 'ro' });
+});
+
+test('postgres record params false stays explicit', () => {
+	expect(anyUnpack(postgresConfigValue({ ...pg, recordParams: false }).config!, PostgresConfigSchema)!.recordParams).toBe(false);
+});
+
+test.each([{ port: '70000' }, { port: '1.5' }, { port: '-1' }, { sslmode: 'prefer' }, { sslmode: 'require' }, { sslmode: 'verify-ca' }])('postgres %j is rejected', (o) => {
+	expect(() => postgresConfigValue({ ...pg, ...o })).toThrow();
+});
+
+test('postgres verify-ca keeps its ca_pem', () => {
+	const caPem = '-----BEGIN CERTIFICATE-----';
+	expect(anyUnpack(postgresConfigValue({ ...pg, sslmode: 'verify-ca', caPem }).config!, PostgresConfigSchema)).toMatchObject({ sslmode: 'verify-ca', caPem });
+});
+
+test('postgres empty port means the default', () => {
+	expect(anyUnpack(postgresConfigValue({ ...pg, port: '' }).config!, PostgresConfigSchema)!.port).toBe(0);
 });

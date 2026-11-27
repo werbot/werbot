@@ -2,7 +2,6 @@ package inventory
 
 import (
 	"context"
-	"slices"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
@@ -13,13 +12,6 @@ import (
 	"github.com/werbot/werbot/internal/platform/apperr"
 	"github.com/werbot/werbot/internal/platform/principal"
 )
-
-// Credentials is the write-only credential store; *credential.Service satisfies it.
-type Credentials interface {
-	Set(ctx context.Context, orgID, resourceID uuid.UUID, kind connector.CredentialKind, value []byte) error
-	Clear(ctx context.Context, orgID, resourceID uuid.UUID) error
-	Kinds(ctx context.Context, orgID uuid.UUID, resourceIDs []uuid.UUID) (map[uuid.UUID]connector.CredentialKind, error)
-}
 
 // Handler serves ResourceService.
 type Handler struct {
@@ -42,19 +34,23 @@ func admin(ctx context.Context) (uuid.UUID, error) {
 	return p.OrgID, apperr.ToConnect(err)
 }
 
-// resources converts rs with their credential kinds, fetched in one call.
+// resources converts rs with the credential kinds of both slots, one call per slot.
 func (h *Handler) resources(ctx context.Context, org uuid.UUID, rs ...Resource) ([]*werbotv1.Resource, error) {
 	ids := make([]uuid.UUID, len(rs))
 	for i, r := range rs {
 		ids[i] = r.ID
 	}
-	kinds, err := h.creds.Kinds(ctx, org, ids)
+	kinds, err := h.creds.Kinds(ctx, org, ids, slotPrimary)
+	if err != nil {
+		return nil, apperr.ToConnect(err)
+	}
+	agentKinds, err := h.creds.Kinds(ctx, org, ids, slotAgentReadonly)
 	if err != nil {
 		return nil, apperr.ToConnect(err)
 	}
 	out := make([]*werbotv1.Resource, len(rs))
 	for i, r := range rs {
-		if out[i], err = resourceToProto(r, kinds); err != nil {
+		if out[i], err = resourceToProto(r, kinds[r.ID], agentKinds[r.ID]); err != nil {
 			return nil, apperr.ToConnect(err)
 		}
 	}
@@ -212,49 +208,6 @@ func (h *Handler) DeleteResource(ctx context.Context, req *connect.Request[werbo
 		return nil, apperr.ToConnect(err)
 	}
 	return connect.NewResponse(&werbotv1.DeleteResourceResponse{}), nil
-}
-
-// SetCredential stores a credential; its kind must be accepted by the resource type.
-func (h *Handler) SetCredential(ctx context.Context, req *connect.Request[werbotv1.SetCredentialRequest]) (*connect.Response[werbotv1.SetCredentialResponse], error) {
-	org, err := admin(ctx)
-	if err != nil {
-		return nil, err
-	}
-	id, err := parseID(req.Msg.GetResourceId())
-	if err != nil {
-		return nil, apperr.ToConnect(err)
-	}
-	r, err := h.svc.Get(ctx, org, id)
-	if err != nil {
-		return nil, apperr.ToConnect(err)
-	}
-	kind := connector.CredentialKind(req.Msg.GetKind())
-	if t, ok := connector.Lookup(r.Type); !ok || !slices.Contains(t.Credentials, kind) {
-		return nil, apperr.ToConnect(invalid("credential kind %q is not accepted by type %q", kind, r.Type))
-	}
-	if err := h.creds.Set(ctx, org, id, kind, req.Msg.GetValue()); err != nil {
-		return nil, apperr.ToConnect(err)
-	}
-	return connect.NewResponse(&werbotv1.SetCredentialResponse{}), nil
-}
-
-// ClearCredential removes the stored credential.
-func (h *Handler) ClearCredential(ctx context.Context, req *connect.Request[werbotv1.ClearCredentialRequest]) (*connect.Response[werbotv1.ClearCredentialResponse], error) {
-	org, err := admin(ctx)
-	if err != nil {
-		return nil, err
-	}
-	id, err := parseID(req.Msg.GetResourceId())
-	if err != nil {
-		return nil, apperr.ToConnect(err)
-	}
-	if _, err := h.svc.Get(ctx, org, id); err != nil {
-		return nil, apperr.ToConnect(err)
-	}
-	if err := h.creds.Clear(ctx, org, id); err != nil {
-		return nil, apperr.ToConnect(err)
-	}
-	return connect.NewResponse(&werbotv1.ClearCredentialResponse{}), nil
 }
 
 // ClearHostKey forgets the pinned host key.

@@ -139,7 +139,7 @@
 	</section>
 	<InfoBlock>{m.policies_commands_preset_allowlist_hint()}</InfoBlock>
 	<ClassRules />
-	{#if loaded && !failed}<TestCommand users={scope.users} resources={scope.resources} rules={list} />{/if}
+	{#if loaded && !failed}<TestCommand users={scope.users} resources={scope.resources} queryResources={scope.queryResources} rules={list} />{/if}
 </PageBody>
 
 <!-- Escape reaches the drawer too: ignore it while a select popup, the delete confirm or a menu is open -->

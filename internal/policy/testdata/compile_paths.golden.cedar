@@ -57,6 +57,18 @@ forbid (principal is Werbot::Agent, action in [Werbot::Action::"sftpy.sftp"], re
 @id("agent:baseline:remote_forward")
 forbid (principal is Werbot::Agent, action in [Werbot::Action::"ssh.remote_forward"], resource);
 
+@id("agent:baseline:db_connect")
+permit (principal is Werbot::Agent, action in [Werbot::Action::"postgres.connect"], resource)
+when { (context.kind == "stream" || context.kind == "") && resource has agent_readonly && resource.agent_readonly };
+
+@id("agent:baseline:db_read")
+permit (principal is Werbot::Agent, action in [Werbot::Action::"postgres.query"], resource)
+when { ["read"].containsAll(context.classes) };
+
+@id("agent:baseline:db_readonly")
+forbid (principal is Werbot::Agent, action in [Werbot::Action::"postgres.connect", Werbot::Action::"postgres.query"], resource)
+unless { resource has agent_readonly && resource.agent_readonly };
+
 @id("agent:baseline:frozen")
 forbid (principal is Werbot::Agent, action, resource)
 when { principal.status == "frozen" };

@@ -5,7 +5,8 @@ SET ended_at = now(), end_reason = @reason::text,
     command = coalesce(nullif(@command::text, ''), command), classes = coalesce(@classes::text[], classes), paths = coalesce(@paths::text[], paths),
     exit_code = sqlc.narg(exit_code)::int, output_sha256 = sqlc.narg(output_sha256)::bytea,
     bytes_up = GREATEST(bytes_up, @bytes_up::bigint), bytes_down = GREATEST(bytes_down, @bytes_down::bigint),
-    datagrams_up = GREATEST(datagrams_up, @datagrams_up::bigint), datagrams_down = GREATEST(datagrams_down, @datagrams_down::bigint)
+    datagrams_up = GREATEST(datagrams_up, @datagrams_up::bigint), datagrams_down = GREATEST(datagrams_down, @datagrams_down::bigint),
+    queries = GREATEST(queries, @queries::bigint)
 WHERE id = @id AND org_id = @org_id AND gateway_instance_id = @instance_id::uuid AND ended_at IS NULL
 RETURNING resource_id;
 
@@ -26,6 +27,12 @@ SELECT user_id FROM membership WHERE org_id = @org_id AND user_id = ANY(@user_id
 
 -- name: SessionOfInstanceExists :one
 SELECT EXISTS (SELECT 1 FROM session WHERE id = @id AND org_id = @org_id AND gateway_instance_id = @instance_id::uuid);
+
+-- name: OpenAgentSession :one
+-- An open session of an agent run served by the instance.
+SELECT agent_run_id::uuid AS agent_run_id, resource_id::uuid AS resource_id FROM session
+WHERE id = @id AND org_id = @org_id AND gateway_instance_id = @instance_id::uuid AND ended_at IS NULL
+  AND agent_run_id IS NOT NULL AND resource_id IS NOT NULL;
 
 -- name: SessionInOrg :one
 SELECT EXISTS (SELECT 1 FROM session WHERE id = @id AND org_id = @org_id);
@@ -59,9 +66,16 @@ VALUES (1, @ciphertext, @key_id, @public_key)
 ON CONFLICT (id) DO NOTHING;
 
 -- name: CreateRecording :exec
-INSERT INTO recording (session_id, org_id, store)
-VALUES (@session_id, @org_id, @store)
+-- The first call fixes the format; a later one keeps it.
+INSERT INTO recording (session_id, org_id, store, format)
+VALUES (@session_id, @org_id, @store, @format)
 ON CONFLICT DO NOTHING;
+
+-- name: SessionResourceType :one
+SELECT s.kind, r.type
+FROM session s
+JOIN resource r ON r.id = s.resource_id AND r.org_id = s.org_id
+WHERE s.id = @id AND s.org_id = @org_id;
 
 -- name: LockRecording :one
 -- The row lock orders concurrent ingest of one session across server replicas.
@@ -95,7 +109,8 @@ SELECT s.id, s.user_id, s.resource_id, s.gateway_id, s.client_ip, s.started_at, 
        coalesce(s.end_reason, '')::text AS end_reason,
        coalesce(rec.chunks, 0)::int AS chunks,
        coalesce(rec.bytes, 0)::bigint AS bytes,
-       (rec.manifest_signature IS NOT NULL)::bool AS finished
+       (rec.manifest_signature IS NOT NULL)::bool AS finished,
+       s.queries, coalesce(rec.format, '')::text AS record_format
 FROM session s
 LEFT JOIN users u ON u.id = s.user_id
 LEFT JOIN resource r ON r.id = s.resource_id AND r.org_id = s.org_id

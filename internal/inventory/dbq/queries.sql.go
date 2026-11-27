@@ -488,7 +488,8 @@ SELECT r.id, r.org_id, r.name, r.type, r.category, r.gateway_id, r.config, r.pre
        coalesce(extract(epoch FROM r.max_duration), 0)::bigint AS max_secs,
        CASE WHEN hs.n = 0 THEN 'unknown' WHEN hs.any_ok THEN 'healthy' ELSE 'unhealthy' END::text AS health_state,
        coalesce(hs.checked_at, 'epoch'::timestamptz)::timestamptz AS health_checked_at,
-       coalesce(hs.last_error, '')::text AS health_error
+       coalesce(hs.last_error, '')::text AS health_error,
+       r.agent_readonly_status, r.agent_readonly_detail
 FROM resource r
 LEFT JOIN resource_host_key h ON h.resource_id = r.id
 LEFT JOIN LATERAL (
@@ -509,26 +510,28 @@ type GetResourceParams struct {
 }
 
 type GetResourceRow struct {
-	ID                uuid.UUID
-	OrgID             uuid.UUID
-	Name              string
-	Type              string
-	Category          string
-	GatewayID         *uuid.UUID
-	Config            []byte
-	PresetID          *uuid.UUID
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
-	Labels            []byte
-	KeyType           *string
-	PublicKey         *string
-	FingerprintSha256 *string
-	HostKeyCreatedAt  *time.Time
-	IdleSecs          int64
-	MaxSecs           int64
-	HealthState       string
-	HealthCheckedAt   time.Time
-	HealthError       string
+	ID                  uuid.UUID
+	OrgID               uuid.UUID
+	Name                string
+	Type                string
+	Category            string
+	GatewayID           *uuid.UUID
+	Config              []byte
+	PresetID            *uuid.UUID
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
+	Labels              []byte
+	KeyType             *string
+	PublicKey           *string
+	FingerprintSha256   *string
+	HostKeyCreatedAt    *time.Time
+	IdleSecs            int64
+	MaxSecs             int64
+	HealthState         string
+	HealthCheckedAt     time.Time
+	HealthError         string
+	AgentReadonlyStatus string
+	AgentReadonlyDetail string
 }
 
 // idle_secs and max_secs are 0 when unset (the valid minimum is 60);
@@ -558,6 +561,8 @@ func (q *Queries) GetResource(ctx context.Context, arg GetResourceParams) (GetRe
 		&i.HealthState,
 		&i.HealthCheckedAt,
 		&i.HealthError,
+		&i.AgentReadonlyStatus,
+		&i.AgentReadonlyDetail,
 	)
 	return i, err
 }
@@ -850,7 +855,8 @@ SELECT r.id, r.org_id, r.name, r.type, r.category, r.gateway_id, r.config, r.pre
        coalesce(extract(epoch FROM r.max_duration), 0)::bigint AS max_secs,
        CASE WHEN hs.n = 0 THEN 'unknown' WHEN hs.any_ok THEN 'healthy' ELSE 'unhealthy' END::text AS health_state,
        coalesce(hs.checked_at, 'epoch'::timestamptz)::timestamptz AS health_checked_at,
-       coalesce(hs.last_error, '')::text AS health_error
+       coalesce(hs.last_error, '')::text AS health_error,
+       r.agent_readonly_status, r.agent_readonly_detail
 FROM resource r
 LEFT JOIN resource_host_key h ON h.resource_id = r.id
 LEFT JOIN LATERAL (
@@ -879,26 +885,28 @@ type ListResourcesParams struct {
 }
 
 type ListResourcesRow struct {
-	ID                uuid.UUID
-	OrgID             uuid.UUID
-	Name              string
-	Type              string
-	Category          string
-	GatewayID         *uuid.UUID
-	Config            []byte
-	PresetID          *uuid.UUID
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
-	Labels            []byte
-	KeyType           *string
-	PublicKey         *string
-	FingerprintSha256 *string
-	HostKeyCreatedAt  *time.Time
-	IdleSecs          int64
-	MaxSecs           int64
-	HealthState       string
-	HealthCheckedAt   time.Time
-	HealthError       string
+	ID                  uuid.UUID
+	OrgID               uuid.UUID
+	Name                string
+	Type                string
+	Category            string
+	GatewayID           *uuid.UUID
+	Config              []byte
+	PresetID            *uuid.UUID
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
+	Labels              []byte
+	KeyType             *string
+	PublicKey           *string
+	FingerprintSha256   *string
+	HostKeyCreatedAt    *time.Time
+	IdleSecs            int64
+	MaxSecs             int64
+	HealthState         string
+	HealthCheckedAt     time.Time
+	HealthError         string
+	AgentReadonlyStatus string
+	AgentReadonlyDetail string
 }
 
 // An empty label_filter matches everything; a NULL gateway_id means any gateway.
@@ -933,6 +941,8 @@ func (q *Queries) ListResources(ctx context.Context, arg ListResourcesParams) ([
 			&i.HealthState,
 			&i.HealthCheckedAt,
 			&i.HealthError,
+			&i.AgentReadonlyStatus,
+			&i.AgentReadonlyDetail,
 		); err != nil {
 			return nil, err
 		}
@@ -1088,6 +1098,82 @@ func (q *Queries) RevokeJoinToken(ctx context.Context, arg RevokeJoinTokenParams
 	return i, err
 }
 
+const setAgentReadonlyChecked = `-- name: SetAgentReadonlyChecked :many
+UPDATE resource r
+SET agent_readonly_status = h.status, agent_readonly_detail = h.detail, agent_readonly_checked_at = h.checked_at
+FROM (SELECT DISTINCT ON (u.resource_id) u.resource_id, u.status, u.detail, u.version, least(u.checked_at, now()) AS checked_at
+      FROM (SELECT unnest($3::uuid[]) AS resource_id, unnest($4::text[]) AS status,
+                   unnest($5::text[]) AS detail, unnest($6::bigint[]) AS version,
+                   unnest($7::timestamptz[]) AS checked_at) u
+      ORDER BY u.resource_id, u.checked_at DESC) h,
+     credential c, gateway_instance i, resource o
+WHERE r.id = h.resource_id AND r.org_id = $1 AND o.id = r.id
+  AND c.resource_id = r.id AND c.org_id = r.org_id AND c.slot = 'agent_readonly'
+  AND i.id = $2 AND i.org_id = $1 AND i.gateway_id = r.gateway_id
+  AND (extract(epoch FROM greatest(c.updated_at, r.updated_at)) * 1000000)::bigint = h.version
+  AND (o.agent_readonly_checked_at IS NULL OR o.agent_readonly_checked_at < h.checked_at
+       OR o.agent_readonly_checked_at < greatest(c.updated_at, r.updated_at))
+RETURNING r.id, r.agent_readonly_status, r.agent_readonly_detail,
+  ((o.agent_readonly_status, o.agent_readonly_detail) IS DISTINCT FROM (h.status, h.detail))::bool AS changed
+`
+
+type SetAgentReadonlyCheckedParams struct {
+	OrgID       uuid.UUID
+	InstanceID  uuid.UUID
+	ResourceIds []uuid.UUID
+	Statuses    []string
+	Details     []string
+	Versions    []int64
+	CheckedAts  []time.Time
+}
+
+type SetAgentReadonlyCheckedRow struct {
+	ID                  uuid.UUID
+	AgentReadonlyStatus string
+	AgentReadonlyDetail string
+	Changed             bool
+}
+
+// Check results of the agent_readonly credential from an instance of the
+// resource's pool. A result counts only for the current check version:
+// greatest(updated_at of the credential, resource.updated_at) in microseconds;
+// and only when it ended after the stored result of that version (the end
+// time is clamped to now()); of repeated ids the newest wins. changed is false
+// when status and detail stay. resource.updated_at stays: it is part of the
+// version.
+func (q *Queries) SetAgentReadonlyChecked(ctx context.Context, arg SetAgentReadonlyCheckedParams) ([]SetAgentReadonlyCheckedRow, error) {
+	rows, err := q.db.Query(ctx, setAgentReadonlyChecked,
+		arg.OrgID,
+		arg.InstanceID,
+		arg.ResourceIds,
+		arg.Statuses,
+		arg.Details,
+		arg.Versions,
+		arg.CheckedAts,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SetAgentReadonlyCheckedRow
+	for rows.Next() {
+		var i SetAgentReadonlyCheckedRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.AgentReadonlyStatus,
+			&i.AgentReadonlyDetail,
+			&i.Changed,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const spendJoinToken = `-- name: SpendJoinToken :one
 UPDATE gateway_join_token SET uses = uses + 1
 WHERE token_hash = $1 AND uses < max_uses AND expires_at > now() AND revoked_at IS NULL
@@ -1135,7 +1221,10 @@ const updateResource = `-- name: UpdateResource :execrows
 UPDATE resource
 SET name = $1, gateway_id = $2, config = coalesce($3::jsonb, config),
     idle_timeout = make_interval(secs => $4::bigint),
-    max_duration = make_interval(secs => $5::bigint), updated_at = now()
+    max_duration = make_interval(secs => $5::bigint), updated_at = now(),
+    -- A configuration change invalidates the check of the agent_readonly credential.
+    agent_readonly_status = CASE WHEN agent_readonly_status = 'none' THEN 'none' ELSE 'pending' END,
+    agent_readonly_detail = CASE WHEN agent_readonly_status = 'none' THEN agent_readonly_detail ELSE '' END
 WHERE id = $6 AND org_id = $7
 `
 

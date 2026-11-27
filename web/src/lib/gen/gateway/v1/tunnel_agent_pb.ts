@@ -11,7 +11,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file gateway/v1/tunnel_agent.proto.
  */
 export const file_gateway_v1_tunnel_agent: GenFile = /*@__PURE__*/
-  fileDesc("Ch1nYXRld2F5L3YxL3R1bm5lbF9hZ2VudC5wcm90bxIKZ2F0ZXdheS52MSJGCglBZ2VudEluZm8SEAoIYWdlbnRfaWQYASABKAkSDgoGcnVuX2lkGAIgASgJEhcKD3Nwb25zb3JfdXNlcl9pZBgDIAEoCSLkAQoTUmVjb3JkRGVuaWFsUmVxdWVzdBIYCgZydW5faWQYASABKAlCCLpIBXIDsAEBEhkKCHJlc291cmNlGAIgASgJQge6SARyAig/EhkKB2NvbW1hbmQYAyABKAlCCLpIBXIDKIAIElsKB2NsYXNzZXMYBCADKAlCSrpIR5IBRBAHIkByPlIEcmVhZFIFd3JpdGVSC2Rlc3RydWN0aXZlUglwcml2aWxlZ2VSB3NlY3JldHNSBmVncmVzc1IGb3BhcXVlEiAKB3JlYXNvbnMYBSADKAlCD7pIDJIBCRAQIgVyAyiAASImChRSZWNvcmREZW5pYWxSZXNwb25zZRIOCgZwYXVzZWQYASABKAhCngEKDmNvbS5nYXRld2F5LnYxQhBUdW5uZWxBZ2VudFByb3RvUAFaMWdpdGh1Yi5jb20vd2VyYm90L3dlcmJvdC9nZW4vZ2F0ZXdheS92MTtnYXRld2F5djGiAgNHWFiqAgpHYXRld2F5LlYxygIKR2F0ZXdheVxWMeICFkdhdGV3YXlcVjFcR1BCTWV0YWRhdGHqAgtHYXRld2F5OjpWMWIGcHJvdG8z", [file_buf_validate_validate]);
+  fileDesc("Ch1nYXRld2F5L3YxL3R1bm5lbF9hZ2VudC5wcm90bxIKZ2F0ZXdheS52MSJvCglBZ2VudEluZm8SEAoIYWdlbnRfaWQYASABKAkSDgoGcnVuX2lkGAIgASgJEhcKD3Nwb25zb3JfdXNlcl9pZBgDIAEoCRInCgZsaW1pdHMYBCABKAsyFy5nYXRld2F5LnYxLkFnZW50TGltaXRzImwKC0FnZW50TGltaXRzEhAKCG1heF9yb3dzGAEgASgFEhgKEG1heF9yZXN1bHRfYnl0ZXMYAiABKAMSHAoUc3RhdGVtZW50X3RpbWVvdXRfbXMYAyABKAUSEwoLbWF4X3F1ZXJpZXMYBCABKAUi5AEKE1JlY29yZERlbmlhbFJlcXVlc3QSGAoGcnVuX2lkGAEgASgJQgi6SAVyA7ABARIZCghyZXNvdXJjZRgCIAEoCUIHukgEcgIoPxIZCgdjb21tYW5kGAMgASgJQgi6SAVyAyiACBJbCgdjbGFzc2VzGAQgAygJQkq6SEeSAUQQByJAcj5SBHJlYWRSBXdyaXRlUgtkZXN0cnVjdGl2ZVIJcHJpdmlsZWdlUgdzZWNyZXRzUgZlZ3Jlc3NSBm9wYXF1ZRIgCgdyZWFzb25zGAUgAygJQg+6SAySAQkQECIFcgMogAEiJgoUUmVjb3JkRGVuaWFsUmVzcG9uc2USDgoGcGF1c2VkGAEgASgIQp4BCg5jb20uZ2F0ZXdheS52MUIQVHVubmVsQWdlbnRQcm90b1ABWjFnaXRodWIuY29tL3dlcmJvdC93ZXJib3QvZ2VuL2dhdGV3YXkvdjE7Z2F0ZXdheXYxogIDR1hYqgIKR2F0ZXdheS5WMcoCCkdhdGV3YXlcVjHiAhZHYXRld2F5XFYxXEdQQk1ldGFkYXRh6gILR2F0ZXdheTo6VjFiBnByb3RvMw", [file_buf_validate_validate]);
 
 /**
  * AgentInfo is the agent run a verified agent certificate belongs to; the
@@ -34,6 +34,13 @@ export type AgentInfo = Message<"gateway.v1.AgentInfo"> & {
    * @generated from field: string sponsor_user_id = 3;
    */
   sponsorUserId: string;
+
+  /**
+   * the run's limits in databases, defaults applied
+   *
+   * @generated from field: gateway.v1.AgentLimits limits = 4;
+   */
+  limits?: AgentLimits | undefined;
 };
 
 /**
@@ -42,6 +49,41 @@ export type AgentInfo = Message<"gateway.v1.AgentInfo"> & {
  */
 export const AgentInfoSchema: GenMessage<AgentInfo> = /*@__PURE__*/
   messageDesc(file_gateway_v1_tunnel_agent, 0);
+
+/**
+ * AgentLimits bound an agent's database session: rows and bytes of one
+ * result, the time of one statement and the queries of the session.
+ *
+ * @generated from message gateway.v1.AgentLimits
+ */
+export type AgentLimits = Message<"gateway.v1.AgentLimits"> & {
+  /**
+   * @generated from field: int32 max_rows = 1;
+   */
+  maxRows: number;
+
+  /**
+   * @generated from field: int64 max_result_bytes = 2;
+   */
+  maxResultBytes: bigint;
+
+  /**
+   * @generated from field: int32 statement_timeout_ms = 3;
+   */
+  statementTimeoutMs: number;
+
+  /**
+   * @generated from field: int32 max_queries = 4;
+   */
+  maxQueries: number;
+};
+
+/**
+ * Describes the message gateway.v1.AgentLimits.
+ * Use `create(AgentLimitsSchema)` to create a new message.
+ */
+export const AgentLimitsSchema: GenMessage<AgentLimits> = /*@__PURE__*/
+  messageDesc(file_gateway_v1_tunnel_agent, 1);
 
 /**
  * RecordDenialRequest reports an action of an agent run the gateway refused
@@ -85,7 +127,7 @@ export type RecordDenialRequest = Message<"gateway.v1.RecordDenialRequest"> & {
  * Use `create(RecordDenialRequestSchema)` to create a new message.
  */
 export const RecordDenialRequestSchema: GenMessage<RecordDenialRequest> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel_agent, 1);
+  messageDesc(file_gateway_v1_tunnel_agent, 2);
 
 /**
  * @generated from message gateway.v1.RecordDenialResponse
@@ -104,5 +146,5 @@ export type RecordDenialResponse = Message<"gateway.v1.RecordDenialResponse"> & 
  * Use `create(RecordDenialResponseSchema)` to create a new message.
  */
 export const RecordDenialResponseSchema: GenMessage<RecordDenialResponse> = /*@__PURE__*/
-  messageDesc(file_gateway_v1_tunnel_agent, 2);
+  messageDesc(file_gateway_v1_tunnel_agent, 3);
 

@@ -61,6 +61,12 @@ type ResourceHealth struct {
 	OK         bool
 	Error      string
 	CheckedAt  time.Time
+	// AgentReadonlyStatus is a check of the agent_readonly credential
+	// (empty: none) of check version AgentReadonlyVersion, with its findings;
+	// it ended at AgentReadonlyCheckedAt.
+	AgentReadonlyStatus, AgentReadonlyDetail string
+	AgentReadonlyVersion                     int64
+	AgentReadonlyCheckedAt                   time.Time
 }
 
 // Gateways authenticates instances by their verified client certificate.
@@ -88,8 +94,17 @@ type Resources interface {
 
 // Credentials reveals resource secrets.
 type Credentials interface {
-	// Reveal gets the resource type from the server's own resource row.
-	Reveal(ctx context.Context, orgID, resourceID uuid.UUID, resourceType string) (Secret, error)
+	// Reveal gets the resource type from the server's own resource row; an
+	// agent's session of a type with a query action gets the verified
+	// agent_readonly credential, any other session the primary one.
+	Reveal(ctx context.Context, orgID, resourceID uuid.UUID, resourceType string, agent bool) (Secret, error)
+	// WriteCredential is the primary credential for one write of an open agent
+	// session of gw, approved for the statement whose SHA-256 is opSHA256.
+	WriteCredential(ctx context.Context, gw Gateway, sessionID, approvalID uuid.UUID, opSHA256 []byte) (Secret, error)
+	// ProbeCredential is the agent_readonly credential of a resource of gw's
+	// pool and its check version; configVersion is the resource's
+	// configuration in gw's snapshot, which must still be the current one.
+	ProbeCredential(ctx context.Context, gw Gateway, resourceID uuid.UUID, configVersion int64) (Secret, int64, error)
 }
 
 // Snapshots builds the policy snapshot of a pool in two steps, so a refresh
@@ -122,9 +137,11 @@ type Pools interface {
 	OnlineInstances(ctx context.Context, gatewayID uuid.UUID) ([]uuid.UUID, error)
 }
 
-// RecordingIngest stores recording chunks and closes recordings of a session
-// served by instanceID; *session.Recordings implements it.
+// RecordingIngest begins, stores the chunks of and closes recordings of a
+// session served by instanceID; *session.Recordings implements it.
 type RecordingIngest interface {
+	// Begin opens the recording of a new session whose format is not asciicast.
+	Begin(ctx context.Context, orgID, sessionID uuid.UUID) error
 	IngestChunk(ctx context.Context, orgID, instanceID, sessionID uuid.UUID, seq int, hash, gz []byte) error
 	FinishRecording(ctx context.Context, orgID, instanceID, sessionID uuid.UUID, chunks int, bytes int64, finalHash []byte) error
 }

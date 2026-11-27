@@ -203,6 +203,20 @@ type fakeGateway struct {
 
 func newFakeGateway(t *testing.T, ca gossh.PublicKey, handle func(*fakeGateway, gliderssh.Session)) *fakeGateway {
 	t.Helper()
+	return startGateway(t, ca, func(g *fakeGateway, srv *gliderssh.Server) {
+		srv.Handler = func(s gliderssh.Session) {
+			g.mu.Lock()
+			g.users, g.envs, g.commands = append(g.users, s.User()), append(g.envs, s.Environ()), append(g.commands, s.RawCommand())
+			g.mu.Unlock()
+			handle(g, s)
+		}
+	})
+}
+
+// startGateway serves the SSH server that setup completes, accepting only
+// certificates of ca with an agent run.
+func startGateway(t *testing.T, ca gossh.PublicKey, setup func(*fakeGateway, *gliderssh.Server)) *fakeGateway {
+	t.Helper()
 	_, hostKey, err := ed25519.GenerateKey(nil)
 	require.NoError(t, err)
 	host, err := gossh.NewSignerFromKey(hostKey)
@@ -217,13 +231,8 @@ func newFakeGateway(t *testing.T, ca gossh.PublicKey, handle func(*fakeGateway, 
 			cert, ok := key.(*gossh.Certificate)
 			return ok && string(cert.SignatureKey.Marshal()) == string(ca.Marshal()) && cert.Extensions[sshca.ExtRun] != ""
 		},
-		Handler: func(s gliderssh.Session) {
-			g.mu.Lock()
-			g.users, g.envs, g.commands = append(g.users, s.User()), append(g.envs, s.Environ()), append(g.commands, s.RawCommand())
-			g.mu.Unlock()
-			handle(g, s)
-		},
 	}
+	setup(g, srv)
 	go func() { _ = srv.Serve(l) }()
 	t.Cleanup(func() { _ = srv.Close() })
 	return g

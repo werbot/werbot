@@ -14,7 +14,8 @@ import (
 	connectorv1 "github.com/werbot/werbot/gen/werbot/connector/v1"
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
 	"github.com/werbot/werbot/internal/connector"
-	_ "github.com/werbot/werbot/internal/connector/tcp" // base types of presets
+	_ "github.com/werbot/werbot/internal/connector/postgres" // a builtin type no preset may be named after
+	_ "github.com/werbot/werbot/internal/connector/tcp"      // base types of presets
 	_ "github.com/werbot/werbot/internal/connector/udp"
 	"github.com/werbot/werbot/internal/inventory"
 	"github.com/werbot/werbot/internal/platform/apperr"
@@ -32,7 +33,7 @@ func presetSetup(t *testing.T) presetEnv {
 	t.Helper()
 	e := setup(t)
 	return presetEnv{e, inventory.NewPresetHandler(e.svc),
-		inventory.NewHandler(e.svc, fakeCreds{map[uuid.UUID]connector.CredentialKind{}}, nil, nil, nil)}
+		inventory.NewHandler(e.svc, newFakeCreds(), nil, nil, nil)}
 }
 
 func (e presetEnv) as(role string) context.Context {
@@ -40,7 +41,7 @@ func (e presetEnv) as(role string) context.Context {
 }
 
 func pgCreate(name string) *werbotv1.CreateResourcePresetRequest {
-	return &werbotv1.CreateResourcePresetRequest{Name: name, BaseType: "tcp", DisplayName: "PostgreSQL", Icon: "database",
+	return &werbotv1.CreateResourcePresetRequest{Name: name, BaseType: "tcp", DisplayName: "PostgreSQL over TCP", Icon: "database",
 		DefaultPorts: []*connectorv1.PortRange{{Port: 5432}}, Category: "databases", LaunchHint: "psql -h localhost"}
 }
 
@@ -60,12 +61,12 @@ func (e presetEnv) auditCount(t *testing.T, action string) (n int) {
 
 func TestPresetCRUD(t *testing.T) {
 	e := presetSetup(t)
-	p := e.create(t, pgCreate("postgres"))
-	assert.Equal(t, "postgres", p.GetName())
+	p := e.create(t, pgCreate("pgtcp"))
+	assert.Equal(t, "pgtcp", p.GetName())
 	assert.Equal(t, "tcp", p.GetBaseType())
 	assert.EqualValues(t, 5432, p.GetDefaultPorts()[0].GetPort())
 
-	upd := pgCreate("postgres")
+	upd := pgCreate("pgtcp")
 	upd.DisplayName = "Postgres"
 	ures, err := e.ph.UpdateResourcePreset(e.ctx, connect.NewRequest(&werbotv1.UpdateResourcePresetRequest{Id: p.GetId(), Name: upd.Name,
 		BaseType: upd.BaseType, DisplayName: upd.DisplayName, Icon: upd.Icon, DefaultPorts: upd.DefaultPorts, Category: upd.Category}))
@@ -100,13 +101,14 @@ func TestPresetCRUD(t *testing.T) {
 func TestPresetValidation(t *testing.T) {
 	e := presetSetup(t)
 	mod := func(f func(*werbotv1.CreateResourcePresetRequest)) *werbotv1.CreateResourcePresetRequest {
-		r := pgCreate("postgres")
+		r := pgCreate("pgtcp")
 		f(r)
 		return r
 	}
 	for name, req := range map[string]*werbotv1.CreateResourcePresetRequest{
 		"builtin tcp":       pgCreate("tcp"),
 		"builtin ssh":       pgCreate("ssh"),
+		"builtin postgres":  pgCreate("postgres"),
 		"upper-case name":   pgCreate("Postgres"),
 		"base type ssh":     mod(func(r *werbotv1.CreateResourcePresetRequest) { r.BaseType = "ssh" }),
 		"no ports":          mod(func(r *werbotv1.CreateResourcePresetRequest) { r.DefaultPorts = nil }),
@@ -121,14 +123,14 @@ func TestPresetValidation(t *testing.T) {
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), name)
 	}
 
-	p := e.create(t, pgCreate("postgres"))
-	_, err := e.ph.CreateResourcePreset(e.ctx, connect.NewRequest(pgCreate("postgres")))
+	p := e.create(t, pgCreate("pgtcp"))
+	_, err := e.ph.CreateResourcePreset(e.ctx, connect.NewRequest(pgCreate("pgtcp")))
 	assert.Equal(t, connect.CodeAlreadyExists, connect.CodeOf(err))
 	for name, f := range map[string]func(*werbotv1.UpdateResourcePresetRequest){
 		"other base type": func(r *werbotv1.UpdateResourcePresetRequest) { r.BaseType = "udp" },
 		"other name":      func(r *werbotv1.UpdateResourcePresetRequest) { r.Name = "pg" },
 	} {
-		req := &werbotv1.UpdateResourcePresetRequest{Id: p.GetId(), Name: "postgres", BaseType: "tcp", DisplayName: "PostgreSQL",
+		req := &werbotv1.UpdateResourcePresetRequest{Id: p.GetId(), Name: "pgtcp", BaseType: "tcp", DisplayName: "PostgreSQL",
 			DefaultPorts: []*connectorv1.PortRange{{Port: 5432}}, Category: "databases"}
 		f(req)
 		_, err := e.ph.UpdateResourcePreset(e.ctx, connect.NewRequest(req))
@@ -138,7 +140,7 @@ func TestPresetValidation(t *testing.T) {
 
 func TestListResourceTypesIncludesPresets(t *testing.T) {
 	e := presetSetup(t)
-	p := e.create(t, pgCreate("postgres"))
+	p := e.create(t, pgCreate("pgtcp"))
 	otherOrg := principal.With(context.Background(), principal.Principal{UserID: e.owner, OrgID: dbtest.Org(t, e.pool), Role: "member"})
 	_, err := e.svc.CreatePreset(principal.With(context.Background(), principal.Principal{UserID: e.owner, OrgID: e.org, Role: "owner"}),
 		e.org, inventory.PresetInput{Name: "redis", BaseType: "tcp", DisplayName: "Redis", Category: "databases",
@@ -154,22 +156,22 @@ func TestListResourceTypesIncludesPresets(t *testing.T) {
 			assert.Empty(t, ty.GetPresetId(), "a builtin entry carries no preset fields")
 			assert.Empty(t, ty.GetBaseType())
 		}
-		if ty.GetName() != "postgres" {
+		if ty.GetName() != "pgtcp" {
 			continue
 		}
 		assert.Equal(t, p.GetId(), ty.GetPresetId())
 		assert.Equal(t, "tcp", ty.GetBaseType())
 		assert.Equal(t, []string{"stream"}, ty.GetKinds())
 		assert.Equal(t, "databases", ty.GetCategory())
-		assert.Equal(t, "PostgreSQL", ty.GetDisplayName())
+		assert.Equal(t, "PostgreSQL over TCP", ty.GetDisplayName())
 		assert.Equal(t, "database", ty.GetIcon())
 		assert.Equal(t, "psql -h localhost", ty.GetLaunchHint())
 		assert.EqualValues(t, 5432, ty.GetDefaultPorts()[0].GetPort())
 		assert.Equal(t, []string{"tcp.connect"}, ty.GetActions())
 	}
 	assert.Contains(t, names, "tcp")
-	assert.Less(t, indexOf(names, "postgres"), indexOf(names, "redis"), "presets by name")
-	assert.Less(t, indexOf(names, "udp"), indexOf(names, "postgres"), "builtin types first")
+	assert.Less(t, indexOf(names, "pgtcp"), indexOf(names, "redis"), "presets by name")
+	assert.Less(t, indexOf(names, "udp"), indexOf(names, "pgtcp"), "builtin types first")
 
 	res, err = e.rh.ListResourceTypes(otherOrg, connect.NewRequest(&werbotv1.ListResourceTypesRequest{}))
 	require.NoError(t, err)
@@ -194,7 +196,7 @@ func presetResource(name, typ, presetID string) *connect.Request[werbotv1.Create
 
 func TestCreateResourceFromPreset(t *testing.T) {
 	e := presetSetup(t)
-	p := e.create(t, pgCreate("postgres"))
+	p := e.create(t, pgCreate("pgtcp"))
 
 	res, err := e.rh.CreateResource(e.ctx, presetResource("db", "tcp", p.GetId()))
 	require.NoError(t, err)
@@ -212,7 +214,7 @@ func TestCreateResourceFromPreset(t *testing.T) {
 
 	otherOrg := dbtest.Org(t, e.pool)
 	foreign, err := e.svc.CreatePreset(principal.With(context.Background(), principal.Principal{UserID: e.owner, OrgID: otherOrg, Role: "owner"}),
-		otherOrg, inventory.PresetInput{Name: "postgres", BaseType: "tcp", DisplayName: "PG", Category: "databases",
+		otherOrg, inventory.PresetInput{Name: "pgtcp", BaseType: "tcp", DisplayName: "PG", Category: "databases",
 			DefaultPorts: []connector.PortRange{{Port: 5432}}})
 	require.NoError(t, err)
 	_, err = e.rh.CreateResource(e.ctx, presetResource("db-foreign", "tcp", foreign.ID.String()))
@@ -223,7 +225,7 @@ func TestCreateResourceFromPreset(t *testing.T) {
 
 func TestDeletePresetInUse(t *testing.T) {
 	e := presetSetup(t)
-	p := e.create(t, pgCreate("postgres"))
+	p := e.create(t, pgCreate("pgtcp"))
 	res, err := e.rh.CreateResource(e.ctx, presetResource("db", "tcp", p.GetId()))
 	require.NoError(t, err)
 

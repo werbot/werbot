@@ -62,6 +62,12 @@ Connect directly, or through PgBouncer in **session mode** only: transaction and
 - High availability is the operator's job (Patroni, CloudNativePG). A failover needs no Werbot restart.
 - Read replicas are not used.
 
+## Database connections
+
+The `postgres` connector opens one database connection per session and keeps no pool between sessions. The proxy parses message headers only and copies `DataRow` and `CopyData` through. Budgets for a simple or prepared query added by the gateway (best of 3 runs, 5000 measured operations after 200 warm-up): p50 at most 100 µs, p99 at most 500 µs. A streamed result keeps at least 0.9 of the direct throughput. Connect adds at most 30 ms at p99. Check them on a database next to the gateway with `make bench-hot`. The metrics are in [databases.md](databases.md#metrics).
+
+Query checks ([databases.md](databases.md#query-checks)) keep the same budgets for a repeated text or a prepared execute; a new text adds at most 2 ms at p99. The SQL parser is libpg_query compiled to WebAssembly and costs memory: about 290 MiB of RSS once warmed up, and up to about 700 MiB after large queries (WebAssembly memory is never given back). It warms up lazily, in the background, when the policy snapshot first holds a resource of a type with queries; until it is ready every query is `opaque` (agents are refused, people with query rules get `opaque`). A gateway without database resources never loads it, and neither does a server until a `TestCommand` with SQL. Size the memory limit of database gateways for it, and set `GOMEMLIMIT` from that limit.
+
 ## Session recordings
 
 The file system (`WERBOT_DATA_DIR/recordings`, used while `WERBOT_RECORDINGS_S3_BUCKET` is empty) is for one server replica or a ReadWriteMany volume. With more than one replica use S3-compatible storage (AWS S3, R2, SeaweedFS) through `WERBOT_RECORDINGS_S3_*`. Otherwise chunks of one session land on different nodes and `Verify` reports `chunk_missing`.

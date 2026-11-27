@@ -204,3 +204,13 @@ func BenchmarkMask(b *testing.B) {
 type discard struct{}
 
 func (discard) Write(p []byte) (int, error) { return len(p), nil }
+
+func TestMaskBytes(t *testing.T) {
+	secrets := toBytes([]string{testSecret})
+	require.Equal(t, "pw=[masked]", string(Bytes([]byte("pw="+testSecret), secrets, false)))
+	require.Equal(t, "tail "+testSecret[:5], string(Bytes([]byte("tail "+testSecret[:5]), secrets, false)), "a held prefix is written")
+	key := "AKIA" + strings.Repeat("A", 16)
+	require.Equal(t, "id [masked] no newline", string(Bytes([]byte("id "+key+" no newline"), nil, true)), "patterns on a cell without a newline")
+	require.Equal(t, "id "+key, string(Bytes([]byte("id "+key), nil, false)))
+	require.Empty(t, Bytes(nil, secrets, true))
+}

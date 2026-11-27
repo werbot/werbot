@@ -74,6 +74,11 @@ message Resource {
   google.protobuf.Duration max_duration = 14; // unset: the gateway default
   ResourceHealth health = 15;
   string preset_id = 16; // empty unless created from a preset
+  // Agents in databases: the kind of the agent_readonly credential ("" means none; the value is never
+  // returned) and its verification status: none, pending, ok, has_write or error, with the findings.
+  string agent_credential_kind = 17;
+  string agent_readonly_status = 18;
+  string agent_readonly_detail = 19;
 }
 
 message ListResourceTypesRequest {}
@@ -173,11 +178,13 @@ message SetCredentialRequest {
   string resource_id = 1 [(buf.validate.field).string.uuid = true];
   string kind = 2 [(buf.validate.field).string = {min_len: 1, max_len: 32}];
   bytes value = 3 [(buf.validate.field).bytes = {min_len: 1, max_len: 65536}];
+  string slot = 4; // "": primary, or agent_readonly (types with a query action); else unknown credential slot
 }
 message SetCredentialResponse {}
 
 message ClearCredentialRequest {
   string resource_id = 1 [(buf.validate.field).string.uuid = true];
+  string slot = 2; // "": primary, or agent_readonly (types with a query action); else unknown credential slot
 }
 message ClearCredentialResponse {}
 

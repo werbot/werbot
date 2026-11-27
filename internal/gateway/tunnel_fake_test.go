@@ -271,7 +271,7 @@ func (e *tunnelEnv) run(t *testing.T, heartbeat func() *gatewayv1.Heartbeat) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
-	go func() { done <- e.c.Run(ctx, heartbeat) }()
+	go func() { done <- e.c.Run(ctx, heartbeat, func(*gatewayv1.Heartbeat) {}) }()
 	t.Cleanup(func() {
 		cancel()
 		require.NoError(t, <-done)
