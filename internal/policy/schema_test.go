@@ -52,7 +52,7 @@ func TestCompiledPoliciesTypecheck(t *testing.T) {
 	require.NoError(t, err)
 	list, err := cedar.NewPolicyListFromBytes("werbot.cedar", []byte(text))
 	require.NoError(t, err)
-	require.Len(t, list, 13) // binding, three rules, blocklist, eight agent baseline policies
+	require.Len(t, list, 15) // binding, three rules, blocklist, ten agent baseline policies
 	for i, p := range list {
 		assert.NoError(t, v.Policy(fmt.Sprint(i), (*ast.Policy)(p.AST())), i)
 	}
@@ -82,7 +82,7 @@ func TestSchemaHasNowAndCLISession(t *testing.T) {
 	require.NoError(t, err)
 	list, err := cedar.NewPolicyListFromBytes("werbot.cedar", []byte(text))
 	require.NoError(t, err)
-	require.Len(t, list, 14) // grant, four locks, blocklist, eight agent baseline policies
+	require.Len(t, list, 16) // grant, four locks, blocklist, ten agent baseline policies
 	v := validate.New(res)
 	for i, p := range list {
 		assert.NoError(t, v.Policy(fmt.Sprint(i), (*ast.Policy)(p.AST())), i)
@@ -118,7 +118,7 @@ func TestSchemaHasExecContext(t *testing.T) {
 	require.NoError(t, err)
 	list, err := cedar.NewPolicyListFromBytes("werbot.cedar", []byte(text))
 	require.NoError(t, err)
-	require.Len(t, list, 12) // two rules, the agent permit of the approval rule, blocklist, eight agent baseline policies
+	require.Len(t, list, 14) // two rules, the agent permit of the approval rule, blocklist, ten agent baseline policies
 	v := validate.New(res)
 	for i, p := range list {
 		assert.NoError(t, v.Policy(fmt.Sprint(i), (*ast.Policy)(p.AST())), i)

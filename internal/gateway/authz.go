@@ -78,6 +78,10 @@ type AccessRequest struct {
 	MFAMethod     string
 	// RemoteForward marks a remote forward (ssh -R): Port is its bind port.
 	RemoteForward bool
+	// DBName, Tables and WriteTables describe a query request (sqlclass);
+	// any other request leaves them empty.
+	DBName              string
+	Tables, WriteTables []string
 }
 
 // Policy is a compiled snapshot: the local policy decision point.

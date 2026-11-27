@@ -195,3 +195,12 @@ func (t Type) ShellAction() (string, bool) {
 	}
 	return "", false
 }
+
+// QueryAction returns the action of t that runs one database query
+// ("<name>.query"); "" and false when t has none.
+func (t Type) QueryAction() (string, bool) {
+	if a := t.Name + ".query"; slices.Contains(t.Actions, a) {
+		return a, true
+	}
+	return "", false
+}

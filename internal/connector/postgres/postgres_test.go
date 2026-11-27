@@ -30,7 +30,7 @@ func TestPostgresType(t *testing.T) {
 	assert.Equal(t, []connector.Kind{connector.KindStream}, ty.Recorded)
 	assert.Equal(t, connector.RecordQuerylog, ty.RecordFormat)
 	assert.Equal(t, []connector.CredentialKind{connector.CredentialPassword, connector.CredentialClientCert}, ty.Credentials)
-	assert.Equal(t, []string{"postgres.connect"}, ty.Actions)
+	assert.Equal(t, []string{"postgres.connect", "postgres.query"}, ty.Actions)
 	assert.IsType(t, &postgresv1.Config{}, ty.NewConfig())
 }
 
@@ -77,6 +77,10 @@ func TestValidateErrors(t *testing.T) {
 		"empty username":      {func(c *postgresv1.Config) { c.Username = "" }, "username"},
 		"username 64 chars":   {func(c *postgresv1.Config) { c.Username = strings.Repeat("u", 64) }, "username"},
 		"username with space": {func(c *postgresv1.Config) { c.Username = "a b" }, "username"},
+		"bad secret glob":     {func(c *postgresv1.Config) { c.SecretTables = []string{"["} }, "secret_tables"},
+		"65 secret globs":     {func(c *postgresv1.Config) { c.SecretTables = make([]string, 65) }, "secret_tables"},
+		"agent username 64":   {func(c *postgresv1.Config) { c.AgentUsername = strings.Repeat("u", 64) }, "agent_username"},
+		"agent username junk": {func(c *postgresv1.Config) { c.AgentUsername = "a b" }, "agent_username"},
 	} {
 		c := ok()
 		tc.mod(c)
@@ -85,6 +89,22 @@ func TestValidateErrors(t *testing.T) {
 		assert.Contains(t, err.Error(), tc.field, name)
 	}
 	assert.Error(t, Validate(wrapperspb.String("x")))
+}
+
+func TestPostgresQueryAction(t *testing.T) {
+	ty, _ := connector.Lookup("postgres")
+	a, ok := ty.QueryAction()
+	assert.True(t, ok)
+	assert.Equal(t, "postgres.query", a)
+	ssh := connector.Type{Name: "ssh", Actions: []string{"ssh.connect", "ssh.exec"}}
+	a, ok = ssh.QueryAction()
+	assert.False(t, ok)
+	assert.Empty(t, a)
+
+	c := &postgresv1.Config{Host: "db", Username: "app", AgentUsername: "app_ro", SecretTables: []string{"billing.*", "public.secret_?"}}
+	require.NoError(t, Validate(c), "agent_username and secret_tables are valid")
+	c.AgentUsername = ""
+	require.NoError(t, Validate(c), "agent_username may stay empty")
 }
 
 func TestEndpoint(t *testing.T) {

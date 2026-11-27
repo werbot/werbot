@@ -64,8 +64,8 @@ func Compile(s Snapshot) (*PolicySet, string, error) {
 	return &PolicySet{policies: policies, entities: entities}, text, nil
 }
 
-// resourceEntities are the Cedar entities of resources: name and type
-// attributes, labels as tags.
+// resourceEntities are the Cedar entities of resources: name, type and
+// agent_readonly attributes, labels as tags.
 func resourceEntities(resources []SnapshotResource) cedar.EntityMap {
 	entities := make(cedar.EntityMap, len(resources))
 	for _, r := range resources {
@@ -74,9 +74,10 @@ func resourceEntities(resources []SnapshotResource) cedar.EntityMap {
 		for k, v := range r.Labels {
 			tags[cedar.String(k)] = cedar.String(v)
 		}
+		attrs := cedar.RecordMap{"name": cedar.String(r.Name), "type": cedar.String(r.Type), "agent_readonly": cedar.Boolean(r.AgentReadonly)}
 		entities[uid] = cedar.Entity{
 			UID:        uid,
-			Attributes: cedar.NewRecord(cedar.RecordMap{"name": cedar.String(r.Name), "type": cedar.String(r.Type)}),
+			Attributes: cedar.NewRecord(attrs),
 			Tags:       cedar.NewRecord(tags),
 		}
 	}

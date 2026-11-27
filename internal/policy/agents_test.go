@@ -229,8 +229,8 @@ func TestAgentContext(t *testing.T) {
 	assert.True(t, ps.Authorize(human).Allow)
 }
 
-// Input class "agent on a querylog type" (C10): until stage 18 checks a
-// read-only database user, an agent never connects to a postgres resource,
+// Input class "agent on a querylog type" (C10): without a verified
+// agent_readonly credential, an agent never connects to a postgres resource,
 // with only its sponsor's binding, with a custom permit on agents or with an
 // untyped permit; its sponsor connects with the same binding.
 func TestAgentPostgresConnectDenied(t *testing.T) {

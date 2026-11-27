@@ -108,6 +108,17 @@ func TestShellAction(t *testing.T) {
 	assert.Equal(t, "x.shell", a)
 }
 
+func TestQueryAction(t *testing.T) {
+	ty := valid("x")
+	a, ok := ty.QueryAction()
+	assert.False(t, ok, "no query action")
+	assert.Empty(t, a)
+	ty.Actions = []string{"x.connect", "x.query"}
+	a, ok = ty.QueryAction()
+	assert.True(t, ok)
+	assert.Equal(t, "x.query", a)
+}
+
 func TestRegisterRequiresShellForTerminal(t *testing.T) {
 	t.Cleanup(func() { registry = nil })
 	x := valid("x")

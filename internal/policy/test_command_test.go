@@ -71,5 +71,5 @@ func TestTestCommandRejects(t *testing.T) {
 	e.res[e.org][0].Type = "tcp"
 	_, err = e.svc.TestCommand(e.ctx, e.org, e.owner, r, "ls", "", ip10, time.Time{})
 	require.ErrorIs(t, err, apperr.ErrFailedPrecondition)
-	assert.Contains(t, err.Error(), "resource type has no exec action")
+	assert.Contains(t, err.Error(), "resource type has no exec or query action")
 }

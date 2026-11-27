@@ -73,10 +73,11 @@ func selects(sel Selector, r SnapshotResource) bool {
 
 // writeCommandRules emits one forbid per deny or approval rule of people or
 // agents, sorted by ID, and the agent permit of each allow and approval rule
-// (writeAgentPermit): bindings already allow people exec. Rules without
-// subjects, without resources or without exec types emit nothing.
+// (writeAgentPermit), both on the exec and query actions: bindings already
+// allow people exec and query. Rules without subjects, without resources or
+// without exec or query types emit nothing.
 func writeCommandRules(b *strings.Builder, rules []SnapshotCommandRule) error {
-	actions := execActions()
+	actions := operationActions()
 	for _, r := range slices.SortedFunc(slices.Values(rules), func(x, y SnapshotCommandRule) int { return compareIDs(x.ID, y.ID) }) {
 		if !slices.Contains(commandEffects, r.Effect) || len(r.Classes) == 0 {
 			return fmt.Errorf("policy: command rule %s: invalid effect or classes", r.ID)

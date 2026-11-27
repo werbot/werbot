@@ -52,8 +52,9 @@ type ClassAccess struct {
 }
 
 // AgentResources returns the resources agentID may connect to for an exec
-// (the first action of the type, kind "exec") from ip at the time at (zero:
-// now) with the classes it may run there. The decision merges the sponsor
+// or a query (the first action of the type, kind "exec", or "stream" for a
+// type with a query action) from ip at the time at (zero: now) with the
+// classes it may run there. The decision merges the sponsor
 // and agent passes, so a resource the sponsor cannot reach is never listed.
 // An agent missing from the snapshot is ErrNotFound; a snapshot that fails
 // to compile allows nothing.
@@ -76,11 +77,11 @@ func (s *Service) AgentResources(ctx context.Context, orgID, agentID uuid.UUID, 
 		s.deps.Logger.ErrorContext(ctx, "policy: compile snapshot", "org_id", orgID, "err", err)
 		return out, nil
 	}
-	r := Request{UserID: sponsor, TeamIDs: teams, AgentID: &agentID, Kind: string(connector.KindExec),
-		IP: ip, Country: s.Country(ip), Time: at, IPBlocked: blocked}
+	r := Request{UserID: sponsor, TeamIDs: teams, AgentID: &agentID, IP: ip, Country: s.Country(ip), Time: at, IPBlocked: blocked}
 	for _, res := range snap.Resources {
 		if typ, ok := connector.Lookup(res.Type); ok {
-			r.ResourceID, r.Action = res.ID, typ.Actions[0]
+			_, kind, _ := operationAction(typ)
+			r.ResourceID, r.Action, r.Kind = res.ID, typ.Actions[0], string(kind)
 			if ps.Authorize(r).Allow {
 				out[res.ID] = classAccess(ps, r, typ)
 			}
@@ -89,14 +90,14 @@ func (s *Service) AgentResources(ctx context.Context, orgID, agentID uuid.UUID, 
 	return out, nil
 }
 
-// classAccess probes the exec action of typ with r for each class alone.
+// classAccess probes the exec or query action of typ with r for each class alone.
 func classAccess(ps *PolicySet, r Request, typ connector.Type) ClassAccess {
 	var out ClassAccess
-	exec, ok := typ.ExecAction()
+	action, _, ok := operationAction(typ)
 	if !ok {
 		return out
 	}
-	r.Action = exec
+	r.Action = action
 	for _, c := range shellclass.Classes() { // probed one by one
 		r.Classes = []string{string(c)}
 		d := ps.Authorize(r)

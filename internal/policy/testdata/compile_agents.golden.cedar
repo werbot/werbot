@@ -24,21 +24,21 @@ when { context.now < 2000 };
 
 @id("command:019a0000-0000-7000-8000-0000000000c1")
 @message("No secrets")
-forbid (principal, action in [Werbot::Action::"ssh.exec"], resource)
+forbid (principal, action in [Werbot::Action::"ssh.exec", Werbot::Action::"postgres.query"], resource)
 when { (principal is Werbot::User || principal is Werbot::Agent) && [Werbot::Resource::"019a0000-0000-7000-8000-000000000003"].contains(resource) && context.classes.containsAny(["secrets"]) };
 
 @id("command:019a0000-0000-7000-8000-0000000000c2")
 @obligation("approval")
-forbid (principal, action in [Werbot::Action::"ssh.exec"], resource)
+forbid (principal, action in [Werbot::Action::"ssh.exec", Werbot::Action::"postgres.query"], resource)
 when { ((principal in [Werbot::Team::"019a0000-0000-7000-8000-000000000002"] || principal in [Werbot::User::"019a0000-0000-7000-8000-000000000001"]) || (principal is Werbot::Agent && (principal.sponsor in [Werbot::Team::"019a0000-0000-7000-8000-000000000002"] || principal.sponsor in [Werbot::User::"019a0000-0000-7000-8000-000000000001"]))) && [Werbot::Resource::"019a0000-0000-7000-8000-000000000003"].contains(resource) && context.classes.containsAny(["write"]) }
 unless { context.approval_granted };
 
 @id("command:019a0000-0000-7000-8000-0000000000c2:agent")
-permit (principal is Werbot::Agent, action in [Werbot::Action::"ssh.exec"], resource)
+permit (principal is Werbot::Agent, action in [Werbot::Action::"ssh.exec", Werbot::Action::"postgres.query"], resource)
 when { (principal is Werbot::Agent && (principal.sponsor in [Werbot::Team::"019a0000-0000-7000-8000-000000000002"] || principal.sponsor in [Werbot::User::"019a0000-0000-7000-8000-000000000001"])) && [Werbot::Resource::"019a0000-0000-7000-8000-000000000003"].contains(resource) && ["write"].containsAll(context.classes) };
 
 @id("command:019a0000-0000-7000-8000-0000000000c3")
-permit (principal is Werbot::Agent, action in [Werbot::Action::"ssh.exec"], resource)
+permit (principal is Werbot::Agent, action in [Werbot::Action::"ssh.exec", Werbot::Action::"postgres.query"], resource)
 when { principal is Werbot::Agent && [Werbot::Resource::"019a0000-0000-7000-8000-000000000003"].contains(resource) && ["write"].containsAll(context.classes) };
 
 @id("path:019a0000-0000-7000-8000-0000000000e1")
@@ -70,8 +70,17 @@ forbid (principal is Werbot::Agent, action in [Werbot::Action::"sftpy.sftp"], re
 @id("agent:baseline:remote_forward")
 forbid (principal is Werbot::Agent, action in [Werbot::Action::"ssh.remote_forward"], resource);
 
+@id("agent:baseline:db_connect")
+permit (principal is Werbot::Agent, action in [Werbot::Action::"postgres.connect"], resource)
+when { context.kind == "stream" && resource has agent_readonly && resource.agent_readonly };
+
+@id("agent:baseline:db_read")
+permit (principal is Werbot::Agent, action in [Werbot::Action::"postgres.query"], resource)
+when { ["read"].containsAll(context.classes) };
+
 @id("agent:baseline:db_readonly")
-forbid (principal is Werbot::Agent, action in [Werbot::Action::"postgres.connect"], resource);
+forbid (principal is Werbot::Agent, action in [Werbot::Action::"postgres.connect", Werbot::Action::"postgres.query"], resource)
+unless { resource has agent_readonly && resource.agent_readonly };
 
 @id("agent:baseline:frozen")
 forbid (principal is Werbot::Agent, action, resource)

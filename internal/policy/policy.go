@@ -60,6 +60,13 @@ type SnapshotResource struct {
 	Labels map[string]string `json:"labels"`
 	// Host is the endpoint host: the resource host of the egress class.
 	Host string `json:"host,omitempty"`
+	// AgentReadonly: the agent_readonly credential of the resource is
+	// verified (status ok); Cedar attribute agent_readonly.
+	AgentReadonly bool `json:"agent_readonly,omitempty"`
+	// Database and SecretTables are the default database and the secret
+	// table globs of a type with a query action.
+	Database     string   `json:"database,omitempty"`
+	SecretTables []string `json:"secret_tables,omitempty"`
 }
 
 // Binding is an access binding as stored: one resource or a label selector.
@@ -131,6 +138,10 @@ type Request struct {
 	// MFAMethod ("totp" | "webauthn"); MFAMethod "" means none (mfaAge).
 	MFAAgeSeconds int64
 	MFAMethod     string
+	// DBName, Tables and WriteTables describe a query request (sqlclass);
+	// any other request leaves them empty.
+	DBName              string
+	Tables, WriteTables []string
 }
 
 // Decision lists the ids of the policies that decided it; "error:<id>" marks
@@ -261,6 +272,9 @@ func (ps *PolicySet) evaluate(r Request, p cedar.EntityUID) (cedar.Decision, ced
 			"kind":             cedar.String(r.Kind),
 			"mfa_age":          cedar.Long(mfaAge(r)),
 			"mfa_method":       cedar.String(r.MFAMethod),
+			"db_name":          cedar.String(r.DBName),
+			"tables":           stringSet(r.Tables),
+			"write_tables":     stringSet(r.WriteTables),
 		}),
 	}
 	return cedar.Authorize(ps.policies, entityGetter{ps.entities, user}, req)

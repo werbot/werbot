@@ -12,6 +12,7 @@ import (
 
 	postgresv1 "github.com/werbot/werbot/gen/werbot/connector/postgres/v1"
 	"github.com/werbot/werbot/internal/connector"
+	"github.com/werbot/werbot/internal/platform/sqlclass"
 )
 
 // TypeName is the registry name of the type.
@@ -41,7 +42,7 @@ func init() {
 		NewConfig:    func() proto.Message { return &postgresv1.Config{} },
 		Validate:     Validate,
 		Credentials:  []connector.CredentialKind{connector.CredentialPassword, connector.CredentialClientCert},
-		Actions:      []string{"postgres.connect"},
+		Actions:      []string{"postgres.connect", "postgres.query"},
 		Level:        "L3",
 		Kinds:        []connector.Kind{connector.KindStream},
 		Recorded:     []connector.Kind{connector.KindStream},
@@ -75,6 +76,9 @@ func Validate(m proto.Message) error {
 		return err
 	}
 	if err := validateTLS(c); err != nil {
+		return err
+	}
+	if err := validateQuery(c); err != nil {
 		return err
 	}
 	if c.RecordParams == nil {
@@ -117,6 +121,18 @@ func validateAllowed(globs []string) error {
 		if _, err := path.Match(g, ""); g == "" || len(g) > maxName || err != nil {
 			return errors.New("postgres: invalid allowed_databases")
 		}
+	}
+	return nil
+}
+
+// validateQuery checks secret_tables (sqlclass.ValidGlobs) and
+// agent_username: empty, or a login of 1–63 bytes.
+func validateQuery(c *postgresv1.Config) error {
+	if sqlclass.ValidGlobs(c.GetSecretTables()) != nil {
+		return errors.New("postgres: invalid secret_tables")
+	}
+	if u := c.GetAgentUsername(); u != "" && (len(u) > maxName || !connector.ValidLogin(u)) {
+		return errors.New("postgres: invalid agent_username")
 	}
 	return nil
 }
