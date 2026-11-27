@@ -1,4 +1,4 @@
-.PHONY: build test lint dev-db proto sqlc web e2e e2e-network e2e-sso e2e-cluster redteam redteam-go redteam-sso load fuzz site release-check release-snapshot
+.PHONY: build test lint dev-db proto sqlc web e2e e2e-network e2e-sso e2e-cluster e2e-databases redteam redteam-go redteam-sso load fuzz bench-hot site release-check release-snapshot
 
 VERSION ?= dev
 GORELEASER ?= go run github.com/goreleaser/goreleaser/v2@v2.20.0
@@ -48,6 +48,16 @@ e2e-sso:
 	$(KEYCLOAK) up -d --wait || { $(KEYCLOAK) down -v; exit 1; }
 	go test -race -count=1 -run Keycloak -v ./internal/app/ -args -keycloak=http://127.0.0.1:18180; rc=$$?; \
 	$(KEYCLOAK) down -v; exit $$rc
+
+DATABASES = docker compose -f deploy/e2e/databases.yaml
+
+# connector tests against the databases stand (needs a free port 15432); the
+# stand is always removed at the end
+e2e-databases:
+	sh deploy/e2e/databases/gencerts.sh
+	$(DATABASES) up -d --wait || { $(DATABASES) down -v; exit 1; }
+	WERBOT_TEST_POSTGRES=127.0.0.1:15432 go test -count=1 -run Real -v ./internal/gateway/pgconnector/; rc=$$?; \
+	$(DATABASES) down -v; exit $$rc
 
 CLUSTER_PROJECT ?= werbot-cluster
 CLUSTER = docker compose -p $(CLUSTER_PROJECT) -f test/cluster/docker-compose.yaml
@@ -104,6 +114,12 @@ FUZZ_TARGETS = ./internal/platform/shellclass:FuzzClassify ./internal/platform/s
 fuzz:
 	@for t in $(FUZZ_TARGETS); do pkg=$${t%%:*}; fn=$${t##*:}; echo "== $$fn"; \
 	  go test -run '^$$' -fuzz "^$$fn$$" -fuzztime $(FUZZTIME) $$pkg || exit 1; done
+
+# Hot-path budgets (TestHotPath* of each package) against the test database
+# on localhost:27432 (make dev-db); run alone, other load skews them.
+HOT_PKGS ?= ./internal/gateway/pgconnector/
+bench-hot:
+	HOT_BUDGET=1 go test -count=1 -run '^TestHotPath' -v $(HOT_PKGS)
 
 # docs site (site/): Starlight pages synced from docs/; SITE_REF is the git ref the links to repo files point at
 SITE_REF ?= main

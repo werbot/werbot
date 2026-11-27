@@ -231,20 +231,22 @@ func BenchmarkPostgresConnect(b *testing.B) {
 	p := serveProxy(b.Context(), b, testResource(b, cfg), secret)
 	direct := directURL(cfg, secret)
 	var d, v []time.Duration
-	connect := func(url string) time.Duration {
-		t0 := time.Now()
-		conn, err := pgconn.Connect(b.Context(), url)
-		if err != nil {
-			b.Fatal("connect failed")
-		}
-		el := time.Since(t0)
-		_ = conn.Close(b.Context())
-		return el
-	}
 	for b.Loop() {
-		d = append(d, connect(direct))
-		v = append(v, connect(p.connectURL(cfg.GetDatabase())))
+		d = append(d, connectTime(b, direct))
+		v = append(v, connectTime(b, p.connectURL(cfg.GetDatabase())))
 	}
 	added := pct(v, 99) - pct(d, 99)
 	b.ReportMetric(float64(added.Microseconds())/1000, "added-p99-ms")
+}
+
+// connectTime is how long a connect to url takes; the connection is closed.
+func connectTime(tb testing.TB, url string) time.Duration {
+	t0 := time.Now()
+	conn, err := pgconn.Connect(tb.Context(), url)
+	if err != nil {
+		tb.Fatal("connect failed")
+	}
+	el := time.Since(t0)
+	_ = conn.Close(tb.Context())
+	return el
 }

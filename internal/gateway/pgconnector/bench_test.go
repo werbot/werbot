@@ -1,6 +1,7 @@
 package pgconnector
 
 import (
+	"context"
 	"net"
 	"slices"
 	"strconv"
@@ -32,19 +33,7 @@ func pct(ds []time.Duration, q int) time.Duration {
 // and p99 ≤ 0.5 ms; stream through the connector ≥ 0.9 × direct bytes/s.
 func BenchmarkPostgresPassthrough(b *testing.B) {
 	cfg, secret := realPG(b)
-	p := serveProxy(b.Context(), b, testResource(b, cfg), secret)
-	conns := [2]*pgconn.PgConn{}
-	for i, url := range []string{directURL(cfg, secret), p.connectURL(cfg.GetDatabase())} {
-		c, err := pgconn.Connect(b.Context(), url)
-		if err != nil {
-			b.Fatal("connect failed")
-		}
-		b.Cleanup(func() { _ = c.Close(b.Context()) })
-		if _, err := c.Prepare(b.Context(), "bench", "select $1::int", nil); err != nil {
-			b.Fatal("prepare failed")
-		}
-		conns[i] = c
-	}
+	conns := pair(b, cfg, secret, serveProxy(b.Context(), b, testResource(b, cfg), secret))
 	b.Run("simple", func(b *testing.B) {
 		latency(b, conns, func(c *pgconn.PgConn) error { _, err := c.Exec(b.Context(), "select 1").ReadAll(); return err })
 	})
@@ -57,11 +46,30 @@ func BenchmarkPostgresPassthrough(b *testing.B) {
 	b.Run("stream", func(b *testing.B) { stream(b, conns, streamRows, streamRowBytes) })
 }
 
-// timed is the duration of op on c; a failed op fails the benchmark.
-func timed(b *testing.B, c *pgconn.PgConn, op func(*pgconn.PgConn) error) time.Duration {
+// pair connects to the test database directly and through p, in that order,
+// and prepares "bench" (select $1::int) on both.
+func pair(tb testing.TB, cfg *postgresv1.Config, secret gateway.Secret, p *proxy) [2]*pgconn.PgConn {
+	tb.Helper()
+	conns := [2]*pgconn.PgConn{}
+	for i, url := range []string{directURL(cfg, secret), p.connectURL(cfg.GetDatabase())} {
+		c, err := pgconn.Connect(tb.Context(), url)
+		if err != nil {
+			tb.Fatal("connect failed")
+		}
+		tb.Cleanup(func() { _ = c.Close(context.Background()) })
+		if _, err := c.Prepare(tb.Context(), "bench", "select $1::int", nil); err != nil {
+			tb.Fatal("prepare failed")
+		}
+		conns[i] = c
+	}
+	return conns
+}
+
+// timed is the duration of op on c; a failed op fails the test or benchmark.
+func timed(tb testing.TB, c *pgconn.PgConn, op func(*pgconn.PgConn) error) time.Duration {
 	t0 := time.Now()
 	if err := op(c); err != nil {
-		b.Fatal("operation failed")
+		tb.Fatal("operation failed")
 	}
 	return time.Since(t0)
 }
@@ -88,17 +96,22 @@ func streamQuery(rows, rowBytes int) string {
 	return "select repeat('x', " + strconv.Itoa(rowBytes) + ") from generate_series(1, " + strconv.Itoa(rows) + ")"
 }
 
-// stream reads a payload of rows × rowBytes both ways and reports the
-// connector's bytes/s and its ratio to direct.
-func stream(b *testing.B, conns [2]*pgconn.PgConn, rows, rowBytes int) {
+// streamOp reads every row of streamQuery(rows, rowBytes) and drops it.
+func streamOp(ctx context.Context, rows, rowBytes int) func(*pgconn.PgConn) error {
 	sql := streamQuery(rows, rowBytes)
-	op := func(c *pgconn.PgConn) error {
-		rr := c.ExecParams(b.Context(), sql, nil, nil, nil, nil)
+	return func(c *pgconn.PgConn) error {
+		rr := c.ExecParams(ctx, sql, nil, nil, nil, nil)
 		for rr.NextRow() {
 		}
 		_, err := rr.Close()
 		return err
 	}
+}
+
+// stream reads a payload of rows × rowBytes both ways and reports the
+// connector's bytes/s and its ratio to direct.
+func stream(b *testing.B, conns [2]*pgconn.PgConn, rows, rowBytes int) {
+	op := streamOp(b.Context(), rows, rowBytes)
 	timed(b, conns[0], op) // warm-up
 	timed(b, conns[1], op)
 	var d, v time.Duration

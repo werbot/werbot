@@ -1,0 +1,39 @@
+# Databases stand for the connector tests (make e2e-databases, CI job
+# databases): PostgreSQL 18 with TLS on 127.0.0.1:15432. Test only:
+# postgres/password, the TLS material databases/gencerts.sh writes to
+# databases/tls before every start.
+name: werbot-databases
+
+services:
+  postgres:
+    image: postgres:18-alpine@sha256:10a5c69a83035ab5239f5620d708520e8b28f5aa1f2b20143e6024532edadfb5
+    environment:
+      POSTGRES_PASSWORD: password
+    ports:
+      - "127.0.0.1:15432:5432"
+    volumes:
+      - ./databases/tls:/tls:ro
+    # PostgreSQL refuses a key other users can read: the entrypoint copies the
+    # pair, owned by postgres with the key at 0600, before the server starts
+    entrypoint:
+      - sh
+      - -c
+      - |
+        mkdir -p /certs && cp /tls/server.pem /tls/server-key.pem /certs/ &&
+        chown postgres:postgres /certs/* && chmod 0600 /certs/server-key.pem &&
+        exec docker-entrypoint.sh "$$@"
+      - --
+    command:
+      - postgres
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/certs/server.pem
+      - -c
+      - ssl_key_file=/certs/server-key.pem
+    # over TCP: during initdb a temporary server answers on the socket only
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-h", "127.0.0.1"]
+      interval: 2s
+      timeout: 3s
+      retries: 30

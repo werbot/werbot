@@ -47,6 +47,8 @@ jobs:
       - run: go mod tidy -diff
       - run: go mod tidy -modfile=tools/go.mod -diff
       - run: GOOS=windows go build ./...
+      # TestPsqlConnect needs psql; it fails in CI without it
+      - run: psql --version || (sudo apt-get update && sudo apt-get install -y postgresql-client)
       # The latency budget runs alone: the other packages' tests would share its CPU.
       - run: go test -count=1 -skip '^TestExecDecisionP99$' ./...
       - run: go test -count=1 -run '^TestExecDecisionP99$' -v ./internal/gateway/
@@ -109,6 +111,48 @@ jobs:
           name: fuzz-crashers
           path: "**/testdata/fuzz/**"
           if-no-files-found: ignore
+
+  # hot-path budgets of the database connectors (owner decision O1: blocking
+  # on every PR; each scenario passes on the best of 3 attempts)
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # one run per ref: a newer push cancels the run it supersedes
+    concurrency:
+      group: bench-${{ github.ref }}
+      cancel-in-progress: true
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_PASSWORD: password
+        ports:
+          - 27432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: make bench-hot
+
+  # connector tests against the databases stand; make e2e-databases brings it
+  # up and down, the last step removes it after a cancelled run
+  databases:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: make e2e-databases
+      - if: always()
+        run: docker compose -f deploy/e2e/databases.yaml down -v
 
   e2e:
     runs-on: ubuntu-latest
