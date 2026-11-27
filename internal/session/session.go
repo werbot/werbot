@@ -31,18 +31,20 @@ type Start struct {
 	Paths                                            []string   // nil is NULL
 	AgentRunID                                       *uuid.UUID // an agent's session
 	ToolCallID                                       *uuid.UUID // stored only when it is a tool call of AgentRunID
+	DBName                                           string     // the database a client asked for; "" adds no audit key
 	// Guard runs in the start transaction before the insert; its error refuses the start.
 	Guard func(ctx context.Context, tx pgx.Tx) error
 }
 
 // Result is what a session ran: for a console, the last checked command, its
 // classes and the paths it touched; for an exec, its exit code and the SHA-256
-// of its recorded output.
+// of its recorded output; for a querylog session, its query count.
 type Result struct {
 	Command        string
 	Classes, Paths []string
 	ExitCode       *int32 // nil is NULL
 	OutputSHA256   []byte // 32 bytes; nil is NULL
+	Queries        int64  // never lowers the stored count
 }
 
 // Counters are a session's traffic totals since it began.

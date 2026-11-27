@@ -122,9 +122,11 @@ type Pools interface {
 	OnlineInstances(ctx context.Context, gatewayID uuid.UUID) ([]uuid.UUID, error)
 }
 
-// RecordingIngest stores recording chunks and closes recordings of a session
-// served by instanceID; *session.Recordings implements it.
+// RecordingIngest begins, stores the chunks of and closes recordings of a
+// session served by instanceID; *session.Recordings implements it.
 type RecordingIngest interface {
+	// Begin opens the recording of a new session whose format is not asciicast.
+	Begin(ctx context.Context, orgID, sessionID uuid.UUID) error
 	IngestChunk(ctx context.Context, orgID, instanceID, sessionID uuid.UUID, seq int, hash, gz []byte) error
 	FinishRecording(ctx context.Context, orgID, instanceID, sessionID uuid.UUID, chunks int, bytes int64, finalHash []byte) error
 }

@@ -18,16 +18,19 @@ type SessionStart struct {
 	Classes                                          []string   // exec only; nil when none
 	Paths                                            []string   // the paths the command touches; nil when none
 	AgentRunID, ToolCallID                           *uuid.UUID // an agent's session; nil for a person
+	DBName                                           string     // the database a client asked for; "" when none
 }
 
 // SessionResult is what a session ran: for a console, the last checked
 // command, its classes and paths; for an exec, its exit code and the SHA-256
-// of its recorded output; nil when the session has none.
+// of its recorded output; for a querylog session, its query count; nil when
+// the session has none. The field order is session.Result's.
 type SessionResult struct {
 	Command        string
 	Classes, Paths []string
 	ExitCode       *int32
 	OutputSHA256   []byte
+	Queries        int64
 }
 
 // Counters are a session's traffic totals since it began; up is client to target.

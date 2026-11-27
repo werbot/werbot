@@ -21,6 +21,7 @@ type Store interface {
 	GetSigningKey(ctx context.Context) (dbq.GetSigningKeyRow, error)
 	InsertSigningKey(ctx context.Context, arg dbq.InsertSigningKeyParams) error
 	CreateRecording(ctx context.Context, arg dbq.CreateRecordingParams) error
+	SessionResourceType(ctx context.Context, arg dbq.SessionResourceTypeParams) (dbq.SessionResourceTypeRow, error)
 	LockRecording(ctx context.Context, arg dbq.LockRecordingParams) (dbq.LockRecordingRow, error)
 	AppendRecordingChunk(ctx context.Context, arg dbq.AppendRecordingChunkParams) error
 	FinishRecording(ctx context.Context, arg dbq.FinishRecordingParams) error

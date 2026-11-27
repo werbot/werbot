@@ -95,11 +95,14 @@ func insertSession(ctx context.Context, tx pgx.Tx, p Start) (uuid.UUID, error) {
 }
 
 // startData is the session.start audit data of p: its kind, target and transport, front
-// "web" for a web session and break_glass under an active break-glass grant.
+// "web" for a web session, the database asked for and break_glass under an active break-glass grant.
 func startData(ctx context.Context, tx pgx.Tx, p Start) (map[string]any, error) {
 	data := map[string]any{"kind": p.Kind, "target": p.Target, "transport": p.Transport}
 	if p.Front == "web" {
 		data["front"] = p.Front
+	}
+	if p.DBName != "" {
+		data["db_name"] = p.DBName
 	}
 	var breakGlass bool
 	if err := tx.QueryRow(ctx, activeBreakGlass, p.OrgID, p.UserID, p.ResourceID).Scan(&breakGlass); err != nil {
@@ -132,9 +135,9 @@ var errNotMember = fmt.Errorf("user not found: %w", apperr.ErrNotFound)
 // End closes an open session of instanceID. A repeat call is a no-op; a
 // session of another instance or organization is apperr.ErrNotFound. A
 // non-nil c stores the final counters, never below the current ones. A non-nil
-// r (tunnel passes one only with a command, an exit code or an output hash)
-// stores the command, classes and paths of a console session and the exit
-// code and output hash of an exec, in the first close only.
+// r (tunnel passes one only with a command, an exit code, an output hash or
+// queries) stores the command, classes and paths of a console session, the
+// exit code and output hash of an exec and the query count, in the first close only.
 func (s *Service) End(ctx context.Context, orgID, instanceID, id uuid.UUID, reason string, c *Counters, r *Result) error {
 	if c == nil {
 		c = &Counters{}
@@ -146,7 +149,7 @@ func (s *Service) End(ctx context.Context, orgID, instanceID, id uuid.UUID, reas
 		st := newStore(tx)
 		res, err := st.EndSession(ctx, dbq.EndSessionParams{ID: id, OrgID: orgID, InstanceID: instanceID, Reason: reason,
 			BytesUp: c.BytesUp, BytesDown: c.BytesDown, DatagramsUp: c.DatagramsUp, DatagramsDown: c.DatagramsDown,
-			Command: r.Command, Classes: r.Classes, Paths: r.Paths, ExitCode: r.ExitCode, OutputSha256: r.OutputSHA256})
+			Command: r.Command, Classes: r.Classes, Paths: r.Paths, ExitCode: r.ExitCode, OutputSha256: r.OutputSHA256, Queries: r.Queries})
 		if errors.Is(err, pgx.ErrNoRows) {
 			ok, err := st.SessionOfInstanceExists(ctx, dbq.SessionOfInstanceExistsParams{ID: id, OrgID: orgID, InstanceID: instanceID})
 			if err != nil {

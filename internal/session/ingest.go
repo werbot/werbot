@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/werbot/werbot/internal/connector"
 	"github.com/werbot/werbot/internal/platform/apperr"
 	"github.com/werbot/werbot/internal/platform/auditlog"
 	"github.com/werbot/werbot/internal/platform/dbx"
@@ -33,6 +34,29 @@ func NewRecordings(pool *pgxpool.Pool, store RecordingStore, storeKind string, s
 	return &Recordings{pool: pool, store: store, kind: storeKind, signer: signer}
 }
 
+// Begin opens the recording of a session whose resource type records its kind
+// as querylog, so the recording has its format before the first chunk; a
+// repeat is a no-op. Other recordings are asciicast, opened by IngestChunk. A
+// session outside orgID or without its resource is apperr.ErrNotFound.
+func (r *Recordings) Begin(ctx context.Context, orgID, sessionID uuid.UUID) error {
+	return dbx.InOrg(ctx, r.pool, orgID, uuid.Nil, func(tx pgx.Tx) error {
+		st := newStore(tx)
+		s, err := st.SessionResourceType(ctx, dbq.SessionResourceTypeParams{ID: sessionID, OrgID: orgID})
+		if errors.Is(err, pgx.ErrNoRows) {
+			return fmt.Errorf("session not found: %w", apperr.ErrNotFound)
+		}
+		if err != nil {
+			return err
+		}
+		t, ok := connector.Lookup(s.Type)
+		if !ok || t.RecordFormat != connector.RecordQuerylog || !t.Records(connector.Kind(s.Kind)) {
+			return nil
+		}
+		return st.CreateRecording(ctx, dbq.CreateRecordingParams{SessionID: sessionID, OrgID: orgID, Store: r.kind,
+			Format: connector.RecordQuerylog})
+	})
+}
+
 // IngestChunk stores chunk seq of a session served by instanceID. A seq that
 // was already accepted is apperr.ErrAlreadyExists and keeps the stored object;
 // a store failure is apperr.ErrUnavailable and leaves nothing committed.
@@ -42,7 +66,8 @@ func (r *Recordings) IngestChunk(ctx context.Context, orgID, instanceID, session
 		if err := checkInstance(ctx, st, orgID, instanceID, sessionID); err != nil {
 			return err
 		}
-		if err := st.CreateRecording(ctx, dbq.CreateRecordingParams{SessionID: sessionID, OrgID: orgID, Store: r.kind}); err != nil {
+		if err := st.CreateRecording(ctx, dbq.CreateRecordingParams{SessionID: sessionID, OrgID: orgID, Store: r.kind,
+			Format: connector.RecordAsciicast}); err != nil {
 			return err
 		}
 		rec, err := st.LockRecording(ctx, dbq.LockRecordingParams{SessionID: sessionID, OrgID: orgID})

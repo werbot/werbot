@@ -48,6 +48,8 @@ type Summary struct {
 	Paths                              []string
 	BytesUp, BytesDown                 int64
 	DatagramsUp, DatagramsDown         int64
+	Queries                            int64  // querylog lines
+	RecordFormat                       string // "asciicast" | "querylog"; "" without a recording
 }
 
 // ListSessions returns one page of the organization's sessions, newest first,
@@ -120,5 +122,5 @@ func summary(r dbq.ListSessionsRow) Summary {
 		ClientIP: r.ClientIp, StartedAt: r.StartedAt, EndedAt: r.EndedAt,
 		Chunks: int(r.Chunks), Bytes: r.Bytes, Finished: r.Finished,
 		Kind: r.Kind, Target: r.Target, Command: r.Command, Front: r.Front, Live: r.Live, Classes: r.Classes, Paths: r.Paths, BytesUp: r.BytesUp, BytesDown: r.BytesDown,
-		DatagramsUp: r.DatagramsUp, DatagramsDown: r.DatagramsDown}
+		DatagramsUp: r.DatagramsUp, DatagramsDown: r.DatagramsDown, Queries: r.Queries, RecordFormat: r.RecordFormat}
 }

@@ -111,6 +111,7 @@ func (h *Handler) byCert(ctx context.Context, orgID uuid.UUID, c *gatewayv1.Cert
 // StartSession reveals the credential first, so a failed reveal never leaves
 // an open session row, then records the session with its kind and target; an
 // agent's session counts an action of its run (Sessions.Start refuses it).
+// A recording that cannot begin ends the session with "error": none runs unrecorded.
 func (h *Handler) StartSession(ctx context.Context, req *connect.Request[gatewayv1.StartSessionRequest]) (*connect.Response[gatewayv1.StartSessionResponse], error) {
 	g, err := caller(ctx)
 	if err != nil {
@@ -132,14 +133,27 @@ func (h *Handler) StartSession(ctx context.Context, req *connect.Request[gateway
 	if err != nil {
 		return nil, h.fail(ctx, "start session", err)
 	}
+	if err := h.d.Recordings.Begin(ctx, g.OrgID, id); err != nil {
+		return nil, h.unrecorded(ctx, g, id, err)
+	}
 	return connect.NewResponse(&gatewayv1.StartSessionResponse{SessionId: id.String(),
 		Credential: &gatewayv1.Credential{Kind: secret.Kind, Value: secret.Value}}), nil
+}
+
+// unrecorded ends session id, whose recording failed to begin with err, and answers Unavailable.
+func (h *Handler) unrecorded(ctx context.Context, g Gateway, id uuid.UUID, err error) error {
+	h.log.ErrorContext(ctx, "tunnel: begin recording", "session_id", id, "error", err)
+	if err := h.d.Sessions.End(ctx, g.OrgID, g.InstanceID, id, "error", nil, nil); err != nil {
+		h.log.ErrorContext(ctx, "tunnel: end unrecorded session", "session_id", id, "error", err)
+	}
+	return connect.NewError(connect.CodeUnavailable, errors.New("recording unavailable"))
 }
 
 // sessionStartOf is the session m asks g to record; an invalid id or IP is InvalidArgument.
 func sessionStartOf(g Gateway, m *gatewayv1.StartSessionRequest) (s SessionStart, err error) {
 	s = SessionStart{OrgID: g.OrgID, GatewayID: g.ID, InstanceID: g.InstanceID, Kind: m.GetKind(), Target: m.GetTarget(),
-		Front: m.GetFront(), Transport: m.GetTransport(), Command: m.GetCommand(), Classes: m.GetClasses(), Paths: m.GetPaths()}
+		Front: m.GetFront(), Transport: m.GetTransport(), Command: m.GetCommand(), Classes: m.GetClasses(), Paths: m.GetPaths(),
+		DBName: m.GetDbName()}
 	if s.UserID, err = parseID(m.GetUserId(), "user_id"); err != nil {
 		return s, err
 	}
@@ -193,13 +207,13 @@ func (h *Handler) EndSession(ctx context.Context, req *connect.Request[gatewayv1
 	return connect.NewResponse(&gatewayv1.EndSessionResponse{}), nil
 }
 
-// resultOf is the result of m; nil without a command, an exit code and an output hash.
+// resultOf is the result of m; nil without a command, an exit code, an output hash and queries.
 func resultOf(m *gatewayv1.EndSessionRequest) *SessionResult {
-	if m.GetCommand() == "" && m.ExitCode == nil && len(m.GetOutputSha256()) == 0 {
+	if m.GetCommand() == "" && m.ExitCode == nil && len(m.GetOutputSha256()) == 0 && m.GetQueries() == 0 {
 		return nil
 	}
 	return &SessionResult{Command: m.GetCommand(), Classes: m.GetClasses(), Paths: m.GetPaths(),
-		ExitCode: m.ExitCode, OutputSHA256: m.GetOutputSha256()}
+		ExitCode: m.ExitCode, OutputSHA256: m.GetOutputSha256(), Queries: m.GetQueries()}
 }
 
 // PinHostKey records the target host key seen on first connect.
