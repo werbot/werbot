@@ -13,6 +13,7 @@
 	import ClassChips from '#lib/policies/ClassChips.svelte';
 	import PathChips from '#lib/policies/PathChips.svelte';
 	import CastPlayer from '#lib/player/CastPlayer.svelte';
+	import QueryLogTable from '#lib/sessions/QueryLogTable.svelte';
 	import { isMe } from '#lib/me.js';
 	import { canControlSession } from '#lib/sessions/access.js';
 	import TerminateDrawer from '#lib/sessions/TerminateDrawer.svelte';
@@ -26,6 +27,7 @@
 
 	const control = $derived(!!session && canControlSession(page.data.session?.role, page.data.session?.user?.login, session.userLogin));
 
+	const querylog = $derived(session?.recordFormat === 'querylog');
 	const finished = $derived(!!session?.recording?.finished);
 
 	async function load() {
@@ -65,13 +67,17 @@
 					<Banner tone="info">{m.sessions_recording_none()}</Banner>
 				{:else if !finished}
 					<Banner tone="info">{m.sessions_recording_pending()}</Banner>
+				{:else if querylog}
+					<!-- the table shows its own integrity banner -->
 				{:else if verified === true}
 					<Banner tone="success">{m.sessions_recording_verified()}</Banner>
 				{:else if verified === false}
 					<Banner tone="alert">{m.sessions_recording_failed()}</Banner>
 				{/if}
-				{#if session.recording?.chunks && finished && verified === undefined && !playerFailed}<Spinner />{/if}
-				{#if session.recording?.chunks}
+				{#if session.recording?.chunks && finished && verified === undefined && !playerFailed && !querylog}<Spinner />{/if}
+				{#if session.recording?.chunks && querylog}
+					<QueryLogTable src={`/api/recordings/${session.id}.querylog`} />
+				{:else if session.recording?.chunks}
 					<CastPlayer src={`/api/recordings/${session.id}.cast`} onverified={(v) => (verified = v)} onerror={() => (playerFailed = true)} onretry={() => (playerFailed = false)} />
 				{/if}
 			</div>
@@ -91,6 +97,7 @@
 				<PropertyRow label={m.sessions_end_reason()}>{session.endReason || '—'}</PropertyRow>
 				<PropertyRow label={m.sessions_bytes_up()}>{bytes(session.bytesUp)}</PropertyRow>
 				<PropertyRow label={m.sessions_bytes_down()}>{bytes(session.bytesDown)}</PropertyRow>
+				{#if querylog}<PropertyRow label={m.sessions_queries()}>{String(session.queries)}</PropertyRow>{/if}
 				{#if session.kind === 'datagram'}
 					<PropertyRow label={m.sessions_datagrams_up()}>{session.datagramsUp}</PropertyRow>
 					<PropertyRow label={m.sessions_datagrams_down()}>{session.datagramsDown}</PropertyRow>

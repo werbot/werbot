@@ -60,6 +60,7 @@
 		if (kinds.includes('terminal') || kinds.includes('exec')) out.push(m.resources_connect_hint_terminal(args));
 		if (stream) out.push(m.resources_connect_hint_stream(args));
 		if (stream || kinds.includes('datagram')) out.push(m.resources_connect_hint_connect(args));
+		if (resource?.type === 'postgres') out.push(launchHint('psql "postgres://{host}:{port}/<db>?sslmode=disable"', '127.0.0.1', 5432));
 		return out;
 	});
 

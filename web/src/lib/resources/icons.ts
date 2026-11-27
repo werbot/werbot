@@ -19,6 +19,7 @@ const typeIcons: Record<string, IconName> = {
 	ssh: 'editor/code_block',
 	tcp: 'link',
 	telnet: 'editor/code',
+	postgres: 'storage',
 	udp: 'link_alt'
 };
 

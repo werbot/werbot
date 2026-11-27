@@ -10,8 +10,8 @@
 
 	let { resource = $bindable(), type }: { resource: Resource; type?: ResourceType } = $props();
 
-	const labels: Record<string, () => string> = { password: m.cred_kind_password, private_key: m.cred_kind_private_key };
-	const setLabels: Record<string, () => string> = { password: m.cred_set_password, private_key: m.cred_set_private_key };
+	const labels: Record<string, () => string> = { password: m.cred_kind_password, private_key: m.cred_kind_private_key, client_cert: m.cred_kind_client_cert };
+	const setLabels: Record<string, () => string> = { password: m.cred_set_password, private_key: m.cred_set_private_key, client_cert: m.cred_set_client_cert };
 	const label = (kind: string) => (labels[kind] ?? (() => kind))();
 
 	let picked = $state('');
@@ -73,8 +73,8 @@
 		value={kind}
 		onchange={(v) => ((picked = v), (fileError = ''))}
 	/>
-	{#if kind === 'private_key'}
-		<KeyFileDrop hint={m.cred_drop_hint()} {fileName} error={fileError} onfile={readKeyFile} onclear={clearFile} />
+	{#if kind === 'private_key' || kind === 'client_cert'}
+		<KeyFileDrop hint={kind === 'client_cert' ? m.cred_client_cert_hint() : m.cred_drop_hint()} {fileName} error={fileError} onfile={readKeyFile} onclear={clearFile} />
 		<Textarea label={label(kind)} bind:value rows={8} autocomplete="off" spellcheck="false" required />
 	{:else}
 		<FilledField type="password" label={label(kind)} bind:value autocomplete="new-password" required />
