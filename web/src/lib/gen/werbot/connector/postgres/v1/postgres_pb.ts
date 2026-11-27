@@ -43,7 +43,7 @@ export type Config = Message<"werbot.connector.postgres.v1.Config"> & {
   allowedDatabases: string[];
 
   /**
-   * "" → verify-full | require | disable
+   * "" → verify-full | verify-ca (needs ca_pem) | disable
    *
    * @generated from field: string sslmode = 5;
    */

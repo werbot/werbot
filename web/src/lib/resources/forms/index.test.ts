@@ -80,8 +80,13 @@ test('postgres record params false stays explicit', () => {
 	expect(anyUnpack(postgresConfigValue({ ...pg, recordParams: false }).config!, PostgresConfigSchema)!.recordParams).toBe(false);
 });
 
-test.each([{ port: '70000' }, { port: '1.5' }, { port: '-1' }, { sslmode: 'prefer' }])('postgres %j is rejected', (o) => {
+test.each([{ port: '70000' }, { port: '1.5' }, { port: '-1' }, { sslmode: 'prefer' }, { sslmode: 'require' }, { sslmode: 'verify-ca' }])('postgres %j is rejected', (o) => {
 	expect(() => postgresConfigValue({ ...pg, ...o })).toThrow();
+});
+
+test('postgres verify-ca keeps its ca_pem', () => {
+	const caPem = '-----BEGIN CERTIFICATE-----';
+	expect(anyUnpack(postgresConfigValue({ ...pg, sslmode: 'verify-ca', caPem }).config!, PostgresConfigSchema)).toMatchObject({ sslmode: 'verify-ca', caPem });
 });
 
 test('postgres empty port means the default', () => {

@@ -24,7 +24,7 @@
 
 	const sslOptions = [
 		{ value: 'verify-full', label: m.resources_postgres_ssl_verify_full() },
-		{ value: 'require', label: m.resources_postgres_ssl_require() },
+		{ value: 'verify-ca', label: m.resources_postgres_ssl_verify_ca() },
 		{ value: 'disable', label: m.resources_postgres_ssl_disable() }
 	];
 
@@ -53,6 +53,14 @@
 	<Banner tone="warning">{m.resources_postgres_ssl_disable_warning()}</Banner>
 {/if}
 {#if sslmode !== 'disable'}
-	<FormField label={m.resources_postgres_ca_pem()} bind:value={caPem} multiline rows={3} spellcheck="false" placeholder="-----BEGIN CERTIFICATE-----" />
+	<FormField
+		label={sslmode === 'verify-ca' ? m.resources_postgres_ca_pem_required() : m.resources_postgres_ca_pem()}
+		bind:value={caPem}
+		required={sslmode === 'verify-ca'}
+		multiline
+		rows={3}
+		spellcheck="false"
+		placeholder="-----BEGIN CERTIFICATE-----"
+	/>
 {/if}
 <Toggle bind:checked={recordParams}>{m.resources_postgres_record_params()}</Toggle>

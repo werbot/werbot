@@ -221,13 +221,20 @@ func TestVerifyFullAndClientCert(t *testing.T) {
 	assert.Equal(t, "08006", pgErr(t, err).Code, "verify-full checks the host")
 }
 
-func TestRequireSkipsVerify(t *testing.T) {
-	f := tlsDB(t, newCert(t, nil, ""), nil)
-	cfg := &postgresv1.Config{Host: "localhost", Port: f.port, Database: "main", Username: "app", Sslmode: "require"}
+func TestVerifyCASkipsHost(t *testing.T) {
+	ca := newCert(t, nil, "")
+	f := tlsDB(t, ca, nil)
+	cfg := &postgresv1.Config{Host: "127.0.0.1", Port: f.port, Database: "main", Username: "app", Sslmode: "verify-ca", CaPem: ca.certPEM()}
 	p := serveProxy(t.Context(), t, testResource(t, cfg), passwordSecret(marker))
 	conn, err := pgconn.Connect(t.Context(), p.connectURL("main"))
-	require.NoError(t, err)
+	require.NoError(t, err, "verify-ca accepts a certificate of ca_pem for another host")
 	require.NoError(t, conn.Close(t.Context()))
+
+	cfg.CaPem = newCert(t, nil, "").certPEM()
+	p = serveProxy(t.Context(), t, testResource(t, cfg), passwordSecret(marker))
+	_, err = pgconn.Connect(t.Context(), p.connectURL("main"))
+	assert.Equal(t, "08006", pgErr(t, err).Code)
+	assert.Contains(t, p.serveErr(t).Error(), "certificate", "verify-ca checks the chain")
 }
 
 func TestClientCertNeedsTLS(t *testing.T) {

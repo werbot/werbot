@@ -43,11 +43,11 @@ func TestValidateDefaults(t *testing.T) {
 	require.NotNil(t, c.RecordParams, "record_params unset becomes set")
 	assert.True(t, c.GetRecordParams(), "record_params unset means true")
 
-	off := &postgresv1.Config{Host: "db", Username: "app", Port: 6432, Database: "app", Sslmode: sslRequire, RecordParams: proto.Bool(false)}
+	off := &postgresv1.Config{Host: "db", Username: "app", Port: 6432, Database: "app", Sslmode: sslVerifyCA, CaPem: testCA(t), RecordParams: proto.Bool(false)}
 	require.NoError(t, Validate(off))
 	assert.EqualValues(t, 6432, off.GetPort())
 	assert.Equal(t, "app", off.GetDatabase())
-	assert.Equal(t, sslRequire, off.GetSslmode())
+	assert.Equal(t, sslVerifyCA, off.GetSslmode())
 	assert.False(t, off.GetRecordParams(), "an explicit false stays")
 
 	full := &postgresv1.Config{Host: "::1", Username: "app", Sslmode: sslDisable, AllowedDatabases: []string{"app_*", "reports"},
@@ -66,6 +66,8 @@ func TestValidateErrors(t *testing.T) {
 		"port 70000":          {func(c *postgresv1.Config) { c.Port = 70000 }, "port"},
 		"long database":       {func(c *postgresv1.Config) { c.Database = strings.Repeat("d", 64) }, "database"},
 		"sslmode prefer":      {func(c *postgresv1.Config) { c.Sslmode = "prefer" }, "sslmode"},
+		"sslmode require":     {func(c *postgresv1.Config) { c.Sslmode = "require" }, "sslmode"},
+		"verify-ca no ca_pem": {func(c *postgresv1.Config) { c.Sslmode = "verify-ca" }, "ca_pem"},
 		"bad glob":            {func(c *postgresv1.Config) { c.AllowedDatabases = []string{"["} }, "allowed_databases"},
 		"empty glob":          {func(c *postgresv1.Config) { c.AllowedDatabases = []string{""} }, "allowed_databases"},
 		"long glob":           {func(c *postgresv1.Config) { c.AllowedDatabases = []string{strings.Repeat("g", 64)} }, "allowed_databases"},

@@ -19,7 +19,8 @@ import (
 	"github.com/werbot/werbot/internal/gateway/dbproxy"
 )
 
-// testCert is a test-only certificate and key; parent nil makes it a self-signed CA.
+// testCert is a test-only certificate and key; an empty dnsName makes it a CA,
+// self-signed when parent is nil.
 type testCert struct {
 	cert *x509.Certificate
 	key  *ecdsa.PrivateKey
@@ -36,10 +37,13 @@ func newCert(t *testing.T, parent *testCert, dnsName string) *testCert {
 		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
 	}
 	signer, signKey := tmpl, key
-	if parent == nil {
+	if dnsName == "" {
 		tmpl.IsCA, tmpl.BasicConstraintsValid, tmpl.KeyUsage = true, true, x509.KeyUsageCertSign
 	} else {
-		tmpl.DNSNames, signer, signKey = []string{dnsName}, parent.cert, parent.key
+		tmpl.DNSNames = []string{dnsName}
+	}
+	if parent != nil {
+		signer, signKey = parent.cert, parent.key
 	}
 	der, err := x509.CreateCertificate(rand.Reader, tmpl, signer, &key.PublicKey, signKey)
 	require.NoError(t, err)
@@ -80,11 +84,6 @@ func TestClientTLS(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, cfg, "disable sends plaintext")
 
-	cfg, err = dbproxy.ClientTLS("require", "", "db.local", nil)
-	require.NoError(t, err)
-	assert.True(t, cfg.InsecureSkipVerify)
-	assert.GreaterOrEqual(t, cfg.MinVersion, uint16(tls.VersionTLS12))
-
 	for _, mode := range []string{"", "verify-full"} {
 		cfg, err = dbproxy.ClientTLS(mode, ca.certPEM(), "db.local", nil)
 		require.NoError(t, err, mode)
@@ -118,6 +117,29 @@ func TestClientTLSVerifyFullRefuses(t *testing.T) {
 	require.ErrorContains(t, handshake(t, cfg, srv), "certificate", "a server certificate for another host is refused")
 }
 
+func TestClientTLSVerifyCA(t *testing.T) {
+	ca, other := newCert(t, nil, ""), newCert(t, nil, "")
+	srv := newCert(t, ca, "db.local")
+
+	cfg, err := dbproxy.ClientTLS("verify-ca", ca.certPEM(), "10.0.0.5", nil)
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, cfg.MinVersion, uint16(tls.VersionTLS12))
+	require.NoError(t, handshake(t, cfg, srv), "a certificate of ca_pem for another name is accepted")
+
+	cfg, err = dbproxy.ClientTLS("verify-ca", other.certPEM(), "db.local", nil)
+	require.NoError(t, err)
+	require.ErrorContains(t, handshake(t, cfg, srv), "certificate", "a server of another CA is refused")
+
+	inter := newCert(t, ca, "")
+	leaf := newCert(t, inter, "db.local")
+	chained := *leaf
+	chained.pem = append([]byte(leaf.certPEM()+inter.certPEM()), leaf.pem[len(leaf.certPEM()):]...)
+	cfg, err = dbproxy.ClientTLS("verify-ca", ca.certPEM(), "10.0.0.5", nil)
+	require.NoError(t, err)
+	require.NoError(t, handshake(t, cfg, &chained), "an intermediate sent by the server completes the chain")
+	require.ErrorContains(t, handshake(t, cfg, leaf), "certificate", "without the intermediate the chain is broken")
+}
+
 func TestClientTLSErrors(t *testing.T) {
 	ca := newCert(t, nil, "")
 	client := newCert(t, ca, "client")
@@ -131,6 +153,14 @@ func TestClientTLSErrors(t *testing.T) {
 	_, err = dbproxy.ClientTLS("verify-full", ca.certPEM(), "db.local", []byte("not a pem"))
 	require.Error(t, err, "an unusable client certificate fails closed")
 
-	_, err = dbproxy.ClientTLS("prefer", "", "db.local", nil)
-	require.Error(t, err, "an unknown sslmode fails closed")
+	_, err = dbproxy.ClientTLS("verify-ca", "", "db.local", nil)
+	require.Error(t, err, "verify-ca without ca_pem fails closed")
+
+	_, err = dbproxy.ClientTLS("verify-ca", "not a pem", "db.local", nil)
+	require.Error(t, err, "verify-ca with an unusable ca_pem fails closed")
+
+	for _, mode := range []string{"prefer", "require"} {
+		_, err = dbproxy.ClientTLS(mode, "", "db.local", nil)
+		require.Error(t, err, "an unknown sslmode fails closed: %s", mode)
+	}
 }

@@ -30,7 +30,7 @@ type Config struct {
 	Database string `protobuf:"bytes,3,opt,name=database,proto3" json:"database,omitempty"`
 	// path.Match globs of databases a client may open; empty = any
 	AllowedDatabases []string `protobuf:"bytes,4,rep,name=allowed_databases,json=allowedDatabases,proto3" json:"allowed_databases,omitempty"`
-	// "" → verify-full | require | disable
+	// "" → verify-full | verify-ca (needs ca_pem) | disable
 	Sslmode string `protobuf:"bytes,5,opt,name=sslmode,proto3" json:"sslmode,omitempty"`
 	// PEM CA certificates that verify the server (≤ 65536 bytes)
 	CaPem string `protobuf:"bytes,6,opt,name=ca_pem,json=caPem,proto3" json:"ca_pem,omitempty"`

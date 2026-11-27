@@ -56,7 +56,7 @@ export function udpConfigValue(v: { host: string; ports: string; flowIdle: strin
 	return { config: anyPack(UdpConfigSchema, create(UdpConfigSchema, { host: v.host, ports: requiredPorts(v.ports), flowIdle })) };
 }
 
-export const sslmodes = ['verify-full', 'require', 'disable'];
+export const sslmodes = ['verify-full', 'verify-ca', 'disable'];
 
 export type PostgresFields = {
 	host: string;
@@ -72,11 +72,12 @@ export type PostgresFields = {
 	keep?: { secretTables: string[]; agentUsername: string };
 };
 
-// Throws when the server would refuse the port or sslmode; the form treats that as an invalid value.
+// Throws when the server would refuse the port, sslmode or a verify-ca without ca_pem; the form treats that as an invalid value.
 export function postgresConfigValue(v: PostgresFields): ConfigValue {
 	const port = v.port ? Number(v.port) : 0;
 	if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('port out of range');
 	if (!sslmodes.includes(v.sslmode)) throw new Error('unknown sslmode');
+	if (v.sslmode === 'verify-ca' && !v.caPem.trim()) throw new Error('verify-ca needs ca_pem');
 	const allowedDatabases = v.allowedDatabases.split(',').map((s) => s.trim()).filter(Boolean);
 	const { host, database, sslmode, caPem, recordParams, username } = v;
 	return { config: anyPack(PostgresConfigSchema, create(PostgresConfigSchema, { host, port, database, allowedDatabases, sslmode, caPem, recordParams, username, ...v.keep })) };

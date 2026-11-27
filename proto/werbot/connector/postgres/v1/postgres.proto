@@ -9,7 +9,7 @@ message Config {
   string database = 3;
   // path.Match globs of databases a client may open; empty = any
   repeated string allowed_databases = 4;
-  // "" → verify-full | require | disable
+  // "" → verify-full | verify-ca (needs ca_pem) | disable
   string sslmode = 5;
   // PEM CA certificates that verify the server (≤ 65536 bytes)
   string ca_pem = 6;

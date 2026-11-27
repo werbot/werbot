@@ -14,15 +14,15 @@ A resource of type `postgres` lets a user open a normal PostgreSQL connection th
 | `port` | Database port; `0` or empty means `5432`. |
 | `database` | Default database, up to 63 bytes. Empty means `postgres`. |
 | `allowed_databases` | Up to 64 globs (`path.Match` syntax, each 1 to 63 bytes) that limit the databases a client may ask for. Empty allows any. |
-| `sslmode` | TLS between the gateway and the database: `verify-full` (default), `require` or `disable`. |
-| `ca_pem` | PEM CA certificates for `verify-full`, up to 65 536 bytes. Empty uses the system roots. |
+| `sslmode` | TLS between the gateway and the database: `verify-full` (default), `verify-ca` or `disable`. |
+| `ca_pem` | PEM CA certificates that verify the database, up to 65 536 bytes. Required for `verify-ca`; for `verify-full` empty uses the system roots. |
 | `record_params` | Records the values of bind parameters in the query log. On when unset. |
 | `username` | Database role the gateway logs in as, 1 to 63 bytes. |
 
 ### TLS to the database
 
 - `verify-full` checks the certificate chain and the host name. Use it for every database you can.
-- `require` encrypts the connection but does not check the certificate. It protects against passive listening only.
+- `verify-ca` checks the certificate chain against `ca_pem` but not the host name. Use it when the gateway reaches the database by an IP address or through NAT, so the name in the certificate does not match `host`. `ca_pem` is required: a resource with `verify-ca` and no `ca_pem` is invalid.
 - `disable` sends queries, results and the password exchange in plain text between the gateway and the database. Use it only on a network you trust, and run the gateway next to the database. The web form shows a warning for this choice.
 
 The client to gateway leg is the SSH channel of `werbot connect`, so the client connects to its local port with `sslmode=disable`.

@@ -82,8 +82,11 @@ func TestProbeTLS(t *testing.T) {
 	require.ErrorContains(t, Connector{}.Probe(ctx, testResource(t, cfg), probeDial), "certificate")
 
 	plain := newFakeDB(t, nil, func(*pgproto3.Backend, net.Conn, *pgproto3.StartupMessage) {})
-	cfg = &postgresv1.Config{Host: "localhost", Port: plain.port, Database: "main", Username: "app", Sslmode: "require"}
+	cfg = &postgresv1.Config{Host: "localhost", Port: plain.port, Database: "main", Username: "app", Sslmode: "verify-ca", CaPem: ca.certPEM()}
 	require.Error(t, Connector{}.Probe(ctx, testResource(t, cfg), probeDial), "a server without TLS is refused unless disable")
+
+	cfg = &postgresv1.Config{Host: "127.0.0.1", Port: f.port, Database: "main", Username: "app", Sslmode: "verify-ca", CaPem: ca.certPEM()}
+	require.NoError(t, Connector{}.Probe(ctx, testResource(t, cfg), probeDial), "verify-ca does not check the host")
 }
 
 func TestProbeUsesDial(t *testing.T) {
