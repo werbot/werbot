@@ -246,3 +246,19 @@ func TestSQLDialect(t *testing.T) {
 	assert.Equal(t, []shellclass.Class{shellclass.Opaque}, r.Classes)
 	assert.True(t, r.Transient, "a dialect without a parser")
 }
+
+func TestOpaqueOpIsOpaque(t *testing.T) {
+	e := newEnv(rules)
+	g := e.guard(t)
+	check(t, g, query("select 1")) // cached as [read]
+	for _, op := range []dbproxy.Op{
+		{Kind: "query", Text: "select 1", Opaque: true},
+		{Kind: "parse", Text: "select 1", Statement: "s1", Opaque: true},
+		{Kind: "execute", Text: "select 1", Statement: "s1", Opaque: true},
+	} {
+		v := check(t, g, op)
+		assert.Equal(t, []string{"opaque"}, v.Classes, "%s of a text the session lexes unlike the parser", op.Kind)
+	}
+	assert.Equal(t, []string{"read"}, check(t, g, dbproxy.Op{Kind: "execute", Text: "select 1", Statement: "s1"}).Classes,
+		"the opaque parse left no classification behind")
+}

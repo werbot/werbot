@@ -15,6 +15,8 @@ import (
 	"github.com/werbot/werbot/internal/connector/postgres"
 	"github.com/werbot/werbot/internal/gateway"
 	"github.com/werbot/werbot/internal/gateway/dbproxy"
+	"github.com/werbot/werbot/internal/platform/sqlclass"
+	"github.com/werbot/werbot/internal/platform/sqlclass/pg"
 )
 
 func init() { gateway.RegisterConnector(Connector{}) }
@@ -24,6 +26,9 @@ const ioBuf = 32 << 10
 
 // cancels holds the cancel keys of this gateway's live sessions.
 var cancels dbproxy.CancelRegistry
+
+// sqlDialect classifies the sessions' texts; tests replace it.
+var sqlDialect = dbproxy.SQLDialect(sqlclass.Postgres)
 
 // Connector serves "postgres" sessions.
 type Connector struct{}
@@ -50,7 +55,8 @@ func (Connector) Serve(ctx context.Context, s *gateway.Session) error {
 	if err != nil {
 		return err
 	}
-	hc, canceler, err := connect(ctx, s, cfg, msg.Parameters, db)
+	h := gateway.HooksFrom(ctx)
+	hc, canceler, err := login(ctx, s, cfg, msg.Parameters, db, h.Limits)
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil
@@ -59,7 +65,8 @@ func (Connector) Serve(ctx context.Context, s *gateway.Session) error {
 	}
 	defer hc.Conn.Close()
 	t0 := time.Now()
-	g := dbproxy.NewGuard(s, gateway.SessionHooks{}, dbproxy.GuardConfig{Type: postgres.TypeName, Metrics: s.Metrics}) // Task 8 passes the session hooks
+	g := dbproxy.NewGuard(s, h, dbproxy.GuardConfig{Type: postgres.TypeName, Dialect: sqlDialect,
+		Options: sqlclass.Options{SecretTables: cfg.GetSecretTables()}, Broken: pg.Broken, Metrics: s.Metrics})
 	defer g.Close()
 	key, release := cancels.Register(dbproxy.CancelTarget{
 		ResourceID: s.Resource.ID,
@@ -71,6 +78,8 @@ func (Connector) Serve(ctx context.Context, s *gateway.Session) error {
 		return nil // the client is gone
 	}
 	c, d := newRelay(ctx, cr, hc.Conn, s.Stream, g, sessionLog{t0: t0, db: db, params: cfg.GetRecordParams(), secret: s.Secret})
+	c.agent, c.out.status = agentOf(s, h, cfg, msg.Parameters, db), hc.TxStatus
+	c.lex.start(hc.ParameterStatuses)
 	return relay(ctx, s, hc, c, d)
 }
 

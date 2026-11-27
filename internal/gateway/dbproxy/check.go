@@ -106,8 +106,11 @@ func (g *Guard) parsed(op Op) *statement {
 }
 
 // operation classifies op; granted reports an execute whose parameters an
-// approval of its statement covers.
+// approval of its statement covers. An Opaque op is [opaque], never granted.
 func (g *Guard) operation(op Op, parsed *statement) (c *classified, granted bool) {
+	if op.Opaque {
+		return opaque, false
+	}
 	switch op.Kind {
 	case "query", "request":
 		return g.classify(op.Text, g.sha(op)), false

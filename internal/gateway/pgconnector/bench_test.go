@@ -34,16 +34,40 @@ func pct(ds []time.Duration, q int) time.Duration {
 func BenchmarkPostgresPassthrough(b *testing.B) {
 	cfg, secret := realPG(b)
 	conns := pair(b, cfg, secret, serveProxy(b.Context(), b, testResource(b, cfg), secret))
-	b.Run("simple", func(b *testing.B) {
-		latency(b, conns, func(c *pgconn.PgConn) error { _, err := c.Exec(b.Context(), "select 1").ReadAll(); return err })
-	})
-	b.Run("prepared", func(b *testing.B) {
-		latency(b, conns, func(c *pgconn.PgConn) error {
-			_, err := c.ExecPrepared(b.Context(), "bench", [][]byte{[]byte("42")}, nil, nil).Close()
-			return err
-		})
-	})
+	b.Run("simple", func(b *testing.B) { latency(b, conns, simpleOp(b.Context())) })
+	b.Run("prepared", func(b *testing.B) { latency(b, conns, preparedOp(b.Context())) })
 	b.Run("stream", func(b *testing.B) { stream(b, conns, streamRows, streamRowBytes) })
+}
+
+// BenchmarkPostgresHumanQueryOverhead is the simple and prepared operation
+// of a person whose policy has query rules: each one is classified (a
+// repeat from the class cache) and decided. Budgets (gated by
+// TestHotPathPostgresHumanQuery): added p50 ≤ 0.1 ms and p99 ≤ 0.5 ms.
+func BenchmarkPostgresHumanQueryOverhead(b *testing.B) {
+	warm(b)
+	cfg, secret := realPG(b)
+	conns := pair(b, cfg, secret, ruledProxy(b, cfg, secret))
+	b.Run("simple", func(b *testing.B) { latency(b, conns, simpleOp(b.Context())) })
+	b.Run("prepared", func(b *testing.B) { latency(b, conns, preparedOp(b.Context())) })
+}
+
+// ruledProxy serves a person whose policy has query rules that allow reads.
+func ruledProxy(tb testing.TB, cfg *postgresv1.Config, secret gateway.Secret) *proxy {
+	h, _ := newHooks(nil)
+	return serveProxy(tb.Context(), tb, testResource(tb, cfg), secret, withHooks(h))
+}
+
+// simpleOp runs "select 1" in the simple protocol.
+func simpleOp(ctx context.Context) func(*pgconn.PgConn) error {
+	return func(c *pgconn.PgConn) error { _, err := c.Exec(ctx, "select 1").ReadAll(); return err }
+}
+
+// preparedOp executes "bench" (see pair) with one parameter.
+func preparedOp(ctx context.Context) func(*pgconn.PgConn) error {
+	return func(c *pgconn.PgConn) error {
+		_, err := c.ExecPrepared(ctx, "bench", [][]byte{[]byte("42")}, nil, nil).Close()
+		return err
+	}
 }
 
 // pair connects to the test database directly and through p, in that order,

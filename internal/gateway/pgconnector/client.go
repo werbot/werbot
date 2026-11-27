@@ -14,24 +14,32 @@ import (
 	"github.com/werbot/werbot/internal/gateway/dbproxy"
 )
 
-// clientSide forwards client messages to the database at once. It reads the
+// clientSide forwards client messages to the database. It reads the
 // operations (Query, Parse, Bind, Execute, FunctionCall, Close), checks them
-// with the guard and queues every message that gets a reply.
+// with the guard and queues every message that gets a reply. A person's
+// messages go at once; an agent's next query or batch waits for the reply
+// to the previous one.
 type clientSide struct {
 	ctx     context.Context
 	r       *bufio.Reader // the client stream
 	w       *bufio.Writer // to the database
 	lr      io.LimitedReader
-	out     io.Writer // the client stream, for the FATAL of a broken limit
+	out     *clientWriter
 	q       *queue
 	g       *dbproxy.Guard
 	log     sessionLog
+	agent   *agentWriter // nil for a person
+	lex     lexing
 	buf     []byte
 	hdr     [5]byte
 	stmts   map[string]named
 	portals map[string]named
 	kept    int   // bytes held by stmts and portals, up to maxRetained
 	last    *item // the last query or execute: client COPY data counts to it
+
+	skipping  bool // after a denied extended message: drop messages up to Sync
+	inCycle   bool // an agent's extended batch waits for its Sync
+	replaying bool // the messages of a decided held batch are being sent
 
 	query pgproto3.Query
 	parse pgproto3.Parse
@@ -41,7 +49,7 @@ type clientSide struct {
 	close pgproto3.Close
 }
 
-// next forwards one client message; the database gets the buffer once the
+// next handles one client message; the database gets the buffer once the
 // client has nothing more pending.
 func (c *clientSide) next() error {
 	typ, body, n, err := readClient(c.r, c.buf)
@@ -50,11 +58,11 @@ func (c *clientSide) next() error {
 		_, _ = io.CopyN(io.Discard, c.r, int64(n)) // the client reads the answer once its message is sent
 	case err != nil:
 		return err
-	case body == nil:
-		err = c.stream(typ, n)
 	default:
-		err = c.message(typ, body)
-		c.buf = body[:0]
+		err = c.frame(typ, body, n, c.r)
+		if body != nil {
+			c.buf = body[:0]
+		}
 		if cap(body) > keepBuf {
 			c.buf = nil
 		}
@@ -79,24 +87,33 @@ func (c *clientSide) header(typ byte, n int) error {
 	return err
 }
 
-// message queues and forwards a message whose body was read.
+// message queues and forwards a message whose body was read; an operation
+// the guard does not allow is decided first.
 func (c *clientSide) message(typ byte, body []byte) error {
 	it, err := c.op(typ, body)
+	if h, ok := errors.AsType[*held](err); ok {
+		return c.decide(h, body)
+	}
 	if err != nil {
 		return err
 	}
+	return c.send(it, typ, body)
+}
+
+// send queues it and forwards its message.
+func (c *clientSide) send(it *item, typ byte, body []byte) error {
 	if err := c.q.push(it); err != nil {
 		return err
 	}
 	if err := c.header(typ, len(body)); err != nil {
 		return err
 	}
-	_, err = c.w.Write(body)
+	_, err := c.w.Write(body)
 	return err
 }
 
-// stream forwards a message whose body is still in the client stream.
-func (c *clientSide) stream(typ byte, n int) error {
+// stream forwards a message whose n body bytes are still in src.
+func (c *clientSide) stream(typ byte, n int, src io.Reader) error {
 	switch typ {
 	case 'B':
 		return c.bigBind(n)
@@ -112,7 +129,7 @@ func (c *clientSide) stream(typ byte, n int) error {
 	if err := c.header(typ, n); err != nil {
 		return err
 	}
-	if err := pass(c.w, &c.lr, c.r, n); err != nil {
+	if err := pass(c.w, &c.lr, src, n); err != nil {
 		return err
 	}
 	if typ != 'X' {
@@ -138,7 +155,7 @@ func (c *clientSide) op(typ byte, body []byte) (*item, error) {
 		if c.bind.Decode(body) != nil {
 			return nil, errMalformed
 		}
-		return c.bound(c.bind.DestinationPortal, c.bind.PreparedStatement, c.loggedParams())
+		return c.bound(c.bind.DestinationPortal, c.bind.PreparedStatement, bindParams(&c.bind))
 	case 'E':
 		if c.exec.Decode(body) != nil {
 			return nil, errMalformed
@@ -166,8 +183,9 @@ func (c *clientSide) parsed(body []byte) (*item, error) {
 	return c.checked('P', dbproxy.Op{Kind: "parse", Text: c.parse.Query, Statement: c.parse.Name, DB: c.log.db})
 }
 
-// bound keeps a new portal; a failed Bind is logged as its execute. params
-// are nil unless the resource records them.
+// bound keeps a new portal with its displayed parameters, which an approval
+// of its execute covers; a failed Bind is logged as its execute, with the
+// parameters when the resource records them.
 func (c *clientSide) bound(name, stmt string, params []string) (*item, error) {
 	p := named{stmt: stmt, text: c.stmts[stmt].text, params: params}
 	for _, v := range params {
@@ -177,17 +195,10 @@ func (c *clientSide) bound(name, stmt string, params []string) (*item, error) {
 		return nil, err
 	}
 	it := c.newItem('B', dbproxy.Op{Kind: "execute", Text: p.text, Statement: stmt})
-	it.entry.Params = params
-	return it, nil
-}
-
-// loggedParams are the logged parameters of c.bind: nil unless the resource
-// records them, so they are neither computed nor kept.
-func (c *clientSide) loggedParams() []string {
-	if !c.log.params {
-		return nil
+	if c.log.params {
+		it.entry.Params = params
 	}
-	return bindParams(&c.bind)
+	return it, nil
 }
 
 // closed forgets a closed statement or portal.
@@ -205,7 +216,7 @@ func (c *clientSide) closed(body []byte) (*item, error) {
 }
 
 // bigBind streams a Bind over maxParsed: only its portal and statement names
-// are read, its parameters are not logged.
+// are read; its parameters display as cut, so no approval covers them.
 func (c *clientSide) bigBind(n int) error {
 	var names [2]string
 	for i := range names {
@@ -219,7 +230,7 @@ func (c *clientSide) bigBind(n int) error {
 	if n < 0 {
 		return errMalformed
 	}
-	it, err := c.bound(names[0], names[1], nil)
+	it, err := c.bound(names[0], names[1], []string{dbproxy.Truncated})
 	if err != nil {
 		return err
 	}
@@ -236,12 +247,23 @@ func (c *clientSide) bigBind(n int) error {
 	return pass(c.w, &c.lr, c.r, n)
 }
 
-// checked asks the guard about op and makes the item of its message.
+// checked asks the guard about op and makes the item of its message; an
+// operation it does not allow is a *held. While the session lexes text
+// unlike the classifier, op is opaque.
 func (c *clientSide) checked(kind byte, op dbproxy.Op) (*item, error) {
+	op.Opaque = c.lex.unsafe.Load()
 	v, err := c.g.Check(c.ctx, op)
-	if err != nil || !v.Allow {
-		return nil, errDenied // stage 17 allows every operation; stage 18 answers 42501 instead
+	if err != nil {
+		return nil, err
 	}
+	if !v.Allow {
+		return nil, &held{kind: kind, op: op, v: v}
+	}
+	return c.allowed(kind, op, v), nil
+}
+
+// allowed is the item of op, which v allows.
+func (c *clientSide) allowed(kind byte, op dbproxy.Op, v dbproxy.Verdict) *item {
 	it := c.newItem(kind, op)
 	it.log = kind != 'P' // a Parse is logged only when it fails
 	e := &it.entry
@@ -252,7 +274,7 @@ func (c *clientSide) checked(kind byte, op dbproxy.Op) (*item, error) {
 	if kind == 'Q' || kind == 'E' {
 		c.last = it
 	}
-	return it, nil
+	return it
 }
 
 // newItem is the item of a message with the querylog line of op.

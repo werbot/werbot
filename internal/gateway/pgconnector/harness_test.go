@@ -86,6 +86,7 @@ type proxy struct {
 	serves    atomic.Int32
 	errs      chan error // Serve results
 	dialErr   error      // when set, Session.Dial refuses with it
+	hooks     gateway.SessionHooks
 }
 
 func serveProxy(ctx context.Context, t testing.TB, res gateway.Resource, secret gateway.Secret, opts ...func(*proxy)) *proxy {
@@ -137,7 +138,7 @@ func (p *proxy) serve(ctx context.Context, res gateway.Resource, secret gateway.
 		}{br, conn},
 		Dial: p.dial, Recording: p.recording,
 	}
-	p.errs <- Connector{}.Serve(ctx, s)
+	p.errs <- Connector{}.Serve(gateway.WithHooks(ctx, p.hooks), s)
 }
 
 // serveErr is the result of the next Serve of p.
@@ -225,6 +226,7 @@ func fakeLogin(b *pgproto3.Backend) bool {
 	b.Send(&pgproto3.AuthenticationOk{})
 	b.Send(&pgproto3.ParameterStatus{Name: "server_version", Value: "18.0 (fake)"})
 	b.Send(&pgproto3.ParameterStatus{Name: "client_encoding", Value: "UTF8"})
+	b.Send(&pgproto3.ParameterStatus{Name: "standard_conforming_strings", Value: "on"})
 	b.Send(&pgproto3.BackendKeyData{ProcessID: fakePID, SecretKey: fakeSecret})
 	b.Send(&pgproto3.ReadyForQuery{TxStatus: 'I'})
 	return b.Flush() == nil

@@ -39,7 +39,6 @@ var (
 	errRetained     = &limitErr{"prepared statements and portals exceed 16 MiB"}
 	errPending      = &limitErr{"too many pending messages"}
 	errMalformed    = errors.New("postgres: malformed protocol message")
-	errDenied       = errors.New("postgres: operation denied")
 	errTerminate    = errors.New("postgres: client terminated")
 )
 
@@ -56,19 +55,21 @@ type sessionLog struct {
 // connection.
 func newRelay(ctx context.Context, cr *bufio.Reader, db io.ReadWriter, client io.Writer, g *dbproxy.Guard, l sessionLog) (*clientSide, *dbSide) {
 	q := &queue{}
-	out := &lockedWriter{w: client}
+	out := &clientWriter{w: bufio.NewWriterSize(client, ioBuf)}
 	c := &clientSide{ctx: ctx, r: cr, w: bufio.NewWriterSize(db, ioBuf), out: out, q: q, g: g, log: l,
 		stmts: map[string]named{}, portals: map[string]named{}}
-	d := &dbSide{r: bufio.NewReaderSize(db, ioBuf), w: bufio.NewWriterSize(out, ioBuf), q: q, g: g, sess: l}
+	d := &dbSide{r: bufio.NewReaderSize(db, ioBuf), w: out.w, out: out, q: q, g: g, sess: l, lex: &c.lex}
 	return c, d
 }
 
-// relay runs the session both ways without waiting for replies (pipelining
-// is kept); the first end closes both sides. After a Terminate the database
-// ends the connection itself, so queries in flight still get their lines.
+// relay runs the session both ways; a person's messages go on without
+// waiting for replies (pipelining is kept). The first end closes both sides.
+// After a Terminate the database ends the connection itself, so queries in
+// flight still get their lines.
 func relay(ctx context.Context, s *gateway.Session, hc *pgconn.HijackedConn, c *clientSide, d *dbSide) error {
 	sctx, stop := context.WithCancel(ctx)
 	defer stop()
+	c.ctx = sctx // an approval or an agent's wait ends with the session
 	closeBoth := func() { _ = s.Stream.Close(); _ = hc.Conn.Close() }
 	defer context.AfterFunc(sctx, closeBoth)()
 	g := gateway.NewGuard(stop, s.Secret)
@@ -148,22 +149,29 @@ func pass(w *bufio.Writer, lr *io.LimitedReader, r io.Reader, n int) error {
 	return err
 }
 
-// lockedWriter serializes the writes to the client stream: the database side
-// flushes replies, the client side may end the session with a FATAL.
-type lockedWriter struct {
-	mu sync.Mutex
-	w  io.Writer
+// clientWriter is the client stream behind one lock: the database side
+// holds it for each whole reply message, the client side for each message it
+// writes itself (a notice, a denial, a FATAL), so no message lands inside
+// another. status is the transaction status of the last ReadyForQuery the
+// client got.
+type clientWriter struct {
+	mu     sync.Mutex
+	w      *bufio.Writer
+	status byte
 }
 
-func (l *lockedWriter) Write(p []byte) (int, error) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	return l.w.Write(p)
+// send writes the whole messages b and flushes them.
+func (o *clientWriter) send(b []byte) error {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	if _, err := o.w.Write(b); err != nil {
+		return err
+	}
+	return o.w.Flush()
 }
 
 // sendLimit tells the client which limit ended its session.
-// ponytail: a FATAL may land between two partial flushes of a reply larger
-// than the write buffer; the session ends right after either way.
-func sendLimit(w io.Writer, e *limitErr) {
-	sendFatal(w, &pgproto3.ErrorResponse{Severity: "FATAL", SeverityUnlocalized: "FATAL", Code: "54000", Message: "werbot: " + e.msg})
+func sendLimit(o *clientWriter, e *limitErr) {
+	b, _ := (&pgproto3.ErrorResponse{Severity: "FATAL", SeverityUnlocalized: "FATAL", Code: "54000", Message: "werbot: " + e.msg}).Encode(nil)
+	_ = o.send(b) // the session ends right after
 }

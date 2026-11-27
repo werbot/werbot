@@ -26,7 +26,7 @@ func fakeProxy(ctx context.Context, t *testing.T, handle func(b *pgproto3.Backen
 			handle(b)
 		}
 	})
-	cfg := &postgresv1.Config{Host: "127.0.0.1", Port: f.port, Database: "main", Username: "app", Sslmode: "disable"}
+	cfg := &postgresv1.Config{Host: "127.0.0.1", Port: f.port, Database: "main", Username: "app", AgentUsername: "agent", Sslmode: "disable"}
 	return serveProxy(ctx, t, testResource(t, cfg), passwordSecret(marker), opts...)
 }
 

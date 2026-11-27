@@ -249,7 +249,7 @@ func TestLargeBindStreamed(t *testing.T) {
 	assert.Equal(t, "execute", es[1].Kind)
 	assert.Equal(t, "ins", es[1].Statement)
 	assert.Equal(t, "insert into b values ($1)", es[1].Text)
-	assert.Nil(t, es[1].Params, "a streamed Bind logs no parameters")
+	assert.Equal(t, []string{dbproxy.Truncated}, es[1].Params, "a streamed Bind's parameters are past the bound: logged cut")
 	assert.EqualValues(t, 1, es[1].Rows)
 }
 

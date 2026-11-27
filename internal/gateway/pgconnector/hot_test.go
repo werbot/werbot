@@ -44,15 +44,8 @@ func TestHotPathBudget(t *testing.T) {
 	p := serveProxy(t.Context(), t, testResource(t, cfg), secret)
 	conns := pair(t, cfg, secret, p)
 
-	t.Run("simple", func(t *testing.T) {
-		latencyBudget(t, conns, func(c *pgconn.PgConn) error { _, err := c.Exec(t.Context(), "select 1").ReadAll(); return err })
-	})
-	t.Run("prepared", func(t *testing.T) {
-		latencyBudget(t, conns, func(c *pgconn.PgConn) error {
-			_, err := c.ExecPrepared(t.Context(), "bench", [][]byte{[]byte("42")}, nil, nil).Close()
-			return err
-		})
-	})
+	t.Run("simple", func(t *testing.T) { latencyBudget(t, conns, simpleOp(t.Context())) })
+	t.Run("prepared", func(t *testing.T) { latencyBudget(t, conns, preparedOp(t.Context())) })
 	t.Run("stream", func(t *testing.T) {
 		if runtime.GOOS != "linux" {
 			t.Skip("the stream budget is measured on Linux only: elsewhere a loopback relay is bound by syscalls, a plain io.Copy relay included")
@@ -71,6 +64,20 @@ func TestHotPathBudget(t *testing.T) {
 			return added <= budgetConnect, fmt.Sprintf("added p99 %v (budget %v; direct p99 %v)", added, budgetConnect, pct(d, 99))
 		})
 	})
+}
+
+// TestHotPathPostgresHumanQuery is TestHotPathBudget's simple and prepared
+// budgets for a person whose policy has query rules (every operation
+// checked). It runs only with HOT_BUDGET=1 and alone.
+func TestHotPathPostgresHumanQuery(t *testing.T) {
+	if os.Getenv("HOT_BUDGET") != "1" {
+		t.Skip("set HOT_BUDGET=1 to measure the hot-path budgets (make bench-hot)")
+	}
+	warm(t)
+	cfg, secret := realPG(t)
+	conns := pair(t, cfg, secret, ruledProxy(t, cfg, secret))
+	t.Run("simple", func(t *testing.T) { latencyBudget(t, conns, simpleOp(t.Context())) })
+	t.Run("prepared", func(t *testing.T) { latencyBudget(t, conns, preparedOp(t.Context())) })
 }
 
 // bestOf runs attempt up to hotAttempts times and stops at the first that

@@ -67,12 +67,12 @@ A client cancels a query with a new connection that sends a `CancelRequest`. The
 
 - `COPY` data passes through; the log holds the command and the byte count.
 - `DataRow` and `CopyData` are copied through, never buffered whole.
-- `Query`, `Parse`, `Function call`, `Execute` and `Close` messages may be up to 16 MiB; a larger one ends the connection with `FATAL 54000 werbot: message exceeds 16 MiB`. A larger `Bind` is streamed and its parameters are not logged.
+- `Query`, `Parse`, `Function call`, `Execute` and `Close` messages may be up to 16 MiB; a larger one ends the connection with `FATAL 54000 werbot: message exceeds 16 MiB`. A larger `Bind` is streamed and its parameters are logged as one `…[truncated]` value.
 - At most 10 000 prepared statements and portals per connection (`FATAL 54000 werbot: too many prepared statements`).
 - At most 65 536 client messages per connection wait for a reply from the database (`FATAL 54000 werbot: too many pending messages`).
-- Prepared statements and portals keep at most 16 MiB per connection: their names, logged text and logged parameters (`FATAL 54000 werbot: prepared statements and portals exceed 16 MiB`). A `Close` gives the bytes back.
+- Prepared statements and portals keep at most 16 MiB per connection: their names, logged text and parameters (`FATAL 54000 werbot: prepared statements and portals exceed 16 MiB`). A `Close` gives the bytes back.
 - A malformed protocol message closes the connection without an answer.
-- Logged text is cut at 64 KiB on a UTF-8 boundary and ends with `…[truncated]`. Bind parameters are logged up to 64 KiB in total: the values past that bound are replaced by one `…[truncated]` value. Binary values are logged as `\x<hex>`, NULL as `\N`.
+- Logged text is cut at 64 KiB on a UTF-8 boundary and ends with `…[truncated]`. Bind parameters are logged up to 64 KiB in total: the values past that bound are replaced by one `…[truncated]` value. Binary values are logged as `\x<hex>`, NULL as `\N`, and a text value that starts with a backslash gets one more in front, so no two values look the same.
 
 Policy decisions on the SQL text, masking of results and agent access to databases are not part of this release: the lines of `Query`, `Parse`, `Execute` and function calls carry `decision` `allow` (a `cancel` line and the `execute` line of a failed `Bind` carry none), and `classes`, `tables` and `policy_ids` stay empty until a later release decides statements. Agents never reach `postgres.connect`: the baseline forbids it.
 

@@ -30,12 +30,12 @@ func ApprovalText(op Op) string {
 // tells the client the ticket before a wait (an approval granted before is
 // not waited for). Once approved, op is decided again with the approval: a
 // rule that came meanwhile may still deny. A denied or expired approval, or
-// a text the approvers cannot be shown, denies with its message; a gateway
+// a text the approvers cannot be shown whole, denies with its message; a gateway
 // that drains or a client that leaves is the error. An approved statement
 // covers its executes with the same parameters.
 func (g *Guard) Approve(ctx context.Context, op Op, v Verdict, notify func(id, url string, timeout time.Duration) error) (Verdict, error) {
 	text := ApprovalText(op)
-	if len(text) > maxApprovalText {
+	if len(text) > maxApprovalText || cutParams(op.Params) {
 		return refused(v, "query too long to approve (16384 bytes)"), nil
 	}
 	st, ok := g.approvable(op)
@@ -60,6 +60,10 @@ func (g *Guard) Approve(ctx context.Context, op Op, v Verdict, notify func(id, u
 	}
 	return g.approved(op, st, text, v), nil
 }
+
+// cutParams reports parameters LogParams cut: their display is not the whole
+// value, so no approval may cover them.
+func cutParams(ps []string) bool { return len(ps) > 0 && ps[len(ps)-1] == Truncated }
 
 // approvable is the statement of a parse or execute op, which must be the
 // parsed text; a query has none.

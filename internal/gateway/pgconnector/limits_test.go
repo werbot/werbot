@@ -64,21 +64,22 @@ func TestPendingQueueLimit(t *testing.T) {
 	require.ErrorIs(t, p.serveErr(t), errPending, "the session ends")
 }
 
-// With record_params off a Bind's parameters are neither computed, kept nor
-// logged; with it on they are all three.
+// A Bind's parameters are kept with its portal for an approval of its
+// execute, within the retained bytes; they are logged only with record_params.
 func TestBindParamsOnlyWhenRecorded(t *testing.T) {
 	body, err := (&pgproto3.Bind{DestinationPortal: "p", Parameters: [][]byte{[]byte("v1"), nil}}).Encode(nil)
 	require.NoError(t, err)
+	shown := []string{"v1", `\N`}
 	for _, record := range []bool{false, true} {
 		c := &clientSide{log: sessionLog{params: record}, stmts: map[string]named{}, portals: map[string]named{}}
 		it, err := c.op('B', body[5:])
 		require.NoError(t, err)
-		kept := []string(nil)
+		logged := []string(nil)
 		if record {
-			kept = []string{"v1", `\N`}
+			logged = shown
 		}
-		assert.Equal(t, kept, c.portals["p"].params, "record_params %v", record)
-		assert.Equal(t, kept, it.entry.Params, "record_params %v", record)
-		assert.Equal(t, len("p")+len(strings.Join(kept, "")), c.kept, "record_params %v", record)
+		assert.Equal(t, shown, c.portals["p"].params, "record_params %v", record)
+		assert.Equal(t, logged, it.entry.Params, "record_params %v", record)
+		assert.Equal(t, len("p")+len(strings.Join(shown, "")), c.kept, "record_params %v", record)
 	}
 }

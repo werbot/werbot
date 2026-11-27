@@ -2,6 +2,7 @@ package pgconnector
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"slices"
 	"sync"
@@ -17,8 +18,10 @@ import (
 // The client side fills it before the database can see the message; then
 // only the database side touches it, but copyIn.
 type item struct {
-	kind  byte // the client message type: Q, P, B, E, F, C, D, S; c, f end a COPY IN
+	kind  byte // the client message type: Q, P, B, E, F, C, D, S; c, f end a COPY IN; x a synthetic reply
 	log   bool // its end is a querylog line
+	ready bool // x: a ReadyForQuery follows synth (a simple query or function call)
+	synth []byte
 	entry dbproxy.Entry
 	start time.Time
 
@@ -27,15 +30,67 @@ type item struct {
 	err                      string
 }
 
+// line is the querylog line of a finished item.
+func (it *item) line() dbproxy.Entry {
+	e := it.entry
+	e.Rows = max(it.dataRows, it.tagRows)
+	e.Bytes = it.bytes + it.copyIn.Load()
+	e.DurationUS = time.Since(it.start).Microseconds()
+	e.Error = it.err
+	return e
+}
+
 // copyEnd reports whether kind is a CopyDone or CopyFail: no reply of its
 // own, it bounds the Syncs the database ignores in COPY IN mode.
 func copyEnd(kind byte) bool { return kind == 'c' || kind == 'f' }
 
+// reply is the synthetic reply of an x item: synth, then a ReadyForQuery
+// with status when it answers a simple query or function call.
+func (it *item) reply(status byte) []byte {
+	if !it.ready {
+		return it.synth
+	}
+	b, _ := (&pgproto3.ReadyForQuery{TxStatus: status}).Encode(slices.Clip(it.synth))
+	return b
+}
+
 // queue holds the items in the order the database answers them. The client
 // side pushes an item before it writes the message, the database side pops.
+// idle, when set, is closed once no item waits.
 type queue struct {
 	mu    sync.Mutex
 	items []*item
+	idle  chan struct{}
+}
+
+// waitIdle waits until no item waits for a reply.
+func (q *queue) waitIdle(ctx context.Context) error {
+	q.mu.Lock()
+	if q.front() == nil {
+		q.mu.Unlock()
+		return nil
+	}
+	if q.idle == nil {
+		q.idle = make(chan struct{})
+	}
+	idle := q.idle
+	q.mu.Unlock()
+	select {
+	case <-idle:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+// drop removes the first item; q.mu is held.
+func (q *queue) drop() {
+	q.items[0] = nil
+	q.items = q.items[1:]
+	if len(q.items) == 0 && q.idle != nil {
+		close(q.idle)
+		q.idle = nil
+	}
 }
 
 // push adds it; more than maxPending waiting items is errPending.
@@ -54,9 +109,13 @@ func (q *queue) push(it *item) error {
 func (q *queue) peek() *item {
 	q.mu.Lock()
 	defer q.mu.Unlock()
+	return q.front()
+}
+
+// front is peek with q.mu held.
+func (q *queue) front() *item {
 	for len(q.items) > 0 && copyEnd(q.items[0].kind) {
-		q.items[0] = nil
-		q.items = q.items[1:]
+		q.drop()
 	}
 	if len(q.items) == 0 {
 		return nil
@@ -85,8 +144,7 @@ func (q *queue) copied() {
 // pop drops the first item; the caller saw it through peek.
 func (q *queue) pop() {
 	q.mu.Lock()
-	q.items[0] = nil
-	q.items = q.items[1:]
+	q.drop()
 	q.mu.Unlock()
 }
 
@@ -94,8 +152,10 @@ func (q *queue) pop() {
 // dbproxy.MaxLogParams on its own, so LogParams cuts it anyway.
 const paramCap = dbproxy.MaxLogParams + 1
 
-// bindParams are the logged values of b's parameters: text as is, binary as
-// \x<hex>, NULL as \N, cut by dbproxy.LogParams.
+// bindParams are the displayed values of b's parameters, cut by
+// dbproxy.LogParams: NULL as \N, binary as \x<hex>, text as is, but a text
+// that starts with a backslash gets one more in front, so no two values
+// display the same.
 func bindParams(b *pgproto3.Bind) []string {
 	if len(b.Parameters) == 0 {
 		return nil
@@ -107,6 +167,8 @@ func bindParams(b *pgproto3.Bind) []string {
 			out[i] = `\N`
 		case binaryParam(b.ParameterFormatCodes, i):
 			out[i] = `\x` + hex.EncodeToString(p[:min(len(p), paramCap/2)])
+		case len(p) > 0 && p[0] == '\\':
+			out[i] = `\` + string(p[:min(len(p), paramCap)])
 		default:
 			out[i] = string(p[:min(len(p), paramCap)])
 		}

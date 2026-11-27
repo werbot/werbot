@@ -81,3 +81,15 @@ func TestQuerylogIntegrity(t *testing.T) {
 	}
 	assert.Equal(t, 100, n)
 }
+
+func TestBindParamsUnambiguous(t *testing.T) {
+	b := &pgproto3.Bind{ParameterFormatCodes: []int16{0, 0, 1, 0, 0, 0},
+		Parameters: [][]byte{nil, []byte(`\N`), {0x41}, []byte(`\x41`), []byte("plain"), {}}}
+	got := bindParams(b)
+	assert.Equal(t, []string{`\N`, `\\N`, `\x41`, `\\x41`, "plain", ""}, got)
+	seen := map[string]bool{}
+	for _, v := range got {
+		assert.False(t, seen[v], "%q displays like another value", v)
+		seen[v] = true
+	}
+}

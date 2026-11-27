@@ -12,12 +12,15 @@ import (
 )
 
 // dbSide forwards database replies to the client. It reads only headers, and
-// the bodies of CommandComplete, ErrorResponse and ReadyForQuery; DataRow,
-// CopyData and the rest pass through. Replies close the queued items; a
-// finished operation becomes its querylog line.
+// the bodies of CommandComplete, ErrorResponse, ReadyForQuery and
+// ParameterStatus; DataRow, CopyData and the rest pass through. Replies close
+// the queued items; a finished operation becomes its querylog line; a
+// synthetic reply queued behind them goes to the client in their place.
 type dbSide struct {
 	r      *bufio.Reader // the database connection
-	w      *bufio.Writer // to the client
+	w      *bufio.Writer // to the client: out.w, written under out.mu
+	out    *clientWriter
+	lex    *lexing
 	lr     io.LimitedReader
 	q      *queue
 	g      *dbproxy.Guard
@@ -29,8 +32,8 @@ type dbSide struct {
 	er     pgproto3.ErrorResponse
 }
 
-// next forwards one reply; the client gets the buffer once the database has
-// nothing more pending.
+// next forwards one reply whole under the client lock; the client gets the
+// buffer once the database has nothing more pending.
 func (d *dbSide) next() error {
 	h, err := d.r.Peek(5)
 	if err != nil {
@@ -40,6 +43,8 @@ func (d *dbSide) next() error {
 	if size < 4 {
 		return errMalformed
 	}
+	d.out.mu.Lock()
+	defer d.out.mu.Unlock()
 	if _, err := d.w.Write(h); err != nil {
 		return err
 	}
@@ -63,7 +68,7 @@ func (d *dbSide) message(typ byte, n int) error {
 				it.dataRows++
 			}
 		}
-	case 'C', 'E', 'Z':
+	case 'C', 'E', 'Z', 'S':
 		if n <= maxReply {
 			return d.parsed(typ, n)
 		}
@@ -88,6 +93,9 @@ func (d *dbSide) parsed(typ byte, n int) error {
 	}
 	if _, err := d.w.Write(body); err != nil {
 		return err
+	}
+	if typ == 'S' {
+		d.lex.status(body)
 	}
 	d.reply(typ, body)
 	if cap(d.buf) > keepBuf {
@@ -119,7 +127,7 @@ func (d *dbSide) reply(typ byte, body []byte) {
 	case typ == 'E':
 		d.failed(it, body)
 	case typ == 'Z':
-		d.ready()
+		d.ready(body)
 	}
 }
 
@@ -165,19 +173,22 @@ func (d *dbSide) endCopy() {
 	}
 }
 
-// ready applies a ReadyForQuery: it ends the cycle up to the Sync, query or
-// function call it answers. After an extended-protocol error it answers the
-// Sync: the messages before it, queries too, never ran and get no line.
-func (d *dbSide) ready() {
-	skipped := d.skip
-	d.skip = false
+// ready applies a ReadyForQuery with body: it ends the cycle up to the Sync,
+// query or function call it answers. After an extended-protocol error it
+// answers the Sync: the messages before it, queries too, never ran and get
+// no line, and a denial among them is not sent.
+func (d *dbSide) ready(body []byte) {
+	if len(body) == 1 {
+		d.out.status = body[0]
+	}
+	defer func() { d.skip = false }()
 	for it := d.head(); it != nil; it = d.head() {
+		query := (it.kind == 'Q' || it.kind == 'F') && !d.skip
+		if query {
+			d.log(it) // before pop sends what waits behind it
+		}
 		d.pop()
-		switch {
-		case it.kind == 'S':
-			return
-		case (it.kind == 'Q' || it.kind == 'F') && !skipped:
-			d.log(it)
+		if query || it.kind == 'S' {
 			return
 		}
 	}
@@ -190,32 +201,43 @@ func (d *dbSide) head() *item {
 	return d.cur
 }
 
+// pop drops the head, then sends the synthetic replies now at the head and
+// logs their lines; the client never sees a denial within an extended batch
+// the database skips.
 func (d *dbSide) pop() {
 	d.q.pop()
 	d.cur = nil
+	for it := d.q.peek(); it != nil && it.kind == 'x'; it = d.q.peek() {
+		d.q.pop()
+		if it.log {
+			d.g.Log(it.entry)
+		}
+		if it.ready || !d.skip {
+			_, _ = d.w.Write(it.reply(d.out.status)) // an error stays in w for the flush
+		}
+	}
 }
 
-// finish pops it and logs it when its end is a line.
+// finish logs it when its end is a line and pops it.
 func (d *dbSide) finish(it *item) {
-	d.pop()
 	if it.log {
 		d.log(it)
 	}
+	d.pop()
 }
 
-func (d *dbSide) log(it *item) {
-	e := it.entry
-	e.Rows = max(it.dataRows, it.tagRows)
-	e.Bytes = it.bytes + it.copyIn.Load()
-	e.DurationUS = time.Since(it.start).Microseconds()
-	e.Error = it.err
-	d.g.Log(e)
-}
+func (d *dbSide) log(it *item) { d.g.Log(it.line()) }
 
-// errorText is the logged text of an ErrorResponse: SQLSTATE and message.
+// errorText is the logged text of an ErrorResponse without the session credential.
 func (d *dbSide) errorText(body []byte) string {
-	if body == nil || d.er.Decode(body) != nil {
+	return d.sess.secret.Redact(errorLine(&d.er, body))
+}
+
+// errorLine is the logged text of an ErrorResponse body decoded with e:
+// SQLSTATE and message.
+func errorLine(e *pgproto3.ErrorResponse, body []byte) string {
+	if body == nil || e.Decode(body) != nil {
 		return "unreadable error"
 	}
-	return d.sess.secret.Redact(d.er.Code + ": " + d.er.Message)
+	return e.Code + ": " + e.Message
 }

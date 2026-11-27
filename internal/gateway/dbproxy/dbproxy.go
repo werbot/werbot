@@ -7,14 +7,18 @@
 package dbproxy
 
 // Op is one database operation a connector asks the Guard about. Params are
-// the displayed Bind parameters of an execute (as LogParams keeps them);
-// SHA256 is the SHA-256 of Text, zero when the Guard computes it.
+// the displayed Bind parameters of an execute (as LogParams keeps them),
+// whether the querylog records them or not; SHA256 is the SHA-256 of Text,
+// zero when the Guard computes it. Opaque marks a text the connector cannot
+// trust the classifier with (the session lexes text unlike the parser): it
+// is [opaque].
 type Op struct {
 	Kind            string // query, parse, execute, command, request, tool_call, cancel
 	Text, Statement string // SQL or command text; prepared statement name
 	DB              string
 	Params          []string
 	SHA256          [32]byte
+	Opaque          bool
 }
 
 // Verdict is the Guard's answer to an Op. A deny that an approval would lift

@@ -146,3 +146,19 @@ func TestApproveTooLongText(t *testing.T) {
 	assert.Equal(t, "query too long to approve (16384 bytes)", v.Message, "the bound covers the parameters")
 	assert.Empty(t, e.approved)
 }
+
+func TestApproveCutParamsRefused(t *testing.T) {
+	e, g := writeEnv(t)
+	check(t, g, dbproxy.Op{Kind: "parse", Text: "update t set a = $1", Statement: "s1"})
+	for _, params := range [][]string{
+		dbproxy.LogParams([]string{strings.Repeat("y", dbproxy.MaxLogParams+1)}), // one value past the bound: ["…[truncated]"]
+		{"1", dbproxy.Truncated},
+	} {
+		exec := dbproxy.Op{Kind: "execute", Text: "update t set a = $1", Statement: "s1", Params: params}
+		v, err := approve(t, g, exec, func(string, string, time.Duration) error { return nil })
+		require.NoError(t, err)
+		assert.False(t, v.Allow)
+		assert.Equal(t, "query too long to approve (16384 bytes)", v.Message, "a cut display is never approved")
+	}
+	assert.Empty(t, e.approved, "no approval request")
+}

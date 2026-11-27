@@ -48,13 +48,13 @@ func TestDialConfigIgnoresPGEnv(t *testing.T) {
 	dial := func(context.Context, string, string) (net.Conn, error) { return nil, net.ErrClosed }
 
 	for _, secret := range []gateway.Secret{passwordSecret(marker), clientCertSecret(client)} {
-		pc, err := dialConfig(cfg, secret, params, "app_1", dial)
+		pc, err := dialConfig(cfg, secret, cfg.GetUsername(), runtimeParams(params), "app_1", dial)
 		require.NoError(t, err, secret.Kind)
 		assert.Equal(t, "db.example", pc.Host)
 		assert.Equal(t, uint16(5433), pc.Port)
 		assert.Equal(t, "app_1", pc.Database)
 		assert.Equal(t, "app", pc.User)
-		assert.Equal(t, map[string]string{"application_name": "psql", "options": "-c search_path=app"}, pc.RuntimeParams)
+		assert.Equal(t, map[string]string{"application_name": "psql", "options": "-c search_path=app", "standard_conforming_strings": "on"}, pc.RuntimeParams)
 		assert.Equal(t, 10*time.Second, pc.ConnectTimeout)
 		assert.Equal(t, "postgres", pc.SSLNegotiation)
 		assert.Equal(t, "allow", pc.SSLCertMode)
@@ -88,7 +88,7 @@ func TestDialConfigIgnoresPGEnv(t *testing.T) {
 
 func TestDialConfigQuotesValues(t *testing.T) {
 	cfg := &postgresv1.Config{Host: "db.example", Database: "main", Username: "app", Sslmode: "disable"}
-	pc, err := dialConfig(cfg, passwordSecret("p"), nil, `a b' sslmode=require \x`, nil)
+	pc, err := dialConfig(cfg, passwordSecret("p"), "app", nil, `a b' sslmode=require \x`, nil)
 	require.NoError(t, err)
 	assert.Equal(t, `a b' sslmode=require \x`, pc.Database)
 	assert.Nil(t, pc.TLSConfig)
@@ -240,7 +240,7 @@ func TestVerifyCASkipsHost(t *testing.T) {
 func TestClientCertNeedsTLS(t *testing.T) {
 	cert := clientCertSecret(newCert(t, newCert(t, nil, ""), "werbot-client"))
 	cfg := &postgresv1.Config{Host: "127.0.0.1", Port: 1, Database: "main", Username: "app", Sslmode: "disable"}
-	_, err := dialConfig(cfg, cert, nil, "main", nil)
+	_, err := dialConfig(cfg, cert, "app", nil, "main", nil)
 	require.EqualError(t, err, "client certificate requires TLS")
 
 	p := serveProxy(t.Context(), t, testResource(t, cfg), cert)

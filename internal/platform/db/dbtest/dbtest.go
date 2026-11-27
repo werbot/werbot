@@ -19,18 +19,21 @@ import (
 	"github.com/werbot/werbot/migrations"
 )
 
+// cluster is the superuser login to the test cluster that New and Role use.
+var cluster = pgtestdb.Config{
+	DriverName: "pgx",
+	Host:       "localhost",
+	Port:       "27432", // werbot-test (make dev-db); unusual port so other projects cannot hold it
+	User:       "postgres",
+	Password:   "password",
+	Options:    "sslmode=disable",
+}
+
 // New creates a database from a pgtestdb template with migrations.FS applied
 // and returns a db.Open pool (statement_timeout 30s, as in production) and its URL.
 func New(t testing.TB) (pool *pgxpool.Pool, url string) {
 	t.Helper()
-	conf := pgtestdb.Custom(t, pgtestdb.Config{
-		DriverName: "pgx",
-		Host:       "localhost",
-		Port:       "27432", // werbot-test (make dev-db); unusual port so other projects cannot hold it
-		User:       "postgres",
-		Password:   "password",
-		Options:    "sslmode=disable",
-	}, migrator{})
+	conf := pgtestdb.Custom(t, cluster, migrator{})
 	url = conf.URL()
 	pool, err := db.Open(context.Background(), url)
 	if err != nil {

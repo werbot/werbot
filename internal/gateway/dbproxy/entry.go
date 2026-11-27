@@ -7,7 +7,8 @@ import (
 	"github.com/werbot/werbot/internal/gateway"
 )
 
-const truncated = "…[truncated]"
+// Truncated ends a cut text and replaces the parameters past the bound.
+const Truncated = "…[truncated]"
 
 // Entry is one querylog line: an operation that reached the database.
 type Entry struct {
@@ -64,7 +65,7 @@ func LogText(s string) string {
 	if len(s) <= MaxLogText {
 		return s
 	}
-	return gateway.TruncateUTF8(s, MaxLogText) + truncated
+	return gateway.TruncateUTF8(s, MaxLogText) + Truncated
 }
 
 // LogParams is ps while their total size fits MaxLogParams; otherwise the
@@ -73,7 +74,7 @@ func LogParams(ps []string) []string {
 	n := 0
 	for i, p := range ps {
 		if n += len(p); n > MaxLogParams {
-			return append(ps[:i:i], truncated)
+			return append(ps[:i:i], Truncated)
 		}
 	}
 	return ps
