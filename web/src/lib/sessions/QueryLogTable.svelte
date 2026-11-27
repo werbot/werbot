@@ -111,7 +111,7 @@
 						<td>{e.rows ?? ''}</td>
 						<td>{e.duration_us === undefined ? '' : (e.duration_us / 1000).toFixed(2)}</td>
 						<td>{e.decision ?? ''}</td>
-						<td>{e.error ?? ''}</td>
+						<td class="err">{e.error ?? ''}</td>
 					</tr>
 				{/each}
 			</Table>
@@ -134,8 +134,13 @@
 	}
 
 	.text {
-		min-width: 240px;
-		max-width: 480px;
+		min-width: 160px;
+		max-width: 320px;
+	}
+
+	.err {
+		min-width: 120px;
+		overflow-wrap: anywhere;
 	}
 
 	.sql {

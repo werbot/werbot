@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { anyIs, anyUnpack } from '@bufbuild/protobuf/wkt';
-	import { Banner, FilledField, Textarea, Toggle } from '#lib/ui/index.js';
+	import { Banner, FilledField, Toggle } from '#lib/ui/index.js';
 	import { ConfigSchema } from '#lib/gen/werbot/connector/postgres/v1/postgres_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import FieldRow from '#lib/FieldRow.svelte';
+	import FormField from '#lib/FormField.svelte';
 	import FilledSelect from '#lib/FilledSelect.svelte';
 	import { postgresConfigValue, type ConfigFormProps } from './index.js';
 
@@ -44,12 +45,14 @@
 	<FilledField label={m.resources_postgres_username()} bind:value={username} maxlength={63} required />
 	<FilledField label={m.resources_postgres_database()} bind:value={database} />
 </FieldRow>
-<FilledField label={m.resources_postgres_allowed_databases()} bind:value={allowedDatabases} placeholder="app, reports_*" />
-<FilledSelect label={m.resources_postgres_sslmode()} options={sslOptions} bind:value={sslmode} />
+<FieldRow even>
+	<FormField label={m.resources_postgres_allowed_databases()} bind:value={allowedDatabases} placeholder="app, reports_*" />
+	<FilledSelect label={m.resources_postgres_sslmode()} options={sslOptions} bind:value={sslmode} />
+</FieldRow>
 {#if sslmode === 'disable'}
 	<Banner tone="warning">{m.resources_postgres_ssl_disable_warning()}</Banner>
 {/if}
 {#if sslmode !== 'disable'}
-	<Textarea label={m.resources_postgres_ca_pem()} bind:value={caPem} rows={5} spellcheck="false" placeholder="-----BEGIN CERTIFICATE-----" />
+	<FormField label={m.resources_postgres_ca_pem()} bind:value={caPem} multiline rows={3} spellcheck="false" placeholder="-----BEGIN CERTIFICATE-----" />
 {/if}
 <Toggle bind:checked={recordParams}>{m.resources_postgres_record_params()}</Toggle>
