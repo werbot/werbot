@@ -443,6 +443,7 @@ type Recording struct {
 	ManifestSignature []byte
 	VerifiedAt        *time.Time
 	CreatedAt         time.Time
+	Format            string
 }
 
 type Resource struct {
@@ -559,6 +560,7 @@ type Session struct {
 	TerminateRequestedAt *time.Time
 	TerminateReason      *string
 	Transport            string
+	Queries              int64
 }
 
 type SigningKey struct {
