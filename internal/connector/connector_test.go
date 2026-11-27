@@ -117,3 +117,21 @@ func TestRegisterRequiresShellForTerminal(t *testing.T) {
 	assert.NotPanics(t, func() { Register(x) })
 	assert.NotPanics(t, func() { Register(valid("y")) }, "a type without the terminal kind needs no shell action")
 }
+
+func TestRegisterRecordFormat(t *testing.T) {
+	t.Cleanup(func() { registry = nil })
+	a := valid("a")
+	Register(a)
+	got, _ := Lookup("a")
+	assert.Equal(t, RecordAsciicast, got.RecordFormat, "empty format defaults to asciicast")
+
+	q := valid("q")
+	q.RecordFormat = RecordQuerylog
+	Register(q)
+	got, _ = Lookup("q")
+	assert.Equal(t, RecordQuerylog, got.RecordFormat)
+
+	j := valid("j")
+	j.RecordFormat = "json"
+	assert.PanicsWithValue(t, `connector: type "j": unknown record format "json"`, func() { Register(j) })
+}

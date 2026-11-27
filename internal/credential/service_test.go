@@ -3,10 +3,16 @@ package credential_test
 import (
 	"bytes"
 	"context"
+	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/pem"
+	"math/big"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -170,4 +176,70 @@ func TestAuditHasNoSecret(t *testing.T) {
 		e.res.String()).Scan(&n, &data))
 	assert.Equal(t, 2, n)
 	assert.NotContains(t, data, "s3cr3t")
+}
+
+// certKey returns a self-signed ECDSA P-256 certificate and its key in one PEM.
+func certKey(t *testing.T) []byte {
+	t.Helper()
+	k, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err)
+	tpl := &x509.Certificate{SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: "t"},
+		NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().Add(time.Hour)}
+	der, err := x509.CreateCertificate(rand.Reader, tpl, tpl, &k.PublicKey, k)
+	require.NoError(t, err)
+	kd, err := x509.MarshalECPrivateKey(k)
+	require.NoError(t, err)
+	return append(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}),
+		pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: kd})...)
+}
+
+func TestSetClientCert(t *testing.T) {
+	e := setup(t)
+	svc := credential.New(e.pool, box(t, key(1)))
+	good := certKey(t)
+	require.NoError(t, svc.Set(e.ctx, e.org, e.res, connector.CredentialClientCert, good))
+	got, err := svc.Reveal(e.ctx, e.org, e.res)
+	require.NoError(t, err)
+	assert.Equal(t, credential.Secret{Kind: connector.CredentialClientCert, Value: good}, got)
+	kinds, err := svc.Kinds(e.ctx, e.org, []uuid.UUID{e.res})
+	require.NoError(t, err)
+	assert.Equal(t, connector.CredentialClientCert, kinds[e.res])
+
+	certOnly := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: mustCertDER(t, good)})
+	for name, v := range map[string][]byte{"garbage": []byte("nope"), "cert only": certOnly, "too long": make([]byte, credential.MaxClientCert+1)} {
+		err := svc.Set(e.ctx, e.org, e.res, connector.CredentialClientCert, v)
+		assert.ErrorIs(t, err, apperr.ErrInvalidArgument, name)
+	}
+}
+
+func mustCertDER(t *testing.T, p []byte) []byte {
+	t.Helper()
+	b, _ := pem.Decode(p)
+	require.NotNil(t, b)
+	return b.Bytes
+}
+
+func TestCredentialPrimarySlot(t *testing.T) {
+	e := setup(t)
+	svc := credential.New(e.pool, box(t, key(1)))
+	require.NoError(t, svc.Set(e.ctx, e.org, e.res, connector.CredentialPassword, []byte("one")))
+	_, err := e.pool.Exec(context.Background(), `INSERT INTO credential (org_id, resource_id, kind, ciphertext, key_id, slot)
+		VALUES ($1, $2, 'password', '\x00', 'k', 'agent_readonly')`, e.org, e.res)
+	require.NoError(t, err)
+
+	got, err := svc.Reveal(e.ctx, e.org, e.res)
+	require.NoError(t, err)
+	assert.Equal(t, []byte("one"), got.Value, "Reveal reads the primary slot")
+	kinds, err := svc.Kinds(e.ctx, e.org, []uuid.UUID{e.res})
+	require.NoError(t, err)
+	assert.Len(t, kinds, 1)
+
+	require.NoError(t, svc.Set(e.ctx, e.org, e.res, connector.CredentialPassword, []byte("two")))
+	var n int
+	require.NoError(t, e.pool.QueryRow(context.Background(), "SELECT count(*) FROM credential WHERE slot = 'primary'").Scan(&n))
+	assert.Equal(t, 1, n, "Set updates the primary row")
+
+	require.NoError(t, svc.Clear(e.ctx, e.org, e.res))
+	require.NoError(t, e.pool.QueryRow(context.Background(), "SELECT count(*) FROM credential").Scan(&n))
+	assert.Equal(t, 1, n, "Clear removes only the primary slot")
 }

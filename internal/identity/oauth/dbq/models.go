@@ -190,6 +190,7 @@ type Credential struct {
 	KeyID      string
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
+	Slot       string
 }
 
 type CustomPolicy struct {

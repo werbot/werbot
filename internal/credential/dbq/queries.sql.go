@@ -12,7 +12,7 @@ import (
 )
 
 const deleteCredential = `-- name: DeleteCredential :execrows
-DELETE FROM credential WHERE resource_id = $1 AND org_id = $2
+DELETE FROM credential WHERE resource_id = $1 AND org_id = $2 AND slot = 'primary'
 `
 
 type DeleteCredentialParams struct {
@@ -29,7 +29,7 @@ func (q *Queries) DeleteCredential(ctx context.Context, arg DeleteCredentialPara
 }
 
 const getCredential = `-- name: GetCredential :one
-SELECT kind, ciphertext, key_id FROM credential WHERE resource_id = $1 AND org_id = $2
+SELECT kind, ciphertext, key_id FROM credential WHERE resource_id = $1 AND org_id = $2 AND slot = 'primary'
 `
 
 type GetCredentialParams struct {
@@ -51,7 +51,7 @@ func (q *Queries) GetCredential(ctx context.Context, arg GetCredentialParams) (G
 }
 
 const listCredentialKinds = `-- name: ListCredentialKinds :many
-SELECT resource_id, kind FROM credential WHERE org_id = $1 AND resource_id = ANY($2::uuid[])
+SELECT resource_id, kind FROM credential WHERE org_id = $1 AND slot = 'primary' AND resource_id = ANY($2::uuid[])
 `
 
 type ListCredentialKindsParams struct {
@@ -85,9 +85,9 @@ func (q *Queries) ListCredentialKinds(ctx context.Context, arg ListCredentialKin
 }
 
 const upsertCredential = `-- name: UpsertCredential :execrows
-INSERT INTO credential (org_id, resource_id, kind, ciphertext, key_id)
-VALUES ($1, $2, $3, $4, $5)
-ON CONFLICT (resource_id) DO UPDATE
+INSERT INTO credential (org_id, resource_id, kind, ciphertext, key_id, slot)
+VALUES ($1, $2, $3, $4, $5, 'primary')
+ON CONFLICT (resource_id, slot) DO UPDATE
 SET kind = EXCLUDED.kind, ciphertext = EXCLUDED.ciphertext, key_id = EXCLUDED.key_id, updated_at = now()
 WHERE credential.org_id = EXCLUDED.org_id
 `

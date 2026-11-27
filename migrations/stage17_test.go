@@ -62,3 +62,43 @@ func TestMigrations17Querylog(t *testing.T) {
 	require.NoError(t, pool.QueryRow(ctx, "SELECT format FROM recording WHERE session_id = $1", s1).Scan(&format))
 	assert.Equal(t, "asciicast", format, "an older recording is asciicast")
 }
+
+// TestMigrations17CredentialSlot: a resource has one credential per slot
+// (primary, agent_readonly), kind client_cert is accepted, and 00261 goes down
+// to 00221 dropping the non-primary and client_cert rows, then up again.
+func TestMigrations17CredentialSlot(t *testing.T) {
+	pool, _ := dbtest.New(t)
+	ctx := context.Background()
+	f := dbtest.Seed(t, pool)
+
+	insert := func(slot, kind string) error {
+		_, err := pool.Exec(ctx, `INSERT INTO credential (org_id, resource_id, kind, ciphertext, key_id, slot)
+			VALUES ($1, $2, $3, '\x00', 'k', $4)`, f.OrgID, f.ResourceID, kind, slot)
+		return err
+	}
+	require.NoError(t, insert("primary", "password"))
+	require.NoError(t, insert("agent_readonly", "password"))
+	err := insert("primary", "password")
+	pgCode(t, err, "23505")
+	assert.Contains(t, err.Error(), "credential_resource_id_slot_key")
+	pgCode(t, insert("other", "password"), "23514")
+	_, err = pool.Exec(ctx, "UPDATE credential SET kind = 'client_cert' WHERE slot = 'agent_readonly'")
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, "UPDATE credential SET kind = 'api_key' WHERE slot = 'primary'")
+	pgCode(t, err, "23514")
+
+	sqlDB := stdlib.OpenDBFromPool(pool)
+	defer func() { _ = sqlDB.Close() }()
+	p, err := goose.NewProvider(goose.DialectPostgres, sqlDB, migrations.FS)
+	require.NoError(t, err)
+	_, err = p.DownTo(ctx, 221)
+	require.NoError(t, err)
+	var n int
+	require.NoError(t, pool.QueryRow(ctx, "SELECT count(*) FROM credential").Scan(&n))
+	assert.Equal(t, 1, n, "only the primary row survives")
+	_, err = pool.Exec(ctx, "SELECT slot FROM credential")
+	pgCode(t, err, "42703")
+	_, err = p.Up(ctx)
+	require.NoError(t, err)
+	require.NoError(t, insert("agent_readonly", "client_cert"))
+}

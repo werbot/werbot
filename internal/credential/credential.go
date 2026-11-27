@@ -3,6 +3,7 @@
 package credential
 
 import (
+	"crypto/tls"
 	"fmt"
 
 	"golang.org/x/crypto/ssh"
@@ -14,6 +15,8 @@ import (
 const (
 	maxPassword   = 1024
 	maxPrivateKey = 16384
+	// MaxClientCert bounds a PEM certificate and key in one value.
+	MaxClientCert = 16384
 )
 
 // Secret is a decrypted credential.
@@ -40,6 +43,13 @@ func validate(kind connector.CredentialKind, value []byte) error {
 		}
 		if _, err := ssh.ParseRawPrivateKey(value); err != nil {
 			return invalid("private key is not a valid unencrypted key")
+		}
+	case connector.CredentialClientCert:
+		if len(value) > MaxClientCert {
+			return invalid("client certificate is longer than 16384 bytes")
+		}
+		if _, err := tls.X509KeyPair(value, value); err != nil {
+			return invalid("client certificate is not a valid certificate and key")
 		}
 	default:
 		return invalid("unknown credential kind")
