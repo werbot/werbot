@@ -18,6 +18,8 @@ A resource of type `postgres` lets a user open a normal PostgreSQL connection th
 | `ca_pem` | PEM CA certificates that verify the database, up to 65 536 bytes. Required for `verify-ca`; for `verify-full` empty uses the system roots. |
 | `record_params` | Records the values of bind parameters in the query log. On when unset. |
 | `username` | Database role the gateway logs in as, 1 to 63 bytes. |
+| `secret_tables` | Up to 64 globs over `schema.table` (`path.Match` syntax, each up to 255 bytes). A query that reads a matching table gets the class `secrets`. |
+| `agent_username` | Database role AI agents log in as, up to 63 bytes, with the [agent credential](#agent-credential). Empty: agents get no access. |
 
 ### TLS to the database
 
@@ -74,7 +76,74 @@ A client cancels a query with a new connection that sends a `CancelRequest`. The
 - A malformed protocol message closes the connection without an answer.
 - Logged text is cut at 64 KiB on a UTF-8 boundary and ends with `…[truncated]`. Bind parameters are logged up to 64 KiB in total: the values past that bound are replaced by one `…[truncated]` value. Binary values are logged as `\x<hex>`, NULL as `\N`, and a text value that starts with a backslash gets one more in front, so no two values look the same.
 
-Policy decisions on the SQL text, masking of results and agent access to databases are not part of this release: the lines of `Query`, `Parse`, `Execute` and function calls carry `decision` `allow` (a `cancel` line and the `execute` line of a failed `Bind` carry none), and `classes`, `tables` and `policy_ids` stay empty until a later release decides statements. Agents never reach `postgres.connect`: the baseline forbids it.
+### Query checks
+
+Every operation that would reach the database (a simple `Query`, an `Execute` of a prepared statement, a fast-path function call) is decided by the policy for `postgres.query` before it is sent. The request carries the operation's `classes` and, in the Cedar context, `db_name`, `tables` (every table it reads or writes, as `schema.table`; an unqualified name is `public`, or `pg_catalog` for `pg_*`) and `write_tables`. [Command rules](policies.md#command-rules) apply to queries with the same classes as commands.
+
+| Class | Queries |
+| --- | --- |
+| `read` | `SELECT`, `SHOW`, `EXPLAIN` without `ANALYZE`, `FETCH`, `COPY … TO STDOUT`, `BEGIN`/`COMMIT`/`ROLLBACK`; an empty text. |
+| `write` | `INSERT`, `UPDATE` and `DELETE` with `WHERE`, `MERGE`, `CREATE`, most `ALTER TABLE` changes, `COPY … FROM STDIN`, `VACUUM`, `LOCK`, `NOTIFY`, prepared transactions. |
+| `destructive` | `DROP`, `TRUNCATE`, `UPDATE` or `DELETE` without `WHERE`, `ALTER TABLE … DROP …`. |
+| `privilege` | `GRANT`, roles, owners, row security, `ALTER SYSTEM`, extensions, `SET`/`RESET`/`set_config` of a protected setting (`statement_timeout`, `default_transaction_read_only`, `transaction_read_only`, `role`, `session_authorization`, `search_path`, `standard_conforming_strings`, `client_encoding`, `backslash_quote`), `BEGIN READ WRITE`. |
+| `secrets` | A read of `pg_authid`, `pg_shadow`, `pg_user_mapping(s)` or a table in `secret_tables`. |
+| `egress` | `COPY` to or from a server file or program, `lo_import`, `lo_export`, `dblink`, foreign servers and user mappings. |
+| `opaque` | Text the classifier cannot judge (see below). |
+
+The classes of a text with several statements are the union of all of them. Built-in functions of `pg_catalog` have classes of their own (`pg_read_file` is `secrets`, `pg_terminate_backend` is `privilege`, …); a call of any other function is `opaque`.
+
+A person whose policy has no rule for queries on the resource takes the fast path: the operation goes to the database without waiting for the classifier, and its querylog line gets its classes afterwards. Classifications are kept in a cache of 4096 texts per type on each gateway, decisions in a cache of 1024 per session for 60 seconds; a new policy snapshot clears the decisions.
+
+### Limits of the classifier
+
+The classifier parses with libpg_query (the PostgreSQL 17 grammar, compiled to WebAssembly). It never guesses: the result is `opaque` for a parse error, syntax that only PostgreSQL 18 knows, `DO`, `CALL`, SQL `EXECUTE`, an unknown function, a text over 1 MiB, more than 2000 operators in one text, a parser that is busy for more than 100 ms or not warmed up yet, and a parser that failed (`werbot_gateway_sql_parser_broken{type}` is 1 until the gateway restarts).
+
+- `opaque` is a class of its own: a rule on `destructive` or `write` does not match a text that does not parse. List `opaque` in the rule to cover it.
+- Unqualified function names are judged as the `pg_catalog` functions of that name: the classifier assumes `pg_catalog` comes first in `search_path`. A role or database default `search_path` can change that.
+- Custom operators and casts are not checked: an operator or a cast can run a function.
+- While the session's `standard_conforming_strings` is not `on`, or its `client_encoding` is `SJIS`, `SHIFT_JIS_2004`, `BIG5`, `GBK`, `UHC`, `GB18030` or `JOHAB`, every operation is `opaque`: the database could split such text unlike the classifier. The gateway drops the client's start parameters `standard_conforming_strings` and `backslash_quote` and sends `standard_conforming_strings=on`.
+
+For people, classes are what policy rules work with. For agents, the guarantee is the rights of the [agent credential](#agent-credential): the classifier only decides what is tried.
+
+### Denials
+
+A refused operation gets `ERROR 42501 werbot: query denied: <message>` (the rule's message, or `not allowed (<classes>)`) in the order of the replies, and the session goes on. A simple query gets the error and `ReadyForQuery`; in the extended protocol the gateway drops the messages up to the next `Sync`, as the database does after an error. The querylog has a line with `decision` `deny` for it. Two differences from an error of the database itself:
+
+- A denial inside an explicit transaction does not abort that transaction.
+- A denial inside an extended batch lets the statements of the batch before it commit at `Sync`.
+
+### Approvals
+
+A query under an `approval` rule waits for a person. The client gets `NOTICE 00000 Waiting for approval <id>, timeout <duration>: <url>` and every 30 seconds `Still waiting for approval <id>`; the replies to earlier messages still arrive, later messages wait. The approval holds the exact text; for an `Execute` the text plus its parameter values as the querylog shows them, so an approval for one set of parameters never covers another. The parameter types of `Parse` are not part of it. A text over 16 384 bytes is refused with `query too long to approve (16384 bytes)`; a refusal is `approval denied`, `approval timed out` or `approval unavailable, try again later`.
+
+### Agent credential
+
+AI agents reach a database only with a second credential (slot `agent_readonly`, the **Agent credential** block of the Credentials tab, or `SetCredential` with `slot`) for the role `agent_username`. Grant that role reads only:
+
+```sql
+CREATE ROLE werbot_agent LOGIN PASSWORD '…';
+GRANT CONNECT ON DATABASE app TO werbot_agent;
+GRANT USAGE ON SCHEMA public TO werbot_agent;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO werbot_agent;
+```
+
+A gateway of the pool checks the credential when it is set and every 10 minutes (30 seconds per check). It logs in as `agent_username`, read-only, and looks at the role and every role it is a member of (at most 32): the attributes `SUPERUSER`, `CREATEROLE`, `CREATEDB`, `REPLICATION` and `BYPASSRLS`, membership of `pg_write_all_data`, `pg_execute_server_program`, `pg_write_server_files` and `pg_maintain`, and roles it may grant. Then, in every database within `allowed_databases` it may connect to (at most 32): `CREATE` on the database or a schema, ownership of the database, a schema, a relation or a function, `INSERT`, `UPDATE`, `DELETE`, `TRUNCATE`, `TRIGGER` or `MAINTAIN` on a table, `UPDATE` or `USAGE` on a sequence, `UPDATE` on a large object, `EXECUTE` on a `SECURITY DEFINER` function of another owner outside `pg_catalog` and `information_schema`.
+
+| Status | Meaning |
+| --- | --- |
+| `none` | No agent credential. |
+| `pending` | Set or changed (a change of the resource too), not checked yet. |
+| `ok` | Nothing found: agents may connect. |
+| `has_write` | Up to five findings in the detail, for example `INSERT on app.public.orders`. |
+| `error` | The check failed (login, more than 32 roles or databases, `agent_username is not set`). |
+
+Only `ok` lets agents in; every other status refuses them, even under a custom `permit`. `werbot_gateway_agent_readonly_checks_total{result}` counts the checks by `ok`, `has_write` and `error`; a change of status is audited as `resource.agent_readonly.check`.
+
+### Agent sessions
+
+An agent session logs in as `agent_username` with `default_transaction_read_only=on`, the agent's `statement_timeout` and only the start parameters `application_name`, `client_encoding`, `DateStyle`, `TimeZone`, `IntervalStyle` and `extra_float_digits`. The agent baseline allows `read` queries; anything else is denied unless a command rule for agents allows it or asks for an approval. Its next operation starts only after the previous one is answered.
+
+An approved `write` of an agent runs on a connection of its own as `username` with the primary credential, one statement, outside a transaction (`approved writes run one statement at a time`, `approved writes run outside a transaction`). The agent's limits ([agents.md](agents.md#limits)) apply per session: past `max_queries` an operation gets `query limit <n> reached`. A result past `max_rows` or `max_result_bytes` is cut: the gateway cancels the query, drops the rest and sends `WARNING 01000 werbot: result truncated at <n> rows` (or `bytes`) and `SELECT <n>`; a cut `COPY … TO STDOUT` ends with the database's `57014`. A cut inside an explicit transaction leaves it failed (`ReadyForQuery` `E`): roll it back. With `mask_output` ([policies.md](policies.md#output-masking)) the gateway masks the cells of the rows.
 
 ### Health
 
@@ -96,7 +165,7 @@ A line is a JSON object; empty fields are left out except `t` and `kind`:
 | `db` | Database name. |
 | `params` | Bind parameter values (only with `record_params`). |
 | `statement` | Prepared statement name for `execute` and `parse` (empty for the unnamed statement); the text is in `sql`. |
-| `classes`, `tables`, `decision`, `policy_ids` | Result of the policy check. |
+| `classes`, `tables`, `decision`, `policy_ids` | Result of the policy check: `decision` is `allow` or `deny` (a denied operation never reached the database). |
 | `rows`, `bytes` | Rows and data bytes the database returned (`COPY FROM`: bytes sent). |
 | `duration_us` | Time until the answer, in microseconds. |
 | `error` | `<SQLSTATE>: <message>` of the database error when the operation failed, for example `22012: division by zero`. |

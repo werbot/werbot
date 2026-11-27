@@ -7,6 +7,8 @@
 	import { readPrivateKeyFile } from '#lib/sshkey.js';
 	import type { Resource, ResourceType } from '#lib/gen/werbot/v1/resource_pb.js';
 	import { m } from '#lib/paraglide/messages.js';
+	import AgentCredential from './AgentCredential.svelte';
+	import { hasQuery } from './agentCredential.js';
 
 	let { resource = $bindable(), type }: { resource: Resource; type?: ResourceType } = $props();
 
@@ -21,16 +23,22 @@
 	let fileValue = '';
 	let fileError = $state('');
 
-	async function run(action: () => Promise<unknown>) {
+	// a credential change reloads the resource: its kinds and agent status
+	async function change(action: () => Promise<unknown>): Promise<boolean> {
 		try {
 			await action();
-			value = fileName = fileValue = fileError = '';
 			const res = await resources.getResource({ id: resource.id });
 			if (res.resource) resource = res.resource;
 			toast({ tone: 'success', text: m.common_saved() });
+			return true;
 		} catch (e) {
 			failToast(e);
+			return false;
 		}
+	}
+
+	async function run(action: () => Promise<unknown>) {
+		if (await change(action)) value = fileName = fileValue = fileError = '';
 	}
 
 	async function readKeyFile(file: File) {
@@ -92,6 +100,9 @@
 		</Button>
 	</div>
 </form>
+{#if type && hasQuery([type], type.name)}
+	<AgentCredential {resource} run={change} />
+{/if}
 
 <style>
 	form {

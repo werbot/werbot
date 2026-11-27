@@ -20,7 +20,8 @@
 	let caPem = $state(current?.caPem ?? '');
 	let recordParams = $state(current?.recordParams ?? true);
 	let username = $state(current?.username ?? '');
-	const keep = current && { secretTables: current.secretTables, agentUsername: current.agentUsername };
+	let secretTables = $state(current?.secretTables.join(', ') ?? '');
+	let agentUsername = $state(current?.agentUsername ?? '');
 
 	const sslOptions = [
 		{ value: 'verify-full', label: m.resources_postgres_ssl_verify_full() },
@@ -30,7 +31,7 @@
 
 	$effect(() => {
 		try {
-			onchange(postgresConfigValue({ host, port, database, allowedDatabases, sslmode, caPem, recordParams, username, keep }));
+			onchange(postgresConfigValue({ host, port, database, allowedDatabases, sslmode, caPem, recordParams, username, secretTables, agentUsername }));
 		} catch {
 			onchange({});
 		}
@@ -63,4 +64,8 @@
 		placeholder="-----BEGIN CERTIFICATE-----"
 	/>
 {/if}
+<FieldRow even>
+	<FormField label={m.resources_secret_tables()} bind:value={secretTables} placeholder="public.tokens, *.secrets" hint={m.resources_secret_tables_hint()} />
+	<FilledField label={m.resources_agent_username()} bind:value={agentUsername} maxlength={63} autocomplete="off" />
+</FieldRow>
 <Toggle bind:checked={recordParams}>{m.resources_postgres_record_params()}</Toggle>

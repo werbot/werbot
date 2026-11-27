@@ -31,7 +31,7 @@ Open http://localhost:8080 and create the first account. What runs, ports and vo
 
 Set the SSH address of the pool (Gateways page, pool details; `localhost:2222` for the quick start above), add a resource and bind it to yourself. Then run `werbot login --server http://localhost:8080` on your computer and continue with [docs/cli.md](docs/cli.md).
 
-AI agents (Claude Code, Codex, Cursor) connect through `werbot mcp`: they run commands as a run of your account, under a read-only baseline, with no SSH key or password of their own ([docs/agents.md](docs/agents.md)).
+AI agents (Claude Code, Codex, Cursor) connect through `werbot mcp`: they run commands and SQL queries (`db_query`, through a verified read-only database credential) as a run of your account, under a read-only baseline, with no SSH key or password of their own ([docs/agents.md](docs/agents.md)).
 
 ## Other ways to install
 
@@ -57,15 +57,15 @@ Releases and images are signed with cosign (keyless) and ship SBOMs. Commands: [
 - [connectors.md](docs/connectors.md): adding a target type.
 - [cli.md](docs/cli.md): `werbot login`, profiles, certificates, `ssh`, `ssh-config`, `proxy`, access requests.
 - [jit.md](docs/jit.md): just-in-time access: requests, approval policies, break-glass, grants, locks, lock mode.
-- [policies.md](docs/policies.md): command policies: risk classes, class overrides, command rules, folder rules, the command console, custom Cedar, command approvals, output masking.
+- [policies.md](docs/policies.md): command policies: risk classes, class overrides, command rules (also for SQL queries), folder rules, the command console, custom Cedar, command approvals, output masking.
 - [ssh-hardening.md](docs/ssh-hardening.md): host permissions under the Werbot rules: accounts per access level, ACLs, SFTP-only accounts, narrow `sudo`.
 - [connect.md](docs/connect.md): the `werbot connect` client, also over WebSocket.
-- [databases.md](docs/databases.md): the `postgres` resource type: fields, TLS to the database, credentials, `werbot connect` and `psql`, cancel, limits, the query log and its replay.
+- [databases.md](docs/databases.md): the `postgres` resource type: fields, TLS to the database, credentials, `werbot connect` and `psql`, cancel, limits, SQL query checks and approvals, the agent credential and agent sessions, the query log and its replay.
 - [vnet.md](docs/vnet.md): `werbot connect --vnet`: an address and a DNS name per resource, TCP and UDP, on Linux and macOS.
 - [web-terminal.md](docs/web-terminal.md): the web terminal, the live view of a running session, Terminate, close codes and limits.
 - [sso.md](docs/sso.md): single sign-on with OpenID Connect: IdP setup, claims mapping, provisioning and linking, the hourly check, IdP outages.
 - [mfa.md](docs/mfa.md): TOTP, passkeys and recovery codes, `require_mfa`, MFA rules for SSH and the web terminal, fresh MFA for admin actions, rate limits.
-- [agents.md](docs/agents.md): AI agents: `werbot mcp`, `werbot agent run`, sponsors, runs, the baseline, limits, the kill switch, agent profiles.
+- [agents.md](docs/agents.md): AI agents: `werbot mcp` (`ssh_exec`, `db_query`), `werbot agent run`, sponsors, runs, the baseline, limits, the kill switch, agent profiles.
 - [migrate-from-boundary.md](docs/migrate-from-boundary.md): how HashiCorp Boundary objects map to Werbot, what you move by hand.
 
 The same pages are on the documentation site: https://docs.werbot.com. A demo stack is in [`deploy/demo/`](deploy/demo/). The MCP Registry entry is [`server.json`](server.json).
@@ -129,7 +129,7 @@ The API covers identity (auth, profile, SSH keys, members, teams) and, for owner
 - `LockService` (owners and admins): locks on a user, team, resource, grant, CLI session, agent, agent run, the agents of a user or all agents; a lock beats every binding and grant and ends matching sessions within 2 s ([docs/jit.md](docs/jit.md#locks)).
 - Organization settings (owners and admins, web UI `/settings`): CLI session lifetimes, grant and request lengths, `lock_mode` and `mask_output` (`agents` by default, `all` or `none`: whose exec output the gateway masks) ([docs/jit.md](docs/jit.md#organization-settings)).
 - `PolicyService`: per-resource network, country and schedule (UTC) rules, and `CheckAccess` to test a decision (optional `port`; 0 tests a terminal or exec session). Decisions use Cedar and fail closed.
-- `PolicyService` command policies (owners and admins, web UI `/policies/commands` and `/policies/custom`): the gateway sorts each exec command into risk classes, and class overrides, command rules (`deny` or `approval`) and custom Cedar policies decide it; a command under `approval` waits until an approver decides on `/requests`. Details: [docs/policies.md](docs/policies.md).
+- `PolicyService` command policies (owners and admins, web UI `/policies/commands` and `/policies/custom`): the gateway sorts each exec command and each SQL query into risk classes, and class overrides, command rules (`deny` or `approval`) and custom Cedar policies decide it; a command under `approval` waits until an approver decides on `/requests`. Details: [docs/policies.md](docs/policies.md).
 - `PolicyService` folder and terminal rules (owners and admins, web UI `/policies/paths` and `/policies/terminal`): folder rules limit the paths a command may touch, and terminal rules open interactive shells as a command console that checks every line, or refuse them ([docs/policies.md](docs/policies.md#folders)).
 - `AgentService`, `AgentProfileService` (web UI `/agents`): agents with their limits and status, runs with their timeline (tool calls, sessions, approvals, denials), resume and end, and agent profiles for another OS user or a container ([docs/agents.md](docs/agents.md)).
 - `SessionService`: session list (filters by user, resource, period, status; paging; each session carries its `kind` (`terminal`, `exec`, `stream`, `datagram`), `target`, the `command` it ran (if any) with its classes, and byte and datagram counters), session card and `VerifyRecording` (hash chain and signature check). Members see only their own sessions. `TerminateSession` ends a running session within 2 seconds (owners and admins any session, a member their own; the user sees `Session closed: terminated`, the reason stays in the audit log).
@@ -170,7 +170,7 @@ make e2e-network  # Docker Compose e2e: SSH, telnet, TCP and UDP through a gatew
 make e2e-cluster  # Go scenarios (test/cluster, tag `cluster`: topology, cross-replica login, binding propagation, bootstrap, GeoIP reload, Postgres restart, shared pool host key, replica kill, lost instance, gateway max sessions, servers down fail-closed, S3 outage, join token revocation and exhaustion, separate web UI behind `werbot web` replicas, `werbot connect` TCP and UDP through the pool with an instance kill; phase 2: web terminal, live view and terminate across replicas, a killed bridge replica, relay unavailable when the internal listener is down, command approval on the other replica, grant expiry while a replica is killed, the agent action limit across replicas, `werbot login --device` through a separate web replica) on a stand of 2 server, 2 web and 2 gateway replicas behind nginx
 make load         # manual load tests L1–L5 (test/load, tag `load`) on the same stand; Linux only
 make redteam      # red-team scenarios: Go (test/redteam, tag `redteam`) on the cluster stand, then the browser SSO scenario (web/redteam) with Keycloak; needs `make dev-db` and free ports 18080 and 18180; uses the `10.231.x` subnets of `make e2e-cluster`, so run one stand per host
-make fuzz         # Go fuzz targets of the command classifier, the datagram frame, the stream frame and the PostgreSQL protocol relay
+make fuzz         # Go fuzz targets of the command classifier, the SQL classifier, the datagram frame, the stream frame and the PostgreSQL protocol relay
 make bench-hot    # hot-path budgets of the database connectors (TestHotPath* in HOT_PKGS) against `make dev-db`; run alone
 make e2e-databases  # connector tests against the databases stand (deploy/e2e/databases.yaml: PostgreSQL 18 with TLS on 127.0.0.1:15432); needs docker and a free port 15432
 make site         # builds the documentation site into `site/dist` from `docs/`

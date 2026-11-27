@@ -14,6 +14,7 @@ import UdpConfigForm from './UdpConfigForm.svelte';
 import PostgresConfigForm from './PostgresConfigForm.svelte';
 import JsonConfigForm from './JsonConfigForm.svelte';
 import { parsePorts } from './ports';
+import { splitList } from '#lib/resources/agentCredential.js';
 
 export type ConfigValue = { config?: Any; configJson?: string };
 export type ConfigFormProps = { type: ResourceType; initial?: Resource; onchange: (v: ConfigValue) => void };
@@ -68,8 +69,9 @@ export type PostgresFields = {
 	caPem: string;
 	recordParams: boolean;
 	username: string;
-	/** fields the form does not show; an edit keeps them */
-	keep?: { secretTables: string[]; agentUsername: string };
+	/** comma separated table globs whose reads are class secrets */
+	secretTables: string;
+	agentUsername: string;
 };
 
 // Throws when the server would refuse the port, sslmode or a verify-ca without ca_pem; the form treats that as an invalid value.
@@ -78,7 +80,12 @@ export function postgresConfigValue(v: PostgresFields): ConfigValue {
 	if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('port out of range');
 	if (!sslmodes.includes(v.sslmode)) throw new Error('unknown sslmode');
 	if (v.sslmode === 'verify-ca' && !v.caPem.trim()) throw new Error('verify-ca needs ca_pem');
-	const allowedDatabases = v.allowedDatabases.split(',').map((s) => s.trim()).filter(Boolean);
-	const { host, database, sslmode, caPem, recordParams, username } = v;
-	return { config: anyPack(PostgresConfigSchema, create(PostgresConfigSchema, { host, port, database, allowedDatabases, sslmode, caPem, recordParams, username, ...v.keep })) };
+	const [allowedDatabases, secretTables] = [splitList(v.allowedDatabases), splitList(v.secretTables)];
+	const { host, database, sslmode, caPem, recordParams, username, agentUsername } = v;
+	return {
+		config: anyPack(
+			PostgresConfigSchema,
+			create(PostgresConfigSchema, { host, port, database, allowedDatabases, sslmode, caPem, recordParams, username, secretTables, agentUsername })
+		)
+	};
 }

@@ -37,6 +37,7 @@
 		<legend>{m.policies_commands_classes()}</legend>
 		<ClassPicker bind:selected={draft.classes} />
 		{#if classesError}<p class="hint hint--error">{m.policies_commands_classes_required()}</p>{/if}
+		<p class="hint">{m.policies_commands_opaque_hint()}</p>
 	</fieldset>
 
 	<fieldset>

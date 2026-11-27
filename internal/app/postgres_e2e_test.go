@@ -181,7 +181,10 @@ func endedSession(t *testing.T, s *stack, resource uuid.UUID) uuid.UUID {
 
 // querylogLine is what the test reads of a querylog line.
 type querylogLine struct {
-	Kind string `json:"kind"`
+	Kind     string   `json:"kind"`
+	SQL      string   `json:"sql"`
+	Classes  []string `json:"classes"`
+	Decision string   `json:"decision"`
 }
 
 // querylog waits up to 20s for the verified querylog of session sid; the

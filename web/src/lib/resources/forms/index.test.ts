@@ -69,10 +69,10 @@ test('spaces inside a range are rejected', () => {
 	expect(() => parsePorts('22 - 80')).toThrow();
 });
 
-const pg = { host: 'db', port: '5432', database: 'app', allowedDatabases: 'app, reports_* ,', sslmode: 'verify-full', caPem: '', recordParams: true, username: 'svc' };
+const pg = { host: 'db', port: '5432', database: 'app', allowedDatabases: 'app, reports_* ,', sslmode: 'verify-full', caPem: '', recordParams: true, username: 'svc', secretTables: '', agentUsername: '' };
 
-test('postgres value round-trips and splits allowed databases', () => {
-	const c = anyUnpack(postgresConfigValue({ ...pg, keep: { secretTables: ['t'], agentUsername: 'ro' } }).config!, PostgresConfigSchema);
+test('postgres value round-trips and splits allowed databases and secret tables', () => {
+	const c = anyUnpack(postgresConfigValue({ ...pg, secretTables: ' t ,', agentUsername: 'ro' }).config!, PostgresConfigSchema);
 	expect(c).toMatchObject({ host: 'db', port: 5432, database: 'app', allowedDatabases: ['app', 'reports_*'], sslmode: 'verify-full', recordParams: true, username: 'svc', secretTables: ['t'], agentUsername: 'ro' });
 });
 
