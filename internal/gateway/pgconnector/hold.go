@@ -49,10 +49,8 @@ func (c *clientSide) frame(typ byte, body []byte, n int, src io.Reader) error {
 	if typ == 'S' {
 		c.skipping = false
 	}
-	if c.agent != nil {
-		if err := c.cycle(typ); err != nil {
-			return err
-		}
+	if err := c.cycle(typ); err != nil {
+		return err
 	}
 	if body == nil {
 		return c.stream(typ, n, src)

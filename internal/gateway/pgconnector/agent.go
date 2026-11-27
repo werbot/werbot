@@ -91,17 +91,20 @@ func (a *agentWriter) connect(ctx context.Context, secret gateway.Secret) (*pgco
 
 // cycle keeps an agent session unpipelined: the first message of a query,
 // a function call or an extended batch goes on only once the database
-// answered everything before it.
+// answered everything before it. A person's waits so only after an
+// operation that may change the lexing settings, so its text is classified
+// under the settings the database reports.
 // ponytail: a query sent inside an unsynced batch is not held back; the
 // batch has no ReadyForQuery to wait for.
 func (c *clientSide) cycle(typ byte) error {
 	if strings.IndexByte("PBEDCHSQF", typ) < 0 { // COPY data, Terminate
 		return nil
 	}
-	if !c.inCycle {
+	if !c.inCycle && (c.agent != nil || c.relex) {
 		if _, err := c.waitIdle(); err != nil {
 			return err
 		}
+		c.relex = false
 	}
 	c.inCycle = typ != 'S' && typ != 'Q' && typ != 'F'
 	return nil

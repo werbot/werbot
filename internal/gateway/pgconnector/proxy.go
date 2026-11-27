@@ -172,6 +172,11 @@ func (o *clientWriter) send(b []byte) error {
 
 // sendLimit tells the client which limit ended its session.
 func sendLimit(o *clientWriter, e *limitErr) {
+	_ = o.send(limitMessage(e)) // the session ends right after
+}
+
+// limitMessage is the FATAL 54000 of a broken relay limit.
+func limitMessage(e *limitErr) []byte {
 	b, _ := (&pgproto3.ErrorResponse{Severity: "FATAL", SeverityUnlocalized: "FATAL", Code: "54000", Message: "werbot: " + e.msg}).Encode(nil)
-	_ = o.send(b) // the session ends right after
+	return b
 }

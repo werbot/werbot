@@ -38,7 +38,8 @@ type clientSide struct {
 	last    *item // the last query or execute: client COPY data counts to it
 
 	skipping  bool // after a denied extended message: drop messages up to Sync
-	inCycle   bool // an agent's extended batch waits for its Sync
+	inCycle   bool // an extended batch waits for its Sync
+	relex     bool // an allowed operation may change the lexing settings
 	replaying bool // the messages of a decided held batch are being sent
 
 	query pgproto3.Query
@@ -249,9 +250,9 @@ func (c *clientSide) bigBind(n int) error {
 
 // checked asks the guard about op and makes the item of its message; an
 // operation it does not allow is a *held. While the session lexes text
-// unlike the classifier, op is opaque.
+// unlike the classifier, or may since an operation of this cycle, op is opaque.
 func (c *clientSide) checked(kind byte, op dbproxy.Op) (*item, error) {
-	op.Opaque = c.lex.unsafe.Load()
+	op.Opaque = c.lex.unsafe.Load() || c.relex
 	v, err := c.g.Check(c.ctx, op)
 	if err != nil {
 		return nil, err
@@ -274,6 +275,7 @@ func (c *clientSide) allowed(kind byte, op dbproxy.Op, v dbproxy.Verdict) *item 
 	if kind == 'Q' || kind == 'E' {
 		c.last = it
 	}
+	c.relex = c.relex || (kind != 'P' && relexes(v.Classes))
 	return it
 }
 

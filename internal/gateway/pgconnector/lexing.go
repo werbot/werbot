@@ -6,6 +6,8 @@ import (
 	"sync/atomic"
 
 	"github.com/jackc/pgx/v5/pgproto3"
+
+	"github.com/werbot/werbot/internal/platform/shellclass"
 )
 
 // clientOnlyEncodings are the client encodings whose multibyte characters
@@ -49,4 +51,11 @@ func (l *lexing) status(body []byte) {
 
 func (l *lexing) check() {
 	l.unsafe.Store(l.scs != "on" || slices.Contains(clientOnlyEncodings, strings.ToUpper(l.enc)))
+}
+
+// relexes reports whether an operation of classes may change the lexing
+// settings: a privilege one (SET, RESET or set_config of a protected
+// setting) or an opaque one (DO, an unknown function).
+func relexes(classes []string) bool {
+	return slices.Contains(classes, string(shellclass.Privilege)) || slices.Contains(classes, string(shellclass.Opaque))
 }

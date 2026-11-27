@@ -25,9 +25,10 @@ type dbSide struct {
 	q      *queue
 	g      *dbproxy.Guard
 	sess   sessionLog
-	cur    *item // the head of q once looked up
-	copyIn bool  // cur runs a COPY FROM STDIN
-	skip   bool  // an extended message failed: the database skips to the next Sync
+	lim    *limiter // nil: rows stream through untouched
+	cur    *item    // the head of q once looked up
+	copyIn bool     // cur runs a COPY FROM STDIN
+	skip   bool     // an extended message failed: the database skips to the next Sync
 	buf    []byte
 	er     pgproto3.ErrorResponse
 }
@@ -45,11 +46,12 @@ func (d *dbSide) next() error {
 	}
 	d.out.mu.Lock()
 	defer d.out.mu.Unlock()
-	if _, err := d.w.Write(h); err != nil {
-		return err
+	if d.lim != nil {
+		err = d.limited(h, typ, size-4)
+	} else {
+		err = d.forward(h, typ, size-4)
 	}
-	_, _ = d.r.Discard(5)
-	if err := d.message(typ, size-4); err != nil {
+	if err != nil {
 		return err
 	}
 	if d.r.Buffered() == 0 {
@@ -58,16 +60,29 @@ func (d *dbSide) next() error {
 	return nil
 }
 
+// forward writes the peeked header h of a reply and forwards its n body bytes.
+func (d *dbSide) forward(h []byte, typ byte, n int) error {
+	if _, err := d.w.Write(h); err != nil {
+		return err
+	}
+	_, _ = d.r.Discard(5)
+	return d.message(typ, n)
+}
+
+// header writes the header of a reply of n body bytes.
+func (d *dbSide) header(typ byte, n int) error {
+	var h [5]byte
+	h[0] = typ
+	binary.BigEndian.PutUint32(h[1:], uint32(n+4)) //nolint:gosec // n came from a 32-bit length
+	_, err := d.w.Write(h[:])
+	return err
+}
+
 // message forwards the body of a reply and applies it to the queue.
 func (d *dbSide) message(typ byte, n int) error {
 	switch typ {
 	case 'D', 'd': // DataRow, CopyData
-		if it := d.head(); it != nil {
-			it.bytes += int64(n)
-			if typ == 'D' {
-				it.dataRows++
-			}
-		}
+		d.count(typ, n)
 	case 'C', 'E', 'Z', 'S':
 		if n <= maxReply {
 			return d.parsed(typ, n)
@@ -82,13 +97,20 @@ func (d *dbSide) message(typ byte, n int) error {
 	return nil
 }
 
+// count adds a DataRow or CopyData of n bytes to the head's querylog line.
+func (d *dbSide) count(typ byte, n int) {
+	if it := d.head(); it != nil {
+		it.bytes += int64(n)
+		if typ == 'D' {
+			it.dataRows++
+		}
+	}
+}
+
 // parsed forwards a reply read whole and applies it.
 func (d *dbSide) parsed(typ byte, n int) error {
-	if cap(d.buf) < n {
-		d.buf = make([]byte, n)
-	}
-	body := d.buf[:n]
-	if _, err := io.ReadFull(d.r, body); err != nil {
+	body, err := d.read(n)
+	if err != nil {
 		return err
 	}
 	if _, err := d.w.Write(body); err != nil {
@@ -98,10 +120,21 @@ func (d *dbSide) parsed(typ byte, n int) error {
 		d.lex.status(body)
 	}
 	d.reply(typ, body)
+	return nil
+}
+
+// read reads the next n body bytes into d.buf, which a large body does not
+// keep past its message.
+func (d *dbSide) read(n int) ([]byte, error) {
+	if cap(d.buf) < n {
+		d.buf = make([]byte, n)
+	}
+	body := d.buf[:n]
 	if cap(d.buf) > keepBuf {
 		d.buf = nil
 	}
-	return nil
+	_, err := io.ReadFull(d.r, body)
+	return body, err
 }
 
 // pops maps a reply to the queued message it completes without a line:
