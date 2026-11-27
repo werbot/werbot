@@ -28,6 +28,12 @@ SELECT user_id FROM membership WHERE org_id = @org_id AND user_id = ANY(@user_id
 -- name: SessionOfInstanceExists :one
 SELECT EXISTS (SELECT 1 FROM session WHERE id = @id AND org_id = @org_id AND gateway_instance_id = @instance_id::uuid);
 
+-- name: OpenAgentSession :one
+-- An open session of an agent run served by the instance.
+SELECT agent_run_id::uuid AS agent_run_id, resource_id::uuid AS resource_id FROM session
+WHERE id = @id AND org_id = @org_id AND gateway_instance_id = @instance_id::uuid AND ended_at IS NULL
+  AND agent_run_id IS NOT NULL AND resource_id IS NOT NULL;
+
 -- name: SessionInOrg :one
 SELECT EXISTS (SELECT 1 FROM session WHERE id = @id AND org_id = @org_id);
 

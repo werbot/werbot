@@ -76,6 +76,12 @@ const (
 	// TunnelServiceGetMFAChallengeProcedure is the fully-qualified name of the TunnelService's
 	// GetMFAChallenge RPC.
 	TunnelServiceGetMFAChallengeProcedure = "/gateway.v1.TunnelService/GetMFAChallenge"
+	// TunnelServiceGetWriteCredentialProcedure is the fully-qualified name of the TunnelService's
+	// GetWriteCredential RPC.
+	TunnelServiceGetWriteCredentialProcedure = "/gateway.v1.TunnelService/GetWriteCredential"
+	// TunnelServiceGetProbeCredentialProcedure is the fully-qualified name of the TunnelService's
+	// GetProbeCredential RPC.
+	TunnelServiceGetProbeCredentialProcedure = "/gateway.v1.TunnelService/GetProbeCredential"
 )
 
 // TunnelServiceClient is a client for the gateway.v1.TunnelService service.
@@ -98,6 +104,12 @@ type TunnelServiceClient interface {
 	CreateMFAChallenge(context.Context, *connect.Request[v1.CreateMFAChallengeRequest]) (*connect.Response[v1.CreateMFAChallengeResponse], error)
 	VerifyMFATOTP(context.Context, *connect.Request[v1.VerifyMFATOTPRequest]) (*connect.Response[v1.VerifyMFATOTPResponse], error)
 	GetMFAChallenge(context.Context, *connect.Request[v1.GetMFAChallengeRequest]) (*connect.Response[v1.GetMFAChallengeResponse], error)
+	// GetWriteCredential returns the primary credential for one approved write
+	// of an open agent session of the caller.
+	GetWriteCredential(context.Context, *connect.Request[v1.GetWriteCredentialRequest]) (*connect.Response[v1.GetWriteCredentialResponse], error)
+	// GetProbeCredential returns the agent_readonly credential of a resource of
+	// the caller's pool for its read-only check, with the check version.
+	GetProbeCredential(context.Context, *connect.Request[v1.GetProbeCredentialRequest]) (*connect.Response[v1.GetProbeCredentialResponse], error)
 }
 
 // NewTunnelServiceClient constructs a client for the gateway.v1.TunnelService service. By default,
@@ -201,6 +213,18 @@ func NewTunnelServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(tunnelServiceMethods.ByName("GetMFAChallenge")),
 			connect.WithClientOptions(opts...),
 		),
+		getWriteCredential: connect.NewClient[v1.GetWriteCredentialRequest, v1.GetWriteCredentialResponse](
+			httpClient,
+			baseURL+TunnelServiceGetWriteCredentialProcedure,
+			connect.WithSchema(tunnelServiceMethods.ByName("GetWriteCredential")),
+			connect.WithClientOptions(opts...),
+		),
+		getProbeCredential: connect.NewClient[v1.GetProbeCredentialRequest, v1.GetProbeCredentialResponse](
+			httpClient,
+			baseURL+TunnelServiceGetProbeCredentialProcedure,
+			connect.WithSchema(tunnelServiceMethods.ByName("GetProbeCredential")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -221,6 +245,8 @@ type tunnelServiceClient struct {
 	createMFAChallenge   *connect.Client[v1.CreateMFAChallengeRequest, v1.CreateMFAChallengeResponse]
 	verifyMFATOTP        *connect.Client[v1.VerifyMFATOTPRequest, v1.VerifyMFATOTPResponse]
 	getMFAChallenge      *connect.Client[v1.GetMFAChallengeRequest, v1.GetMFAChallengeResponse]
+	getWriteCredential   *connect.Client[v1.GetWriteCredentialRequest, v1.GetWriteCredentialResponse]
+	getProbeCredential   *connect.Client[v1.GetProbeCredentialRequest, v1.GetProbeCredentialResponse]
 }
 
 // Connect calls gateway.v1.TunnelService.Connect.
@@ -298,6 +324,16 @@ func (c *tunnelServiceClient) GetMFAChallenge(ctx context.Context, req *connect.
 	return c.getMFAChallenge.CallUnary(ctx, req)
 }
 
+// GetWriteCredential calls gateway.v1.TunnelService.GetWriteCredential.
+func (c *tunnelServiceClient) GetWriteCredential(ctx context.Context, req *connect.Request[v1.GetWriteCredentialRequest]) (*connect.Response[v1.GetWriteCredentialResponse], error) {
+	return c.getWriteCredential.CallUnary(ctx, req)
+}
+
+// GetProbeCredential calls gateway.v1.TunnelService.GetProbeCredential.
+func (c *tunnelServiceClient) GetProbeCredential(ctx context.Context, req *connect.Request[v1.GetProbeCredentialRequest]) (*connect.Response[v1.GetProbeCredentialResponse], error) {
+	return c.getProbeCredential.CallUnary(ctx, req)
+}
+
 // TunnelServiceHandler is an implementation of the gateway.v1.TunnelService service.
 type TunnelServiceHandler interface {
 	// Connect carries heartbeats up and policy snapshots down.
@@ -318,6 +354,12 @@ type TunnelServiceHandler interface {
 	CreateMFAChallenge(context.Context, *connect.Request[v1.CreateMFAChallengeRequest]) (*connect.Response[v1.CreateMFAChallengeResponse], error)
 	VerifyMFATOTP(context.Context, *connect.Request[v1.VerifyMFATOTPRequest]) (*connect.Response[v1.VerifyMFATOTPResponse], error)
 	GetMFAChallenge(context.Context, *connect.Request[v1.GetMFAChallengeRequest]) (*connect.Response[v1.GetMFAChallengeResponse], error)
+	// GetWriteCredential returns the primary credential for one approved write
+	// of an open agent session of the caller.
+	GetWriteCredential(context.Context, *connect.Request[v1.GetWriteCredentialRequest]) (*connect.Response[v1.GetWriteCredentialResponse], error)
+	// GetProbeCredential returns the agent_readonly credential of a resource of
+	// the caller's pool for its read-only check, with the check version.
+	GetProbeCredential(context.Context, *connect.Request[v1.GetProbeCredentialRequest]) (*connect.Response[v1.GetProbeCredentialResponse], error)
 }
 
 // NewTunnelServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -417,6 +459,18 @@ func NewTunnelServiceHandler(svc TunnelServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(tunnelServiceMethods.ByName("GetMFAChallenge")),
 		connect.WithHandlerOptions(opts...),
 	)
+	tunnelServiceGetWriteCredentialHandler := connect.NewUnaryHandler(
+		TunnelServiceGetWriteCredentialProcedure,
+		svc.GetWriteCredential,
+		connect.WithSchema(tunnelServiceMethods.ByName("GetWriteCredential")),
+		connect.WithHandlerOptions(opts...),
+	)
+	tunnelServiceGetProbeCredentialHandler := connect.NewUnaryHandler(
+		TunnelServiceGetProbeCredentialProcedure,
+		svc.GetProbeCredential,
+		connect.WithSchema(tunnelServiceMethods.ByName("GetProbeCredential")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/gateway.v1.TunnelService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case TunnelServiceConnectProcedure:
@@ -449,6 +503,10 @@ func NewTunnelServiceHandler(svc TunnelServiceHandler, opts ...connect.HandlerOp
 			tunnelServiceVerifyMFATOTPHandler.ServeHTTP(w, r)
 		case TunnelServiceGetMFAChallengeProcedure:
 			tunnelServiceGetMFAChallengeHandler.ServeHTTP(w, r)
+		case TunnelServiceGetWriteCredentialProcedure:
+			tunnelServiceGetWriteCredentialHandler.ServeHTTP(w, r)
+		case TunnelServiceGetProbeCredentialProcedure:
+			tunnelServiceGetProbeCredentialHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -516,4 +574,12 @@ func (UnimplementedTunnelServiceHandler) VerifyMFATOTP(context.Context, *connect
 
 func (UnimplementedTunnelServiceHandler) GetMFAChallenge(context.Context, *connect.Request[v1.GetMFAChallengeRequest]) (*connect.Response[v1.GetMFAChallengeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gateway.v1.TunnelService.GetMFAChallenge is not implemented"))
+}
+
+func (UnimplementedTunnelServiceHandler) GetWriteCredential(context.Context, *connect.Request[v1.GetWriteCredentialRequest]) (*connect.Response[v1.GetWriteCredentialResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gateway.v1.TunnelService.GetWriteCredential is not implemented"))
+}
+
+func (UnimplementedTunnelServiceHandler) GetProbeCredential(context.Context, *connect.Request[v1.GetProbeCredentialRequest]) (*connect.Response[v1.GetProbeCredentialResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gateway.v1.TunnelService.GetProbeCredential is not implemented"))
 }

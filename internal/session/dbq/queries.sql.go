@@ -675,6 +675,31 @@ func (q *Queries) ObservableSession(ctx context.Context, arg ObservableSessionPa
 	return instance_id, err
 }
 
+const openAgentSession = `-- name: OpenAgentSession :one
+SELECT agent_run_id::uuid AS agent_run_id, resource_id::uuid AS resource_id FROM session
+WHERE id = $1 AND org_id = $2 AND gateway_instance_id = $3::uuid AND ended_at IS NULL
+  AND agent_run_id IS NOT NULL AND resource_id IS NOT NULL
+`
+
+type OpenAgentSessionParams struct {
+	ID         uuid.UUID
+	OrgID      uuid.UUID
+	InstanceID uuid.UUID
+}
+
+type OpenAgentSessionRow struct {
+	AgentRunID uuid.UUID
+	ResourceID uuid.UUID
+}
+
+// An open session of an agent run served by the instance.
+func (q *Queries) OpenAgentSession(ctx context.Context, arg OpenAgentSessionParams) (OpenAgentSessionRow, error) {
+	row := q.db.QueryRow(ctx, openAgentSession, arg.ID, arg.OrgID, arg.InstanceID)
+	var i OpenAgentSessionRow
+	err := row.Scan(&i.AgentRunID, &i.ResourceID)
+	return i, err
+}
+
 const pendingTerminations = `-- name: PendingTerminations :one
 SELECT coalesce(array_agg(id ORDER BY id), '{}')::uuid[] AS ids
 FROM session

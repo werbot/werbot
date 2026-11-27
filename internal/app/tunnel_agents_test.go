@@ -75,7 +75,8 @@ func TestAuthenticateUserAgentCert(t *testing.T) {
 	u, err := byCert(agent, run)
 	require.NoError(t, err)
 	assert.Equal(t, s.f.MemberID, u.ID)
-	assert.Equal(t, &tunnel.AgentRef{AgentID: agent, RunID: run}, u.Agent)
+	assert.Equal(t, agent, u.Agent.AgentID)
+	assert.Equal(t, run, u.Agent.RunID)
 
 	_, err = byCert(other, run)
 	require.ErrorIs(t, err, apperr.ErrUnauthenticated, "another agent's certificate")

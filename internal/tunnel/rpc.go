@@ -125,7 +125,7 @@ func (h *Handler) StartSession(ctx context.Context, req *connect.Request[gateway
 	if err != nil {
 		return nil, err
 	}
-	secret, err := h.d.Credentials.Reveal(ctx, g.OrgID, s.ResourceID, typ)
+	secret, err := h.d.Credentials.Reveal(ctx, g.OrgID, s.ResourceID, typ, s.AgentRunID != nil)
 	if err != nil {
 		return nil, h.fail(ctx, "reveal credential", err)
 	}
@@ -136,8 +136,7 @@ func (h *Handler) StartSession(ctx context.Context, req *connect.Request[gateway
 	if err := h.d.Recordings.Begin(ctx, g.OrgID, id); err != nil {
 		return nil, h.unrecorded(ctx, g, id, err)
 	}
-	return connect.NewResponse(&gatewayv1.StartSessionResponse{SessionId: id.String(),
-		Credential: &gatewayv1.Credential{Kind: secret.Kind, Value: secret.Value}}), nil
+	return connect.NewResponse(&gatewayv1.StartSessionResponse{SessionId: id.String(), Credential: credentialOf(secret)}), nil
 }
 
 // unrecorded ends session id, whose recording failed to begin with err, and answers Unavailable.

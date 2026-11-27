@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/werbot/werbot/internal/inventory/dbq"
+	"github.com/werbot/werbot/internal/platform/auditlog"
 )
 
 // Health states of a resource.
@@ -27,6 +28,11 @@ type Health struct {
 	OK         bool
 	Error      string
 	CheckedAt  time.Time
+	// AgentReadonlyStatus is a check of the agent_readonly credential (ok,
+	// has_write or error; empty: none in this result) of check version
+	// AgentReadonlyVersion, with its findings.
+	AgentReadonlyStatus, AgentReadonlyDetail string
+	AgentReadonlyVersion                     int64
 }
 
 // HealthStatus is the state of a resource over the online instances of its pool:
@@ -61,7 +67,43 @@ func (s *Service) ReportHealth(ctx context.Context, orgID, instanceID uuid.UUID,
 		arg.Errors = append(arg.Errors, truncate(h.Error, maxHealthError))
 		arg.CheckedAts = append(arg.CheckedAts, h.CheckedAt)
 	}
-	return s.tx(ctx, orgID, func(st Store, _ pgx.Tx) error { return st.UpsertResourceHealth(ctx, arg) })
+	return s.tx(ctx, orgID, func(st Store, tx pgx.Tx) error {
+		if err := st.UpsertResourceHealth(ctx, arg); err != nil {
+			return err
+		}
+		return setAgentReadonly(ctx, st, tx, orgID, instanceID, hs)
+	})
+}
+
+// setAgentReadonly stores the agent_readonly checks of hs that match the
+// current check version and audits each change of status or detail.
+func setAgentReadonly(ctx context.Context, st Store, tx pgx.Tx, orgID, instanceID uuid.UUID, hs []Health) error {
+	arg := dbq.SetAgentReadonlyCheckedParams{OrgID: orgID, InstanceID: instanceID}
+	for _, h := range hs {
+		if h.AgentReadonlyStatus == "" {
+			continue
+		}
+		arg.ResourceIds = append(arg.ResourceIds, h.ResourceID)
+		arg.Statuses = append(arg.Statuses, h.AgentReadonlyStatus)
+		arg.Details = append(arg.Details, truncate(h.AgentReadonlyDetail, maxHealthError))
+		arg.Versions = append(arg.Versions, h.AgentReadonlyVersion)
+		arg.CheckedAts = append(arg.CheckedAts, h.CheckedAt)
+	}
+	if len(arg.ResourceIds) == 0 {
+		return nil
+	}
+	rows, err := st.SetAgentReadonlyChecked(ctx, arg)
+	if err != nil {
+		return err
+	}
+	for _, r := range rows {
+		e := auditlog.Event{OrgID: &orgID, ActorKind: "gateway", Action: "resource.agent_readonly.check", TargetType: "resource",
+			TargetID: r.ID.String(), Data: map[string]any{"status": r.AgentReadonlyStatus, "detail": r.AgentReadonlyDetail}}
+		if err := auditlog.Write(ctx, tx, e); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // truncate cuts s to n bytes and drops any rune cut in half.

@@ -279,7 +279,8 @@ func heartbeatHealth(in []*gatewayv1.ResourceHealth) (out []ResourceHealth, drop
 			dropped++
 			continue
 		}
-		out = append(out, ResourceHealth{ResourceID: id, OK: h.GetOk(), Error: h.GetError(), CheckedAt: h.GetCheckedAt().AsTime()})
+		out = append(out, ResourceHealth{ResourceID: id, OK: h.GetOk(), Error: h.GetError(), CheckedAt: h.GetCheckedAt().AsTime(),
+			AgentReadonlyStatus: h.GetAgentReadonlyStatus(), AgentReadonlyDetail: h.GetAgentReadonlyDetail(), AgentReadonlyVersion: h.GetAgentReadonlyVersion()})
 	}
 	return out, dropped
 }

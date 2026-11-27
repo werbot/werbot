@@ -9,6 +9,17 @@ message AgentInfo {
   string agent_id = 1;
   string run_id = 2;
   string sponsor_user_id = 3;
+  // the run's limits in databases, defaults applied
+  AgentLimits limits = 4;
+}
+
+// AgentLimits bound an agent's database session: rows and bytes of one
+// result, the time of one statement and the queries of the session.
+message AgentLimits {
+  int32 max_rows = 1;
+  int64 max_result_bytes = 2;
+  int32 statement_timeout_ms = 3;
+  int32 max_queries = 4;
 }
 
 // RecordDenialRequest reports an action of an agent run the gateway refused

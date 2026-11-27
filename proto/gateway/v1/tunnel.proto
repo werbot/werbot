@@ -29,6 +29,12 @@ service TunnelService {
   rpc CreateMFAChallenge(CreateMFAChallengeRequest) returns (CreateMFAChallengeResponse);
   rpc VerifyMFATOTP(VerifyMFATOTPRequest) returns (VerifyMFATOTPResponse);
   rpc GetMFAChallenge(GetMFAChallengeRequest) returns (GetMFAChallengeResponse);
+  // GetWriteCredential returns the primary credential for one approved write
+  // of an open agent session of the caller.
+  rpc GetWriteCredential(GetWriteCredentialRequest) returns (GetWriteCredentialResponse);
+  // GetProbeCredential returns the agent_readonly credential of a resource of
+  // the caller's pool for its read-only check, with the check version.
+  rpc GetProbeCredential(GetProbeCredentialRequest) returns (GetProbeCredentialResponse);
 }
 
 message ConnectRequest {
@@ -99,6 +105,12 @@ message ResourceHealth {
   // the gateway truncates; the bound keeps a full heartbeat under the 4 MiB read limit
   string error = 3 [(buf.validate.field).string.max_bytes = 100];
   google.protobuf.Timestamp checked_at = 4;
+  // the check of the agent_readonly credential; empty: no check in this result
+  string agent_readonly_status = 5 [(buf.validate.field).string = {in: ["", "ok", "has_write", "error"]}];
+  // its findings (the gateway truncates)
+  string agent_readonly_detail = 6 [(buf.validate.field).string.max_bytes = 512];
+  // the check version from GetProbeCredential; the server ignores another one
+  int64 agent_readonly_version = 7 [(buf.validate.field).int64.gte = 0];
 }
 
 // PoolInstances are the online instances of the caller's pool, sorted.
@@ -178,6 +190,8 @@ message Resource {
   google.protobuf.Duration max_duration = 6;
   // SHA256 fingerprint of the pinned target host key; empty: none pinned yet
   string host_key_sha256 = 8;
+  // the check of the agent_readonly credential: none, pending, ok, has_write or error
+  string agent_readonly_status = 7;
 }
 
 message AuthenticateUserRequest {
@@ -250,6 +264,29 @@ message StartSessionResponse {
 message Credential {
   string kind = 1;
   bytes value = 2;
+}
+
+message GetWriteCredentialRequest {
+  string session_id = 1 [(buf.validate.field).string.uuid = true];
+  string approval_id = 2 [(buf.validate.field).string.uuid = true];
+  // SHA-256 of the approved text (RequestApprovalRequest.command)
+  bytes op_sha256 = 3 [(buf.validate.field).bytes.len = 32];
+}
+
+message GetWriteCredentialResponse {
+  Credential credential = 1;
+}
+
+message GetProbeCredentialRequest {
+  string resource_id = 1 [(buf.validate.field).string.uuid = true];
+  // only agent_readonly is served
+  string slot = 2 [(buf.validate.field).string = {in: ["primary", "agent_readonly"]}];
+}
+
+message GetProbeCredentialResponse {
+  Credential credential = 1;
+  // greatest(credential.updated_at, resource.updated_at) in microseconds
+  int64 version = 2;
 }
 
 message EndSessionRequest {

@@ -233,6 +233,27 @@ ON CONFLICT (resource_id, gateway_instance_id)
 DO UPDATE SET ok = EXCLUDED.ok, error = EXCLUDED.error, checked_at = EXCLUDED.checked_at
 WHERE resource_health.checked_at <= EXCLUDED.checked_at;
 
+-- name: SetAgentReadonlyChecked :many
+-- Check results of the agent_readonly credential from an instance of the
+-- resource's pool. A result counts only for the current check version:
+-- greatest(updated_at of the credential, resource.updated_at) in microseconds;
+-- of repeated ids the newest wins; an unchanged status and detail is no change.
+-- resource.updated_at stays: it is part of the version.
+UPDATE resource r
+SET agent_readonly_status = h.status, agent_readonly_detail = h.detail
+FROM (SELECT DISTINCT ON (u.resource_id) u.resource_id, u.status, u.detail, u.version
+      FROM (SELECT unnest(@resource_ids::uuid[]) AS resource_id, unnest(@statuses::text[]) AS status,
+                   unnest(@details::text[]) AS detail, unnest(@versions::bigint[]) AS version,
+                   unnest(@checked_ats::timestamptz[]) AS checked_at) u
+      ORDER BY u.resource_id, u.checked_at DESC) h,
+     credential c, gateway_instance i
+WHERE r.id = h.resource_id AND r.org_id = @org_id
+  AND c.resource_id = r.id AND c.org_id = r.org_id AND c.slot = 'agent_readonly'
+  AND i.id = @instance_id AND i.org_id = @org_id AND i.gateway_id = r.gateway_id
+  AND (extract(epoch FROM greatest(c.updated_at, r.updated_at)) * 1000000)::bigint = h.version
+  AND (r.agent_readonly_status, r.agent_readonly_detail) IS DISTINCT FROM (h.status, h.detail)
+RETURNING r.id, r.agent_readonly_status, r.agent_readonly_detail;
+
 -- name: OnlineInstanceIDs :many
 SELECT id FROM gateway_instance
 WHERE gateway_id = @gateway_id AND last_seen_at > now() - interval '45 seconds'

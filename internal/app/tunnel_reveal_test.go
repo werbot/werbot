@@ -13,7 +13,7 @@ import (
 // empty secret without the credential service (nil here).
 func TestRevealSkipsTypesWithoutCredentials(t *testing.T) {
 	for _, typ := range []string{"tcp", "udp"} {
-		sec, err := tunnelCredentials{}.Reveal(context.Background(), uuid.New(), uuid.New(), typ)
+		sec, err := tunnelCredentials{}.Reveal(context.Background(), uuid.New(), uuid.New(), typ, false)
 		require.NoError(t, err, typ)
 		assert.Empty(t, sec, typ)
 	}

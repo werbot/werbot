@@ -238,3 +238,17 @@ func (s *Service) UpdateCounters(ctx context.Context, orgID, instanceID uuid.UUI
 		return newStore(tx).UpdateSessionCounters(ctx, arg)
 	})
 }
+
+// OpenAgentSession returns the agent run and resource of open session id of
+// instanceID; a closed session, a person's and another instance's are ErrNotFound.
+func (s *Service) OpenAgentSession(ctx context.Context, orgID, instanceID, id uuid.UUID) (runID, resourceID uuid.UUID, err error) {
+	var row dbq.OpenAgentSessionRow
+	err = dbx.ReadInOrg(s.pool, orgID, uuid.Nil, func(r *dbx.Read) (err error) {
+		row, err = newStore(r).OpenAgentSession(ctx, dbq.OpenAgentSessionParams{ID: id, OrgID: orgID, InstanceID: instanceID})
+		return err
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return uuid.Nil, uuid.Nil, fmt.Errorf("session not found: %w", apperr.ErrNotFound)
+	}
+	return row.AgentRunID, row.ResourceID, err
+}

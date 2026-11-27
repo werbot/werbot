@@ -51,6 +51,7 @@ type Store interface {
 	DeleteExpiredInstances(ctx context.Context) (int64, error)
 	OnlineInstanceIDs(ctx context.Context, gatewayID uuid.UUID) ([]uuid.UUID, error)
 	UpsertResourceHealth(ctx context.Context, arg dbq.UpsertResourceHealthParams) error
+	SetAgentReadonlyChecked(ctx context.Context, arg dbq.SetAgentReadonlyCheckedParams) ([]dbq.SetAgentReadonlyCheckedRow, error)
 
 	CreateJoinToken(ctx context.Context, arg dbq.CreateJoinTokenParams) (dbq.CreateJoinTokenRow, error)
 	ListJoinTokens(ctx context.Context, arg dbq.ListJoinTokensParams) ([]dbq.ListJoinTokensRow, error)
