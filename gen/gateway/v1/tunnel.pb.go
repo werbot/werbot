@@ -1072,8 +1072,11 @@ type Resource struct {
 	HostKeySha256 string `protobuf:"bytes,8,opt,name=host_key_sha256,json=hostKeySha256,proto3" json:"host_key_sha256,omitempty"`
 	// the check of the agent_readonly credential: none, pending, ok, has_write or error
 	AgentReadonlyStatus string `protobuf:"bytes,7,opt,name=agent_readonly_status,json=agentReadonlyStatus,proto3" json:"agent_readonly_status,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// resource.updated_at in microseconds: the configuration this snapshot
+	// carries; GetProbeCredential refuses a check of another one
+	ConfigVersion int64 `protobuf:"varint,9,opt,name=config_version,json=configVersion,proto3" json:"config_version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Resource) Reset() {
@@ -1160,6 +1163,13 @@ func (x *Resource) GetAgentReadonlyStatus() string {
 		return x.AgentReadonlyStatus
 	}
 	return ""
+}
+
+func (x *Resource) GetConfigVersion() int64 {
+	if x != nil {
+		return x.ConfigVersion
+	}
+	return 0
 }
 
 type AuthenticateUserRequest struct {
@@ -1831,7 +1841,10 @@ type GetProbeCredentialRequest struct {
 	state      protoimpl.MessageState `protogen:"open.v1"`
 	ResourceId string                 `protobuf:"bytes,1,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
 	// only agent_readonly is served
-	Slot          string `protobuf:"bytes,2,opt,name=slot,proto3" json:"slot,omitempty"`
+	Slot string `protobuf:"bytes,2,opt,name=slot,proto3" json:"slot,omitempty"`
+	// Resource.config_version of the snapshot the check reads its configuration
+	// from; the server refuses the call when the resource changed since
+	ConfigVersion int64 `protobuf:"varint,3,opt,name=config_version,json=configVersion,proto3" json:"config_version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1878,6 +1891,13 @@ func (x *GetProbeCredentialRequest) GetSlot() string {
 		return x.Slot
 	}
 	return ""
+}
+
+func (x *GetProbeCredentialRequest) GetConfigVersion() int64 {
+	if x != nil {
+		return x.ConfigVersion
+	}
+	return 0
 }
 
 type GetProbeCredentialResponse struct {
@@ -2823,7 +2843,7 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\x06effect\x18\x04 \x01(\tR\x06effect\"<\n" +
 	"\x06Member\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x19\n" +
-	"\bteam_ids\x18\x02 \x03(\tR\ateamIds\"\xbb\x02\n" +
+	"\bteam_ids\x18\x02 \x03(\tR\ateamIds\"\xe2\x02\n" +
 	"\bResource\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
@@ -2833,7 +2853,8 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\fidle_timeout\x18\x05 \x01(\v2\x19.google.protobuf.DurationR\vidleTimeout\x12<\n" +
 	"\fmax_duration\x18\x06 \x01(\v2\x19.google.protobuf.DurationR\vmaxDuration\x12&\n" +
 	"\x0fhost_key_sha256\x18\b \x01(\tR\rhostKeySha256\x122\n" +
-	"\x15agent_readonly_status\x18\a \x01(\tR\x13agentReadonlyStatus\"\x8a\x02\n" +
+	"\x15agent_readonly_status\x18\a \x01(\tR\x13agentReadonlyStatus\x12%\n" +
+	"\x0econfig_version\x18\t \x01(\x03R\rconfigVersion\"\x8a\x02\n" +
 	"\x17AuthenticateUserRequest\x12;\n" +
 	"\x12fingerprint_sha256\x18\x01 \x01(\tB\n" +
 	"\xbaH\ar\x05\x10\x01\x18\x80\x01H\x00R\x11fingerprintSha256\x12\"\n" +
@@ -2901,11 +2922,12 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\x1aGetWriteCredentialResponse\x126\n" +
 	"\n" +
 	"credential\x18\x01 \x01(\v2\x16.gateway.v1.CredentialR\n" +
-	"credential\"z\n" +
+	"credential\"\xaa\x01\n" +
 	"\x19GetProbeCredentialRequest\x12)\n" +
 	"\vresource_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\n" +
 	"resourceId\x122\n" +
-	"\x04slot\x18\x02 \x01(\tB\x1e\xbaH\x1br\x19R\aprimaryR\x0eagent_readonlyR\x04slot\"n\n" +
+	"\x04slot\x18\x02 \x01(\tB\x1e\xbaH\x1br\x19R\aprimaryR\x0eagent_readonlyR\x04slot\x12.\n" +
+	"\x0econfig_version\x18\x03 \x01(\x03B\a\xbaH\x04\"\x02 \x00R\rconfigVersion\"n\n" +
 	"\x1aGetProbeCredentialResponse\x126\n" +
 	"\n" +
 	"credential\x18\x01 \x01(\v2\x16.gateway.v1.CredentialR\n" +

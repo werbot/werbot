@@ -168,8 +168,13 @@ func admit(cfg *postgresv1.Config, params map[string]string) (db, refusal string
 func chooseDB(cfg *postgresv1.Config, params map[string]string) (string, bool) {
 	db := cmp.Or(params["database"], cfg.GetDatabase())
 	db = db[:min(len(db), maxDBName)]
-	allowed := cfg.GetAllowedDatabases()
-	return db, len(allowed) == 0 || slices.ContainsFunc(allowed, func(g string) bool {
+	return db, allowedDB(cfg.GetAllowedDatabases(), db)
+}
+
+// allowedDB reports whether the globs of allowed_databases admit db; an
+// empty list admits any.
+func allowedDB(allowed []string, db string) bool {
+	return len(allowed) == 0 || slices.ContainsFunc(allowed, func(g string) bool {
 		ok, _ := path.Match(g, db)
 		return ok
 	})

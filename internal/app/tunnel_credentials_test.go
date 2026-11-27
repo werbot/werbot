@@ -205,13 +205,19 @@ func TestGetWriteCredentialBindings(t *testing.T) {
 // GetProbeCredential answers the agent_readonly credential of a resource of
 // the caller's pool whose status is not none, with the check version; another
 // pool, another organization, status none and a resource without the agent
-// credential are NotFound (never the primary credential).
+// credential are NotFound (never the primary credential); a configuration
+// older than the resource's is FailedPrecondition (Ruling C16).
 func TestGetProbeCredential(t *testing.T) {
 	s := newAgentStage(t)
 	ctx := context.Background()
 	pg := s.pg(t)
 	gw := tunnel.Gateway{ID: s.f.GatewayID, InstanceID: s.f.InstanceID, OrgID: s.f.OrgID}
-	sec, version, err := s.d.Credentials.ProbeCredential(ctx, gw, pg)
+	config := func(id uuid.UUID) (v int64) { // resource.updated_at in microseconds
+		require.NoError(t, s.pool.QueryRow(ctx, "SELECT (extract(epoch FROM updated_at) * 1000000)::bigint FROM resource WHERE id = $1", id).Scan(&v))
+		return v
+	}
+	old := config(pg)
+	sec, version, err := s.d.Credentials.ProbeCredential(ctx, gw, pg, old)
 	require.NoError(t, err)
 	if !bytes.Equal(sec.Value, agentPW) {
 		t.Fatal("the probe did not get the agent_readonly credential")
@@ -222,7 +228,9 @@ func TestGetProbeCredential(t *testing.T) {
 	assert.Equal(t, max(cred.UnixMicro(), res.UnixMicro()), version)
 
 	s.exec(t, "UPDATE resource SET updated_at = now() + interval '1 minute' WHERE id = $1", pg)
-	_, moved, err := s.d.Credentials.ProbeCredential(ctx, gw, pg)
+	_, _, err = s.d.Credentials.ProbeCredential(ctx, gw, pg, old)
+	require.ErrorIs(t, err, apperr.ErrFailedPrecondition, "a check of the configuration before the change")
+	_, moved, err := s.d.Credentials.ProbeCredential(ctx, gw, pg, config(pg))
 	require.NoError(t, err)
 	assert.Greater(t, moved, version, "a configuration change moves the version")
 
@@ -235,11 +243,11 @@ func TestGetProbeCredential(t *testing.T) {
 		"another organization":      {tunnel.Gateway{ID: s.f.GatewayID, InstanceID: s.f.InstanceID, OrgID: uuid.New()}, pg},
 		"only a primary credential": {gw, s.f.ResourceID},
 	} {
-		_, _, err := s.d.Credentials.ProbeCredential(ctx, c.gw, c.id)
+		_, _, err := s.d.Credentials.ProbeCredential(ctx, c.gw, c.id, config(c.id))
 		require.ErrorIs(t, err, apperr.ErrNotFound, name)
 	}
 	s.readonlyStatus(t, pg, "none")
-	_, _, err = s.d.Credentials.ProbeCredential(ctx, gw, pg)
+	_, _, err = s.d.Credentials.ProbeCredential(ctx, gw, pg, config(pg))
 	require.ErrorIs(t, err, apperr.ErrNotFound, "status none")
 }
 

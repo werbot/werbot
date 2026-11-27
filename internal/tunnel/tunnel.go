@@ -100,8 +100,9 @@ type Credentials interface {
 	// session of gw, approved for the statement whose SHA-256 is opSHA256.
 	WriteCredential(ctx context.Context, gw Gateway, sessionID, approvalID uuid.UUID, opSHA256 []byte) (Secret, error)
 	// ProbeCredential is the agent_readonly credential of a resource of gw's
-	// pool and its check version.
-	ProbeCredential(ctx context.Context, gw Gateway, resourceID uuid.UUID) (Secret, int64, error)
+	// pool and its check version; configVersion is the resource's
+	// configuration in gw's snapshot, which must still be the current one.
+	ProbeCredential(ctx context.Context, gw Gateway, resourceID uuid.UUID, configVersion int64) (Secret, int64, error)
 }
 
 // Snapshots builds the policy snapshot of a pool in two steps, so a refresh

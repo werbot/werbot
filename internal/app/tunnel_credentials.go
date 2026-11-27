@@ -126,7 +126,10 @@ func is(p *uuid.UUID, id uuid.UUID) bool { return p != nil && *p == id }
 // whose check status is not none, with the check version: the later of the
 // credential's and the resource's updated_at, in microseconds. A missing
 // credential is NotFound, never an empty secret; no audit (as a heartbeat).
-func (c tunnelCredentials) ProbeCredential(ctx context.Context, gw tunnel.Gateway, resourceID uuid.UUID) (tunnel.Secret, int64, error) {
+// configVersion is the resource's updated_at in the caller's snapshot: a
+// resource changed since is FailedPrecondition, so a check of an older
+// configuration never gets the current version.
+func (c tunnelCredentials) ProbeCredential(ctx context.Context, gw tunnel.Gateway, resourceID uuid.UUID, configVersion int64) (tunnel.Secret, int64, error) {
 	sec, err := c.c.Reveal(ctx, gw.OrgID, resourceID, credential.SlotAgentReadonly)
 	if err != nil {
 		return tunnel.Secret{}, 0, err
@@ -137,6 +140,9 @@ func (c tunnelCredentials) ProbeCredential(ctx context.Context, gw tunnel.Gatewa
 	}
 	if r.GatewayID == nil || *r.GatewayID != gw.ID || r.AgentReadonlyStatus == "none" {
 		return tunnel.Secret{}, 0, fmt.Errorf("resource not found: %w", apperr.ErrNotFound)
+	}
+	if r.UpdatedAt.UnixMicro() != configVersion {
+		return tunnel.Secret{}, 0, fmt.Errorf("resource changed since the snapshot: %w", apperr.ErrFailedPrecondition)
 	}
 	return tunnel.Secret{Kind: string(sec.Kind), Value: sec.Value}, max(sec.Version, r.UpdatedAt.UnixMicro()), nil
 }

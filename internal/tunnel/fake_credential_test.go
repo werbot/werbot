@@ -16,7 +16,7 @@ func (f *fake) WriteCredential(context.Context, Gateway, uuid.UUID, uuid.UUID, [
 	return Secret{}, errUnexpected
 }
 
-func (f *fake) ProbeCredential(context.Context, Gateway, uuid.UUID) (Secret, int64, error) {
+func (f *fake) ProbeCredential(context.Context, Gateway, uuid.UUID, int64) (Secret, int64, error) {
 	return Secret{}, 0, errUnexpected
 }
 
@@ -27,6 +27,7 @@ type credCall struct {
 	id, approval uuid.UUID // the session or resource id; the approval of a write
 	sha          []byte
 	typ          string
+	config       int64 // the snapshot's configuration version of a probe
 }
 
 // credFake answers the credential calls with secret, version and err and records them.
@@ -55,9 +56,9 @@ func (c *credFake) WriteCredential(_ context.Context, g Gateway, sessionID, appr
 	return c.secret, c.err
 }
 
-func (c *credFake) ProbeCredential(_ context.Context, g Gateway, resourceID uuid.UUID) (Secret, int64, error) {
+func (c *credFake) ProbeCredential(_ context.Context, g Gateway, resourceID uuid.UUID, config int64) (Secret, int64, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.probes = append(c.probes, credCall{g: g, id: resourceID})
+	c.probes = append(c.probes, credCall{g: g, id: resourceID, config: config})
 	return c.secret, c.version, c.err
 }

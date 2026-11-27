@@ -65,6 +65,7 @@ type prober struct {
 	dial   func(ctx context.Context, addr string) error
 	// probeDial is the guarded dialer a type's Prober gets; the pipeline sets it.
 	probeDial func(ctx context.Context, network, address string) (net.Conn, error)
+	readonly  *readonlyChecks // checks of agent_readonly credentials; the pipeline sets it
 	ok        *metrics.Counter
 	fail      *metrics.Counter
 
@@ -169,11 +170,13 @@ func (h *prober) pass(ctx context.Context, self uuid.UUID, pool []uuid.UUID) boo
 	return true
 }
 
-// check runs the Prober of the type or else connects to the first port of
+// check starts the agent_readonly check of the resource when one is due, then
+// runs the Prober of the type or else connects to the first port of
 // each range; the result is ok when all succeed, else the error of the first
 // that failed. The text is cut to the server's bound and holds only what the
 // probe reported: no credentials.
 func (h *prober) check(ctx context.Context, t probeTarget) healthResult {
+	h.readonly.start(ctx, t.res)
 	if t.probe != nil {
 		cctx, cancel := context.WithTimeout(ctx, probeTimeout)
 		defer cancel()
@@ -211,7 +214,8 @@ func (h *prober) record(mine []probeTarget, results []healthResult) {
 	}
 }
 
-// take returns up to maxHealth queued results and drops them from the queue.
+// take returns up to maxHealth queued results, each with the agent_readonly
+// check of its resource that finished since, and drops them from the queue.
 func (h *prober) take() []*gatewayv1.ResourceHealth {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -220,6 +224,7 @@ func (h *prober) take() []*gatewayv1.ResourceHealth {
 		if len(out) == maxHealth {
 			break
 		}
+		h.readonly.attach(id, r)
 		out = append(out, r)
 		delete(h.pending, id)
 	}

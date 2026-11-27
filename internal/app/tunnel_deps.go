@@ -232,7 +232,8 @@ func (t tunnelSnapshots) Pool(ctx context.Context, org *gatewayv1.Snapshot, orgI
 		if err != nil {
 			return nil, err
 		}
-		res := &gatewayv1.Resource{Id: r.ID.String(), Name: r.Name, Type: r.Type, ConfigJson: cfg, AgentReadonlyStatus: r.AgentReadonlyStatus}
+		res := &gatewayv1.Resource{Id: r.ID.String(), Name: r.Name, Type: r.Type, ConfigJson: cfg,
+			AgentReadonlyStatus: r.AgentReadonlyStatus, ConfigVersion: r.UpdatedAt.UnixMicro()}
 		if r.IdleTimeout != nil {
 			res.IdleTimeout = durationpb.New(*r.IdleTimeout)
 		}

@@ -73,12 +73,13 @@ func TestGetWriteCredential(t *testing.T) {
 
 // GetProbeCredential serves only the agent_readonly slot (Ruling C15): the
 // primary slot and an unknown one are InvalidArgument without a lookup; the
-// answer carries the check version.
+// lookup gets the snapshot's configuration version (Ruling C16); the answer
+// carries the check version.
 func TestGetProbeCredentialSlot(t *testing.T) {
 	_, c, g := credBench(t)
 	resource := uuid.New()
 	call := func(slot string) (*gatewayv1.GetProbeCredentialResponse, error) {
-		res, err := g.client.GetProbeCredential(ctx, connect.NewRequest(&gatewayv1.GetProbeCredentialRequest{ResourceId: resource.String(), Slot: slot}))
+		res, err := g.client.GetProbeCredential(ctx, connect.NewRequest(&gatewayv1.GetProbeCredentialRequest{ResourceId: resource.String(), Slot: slot, ConfigVersion: 9}))
 		if err != nil {
 			return nil, err
 		}
@@ -98,7 +99,7 @@ func TestGetProbeCredentialSlot(t *testing.T) {
 	if res.GetVersion() != 42 || !bytes.Equal(res.GetCredential().GetValue(), []byte("pw-marker")) {
 		t.Fatal("credential or version not returned")
 	}
-	if len(c.probes) != 1 || !sameCaller(c.probes[0].g, g.Gateway) || c.probes[0].id != resource {
+	if len(c.probes) != 1 || !sameCaller(c.probes[0].g, g.Gateway) || c.probes[0].id != resource || c.probes[0].config != 9 {
 		t.Fatalf("probe lookup called with %+v", c.probes)
 	}
 	c.err = fmt.Errorf("resource not found: %w", apperr.ErrNotFound)

@@ -192,6 +192,9 @@ message Resource {
   string host_key_sha256 = 8;
   // the check of the agent_readonly credential: none, pending, ok, has_write or error
   string agent_readonly_status = 7;
+  // resource.updated_at in microseconds: the configuration this snapshot
+  // carries; GetProbeCredential refuses a check of another one
+  int64 config_version = 9;
 }
 
 message AuthenticateUserRequest {
@@ -281,6 +284,9 @@ message GetProbeCredentialRequest {
   string resource_id = 1 [(buf.validate.field).string.uuid = true];
   // only agent_readonly is served
   string slot = 2 [(buf.validate.field).string = {in: ["primary", "agent_readonly"]}];
+  // Resource.config_version of the snapshot the check reads its configuration
+  // from; the server refuses the call when the resource changed since
+  int64 config_version = 3 [(buf.validate.field).int64.gt = 0];
 }
 
 message GetProbeCredentialResponse {

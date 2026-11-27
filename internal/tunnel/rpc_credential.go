@@ -48,7 +48,7 @@ func (h *Handler) GetProbeCredential(ctx context.Context, req *connect.Request[g
 	if req.Msg.GetSlot() != slotAgentReadonly {
 		return nil, invalid("slot")
 	}
-	sec, version, err := h.d.Credentials.ProbeCredential(ctx, g, resourceID)
+	sec, version, err := h.d.Credentials.ProbeCredential(ctx, g, resourceID, req.Msg.GetConfigVersion())
 	if err != nil {
 		return nil, h.fail(ctx, "probe credential", err)
 	}

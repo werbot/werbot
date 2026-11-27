@@ -113,6 +113,7 @@ func (c *tunnelClient) apply(s *gatewayv1.Snapshot) bool {
 		return false
 	}
 	c.policy.Store(p)
+	startWarmups(p)
 	select {
 	case c.changed <- struct{}{}:
 	default:

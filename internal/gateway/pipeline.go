@@ -46,6 +46,7 @@ type control interface {
 	PinHostKey(ctx context.Context, resourceID uuid.UUID, alg string, key []byte) error
 	RequestApproval(ctx context.Context, r approvalRequest) (approvalTicket, error)
 	GetWriteCredential(ctx context.Context, sessionID uuid.UUID, approvalID string, opSHA [32]byte) (Secret, error)
+	GetProbeCredential(ctx context.Context, resourceID uuid.UUID, configVersion int64) (Secret, int64, error)
 	GetApproval(ctx context.Context, id string) (status string, err error)
 	SubscribeApproval(id string) (decided <-chan struct{}, unsubscribe func())
 	Policy() *Policy
@@ -125,6 +126,7 @@ func newPipeline(ctl control, cfg Config, logger *slog.Logger) *Pipeline {
 	p.dial = p.guard.dialer()
 	p.health = newProber(ctl.Policy, tcpProbe(p.dial), reg)
 	p.health.probeDial = p.dial
+	p.health.readonly = newReadonlyChecks(ctl.GetProbeCredential, p.dial, reg)
 	return p
 }
 
