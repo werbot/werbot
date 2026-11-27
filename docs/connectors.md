@@ -76,7 +76,7 @@ type Connector interface {
 | `ssh` | L2 | `terminal`, `exec`, `stream` | `terminal`, `exec` | `port_forwarding` is off by default; `stream` is `ssh -L`. `remote_forwarding` is off by default; with it, `ssh -R` is a `stream` (see below). |
 | `telnet` | L2 | `terminal`, `stream` | `terminal`, `stream` | Auto-login and recording. The gateway to target leg is plain text: run the gateway next to the equipment. |
 | `tcp` | L1 | `stream` | none | Several ports, RBAC per port; only bytes are counted. |
-| `postgres` | L2 | `stream` | query log (`querylog`) | Direct PostgreSQL client connection through `werbot connect`; the gateway holds the credential and logs every operation. See [databases.md](databases.md). |
+| `postgres` | L3 | `stream` | query log (`querylog`) | Direct PostgreSQL client connection through `werbot connect`; the gateway holds the credential and logs every operation. See [databases.md](databases.md). |
 | `udp` | L1 | `datagram` | none | Request-response protocols only: DNS, SNMP, syslog, NTP, RADIUS. RTP and VoIP do not fit: UDP rides over TCP. `flow_idle` (default `2m`), up to 32 flows per session, 8192 bytes per datagram. |
 
 `Endpoint` sets the host and ports a `stream` or `datagram` session may reach (and the TCP health check); `Recorded` sets the kinds whose payload is recorded as asciicast. The health check is a TCP connect from two instances of the pool; `udp` has none.

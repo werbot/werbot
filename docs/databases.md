@@ -45,6 +45,8 @@ psql "postgres://127.0.0.1:5432/app?sslmode=disable"
 
 `werbot connect` ([connect.md](connect.md)) opens a local port for the resource. Any PostgreSQL client works: `psql`, drivers and GUI tools. Access is decided by the Werbot policy for `postgres.connect`; the gateway logs in to the database with the resource's `username` and credential.
 
+The client's other start parameters (`options`, `application_name`, `client_encoding`, `search_path` and other settings) are passed to the database. They take effect as the resource's database role, the same as a `SET` from that role; a few settings can be changed only at connection start, so grant the role only what its users may set. A database name longer than 63 bytes is cut to 63 bytes, as PostgreSQL does (on the byte, even inside a multibyte character), before the `allowed_databases` check.
+
 The gateway refuses before it creates a session, so no session row exists for these cases:
 
 | Client sends | Answer |
@@ -67,6 +69,7 @@ A client cancels a query with a new connection that sends a `CancelRequest`. The
 - `DataRow` and `CopyData` are copied through, never buffered whole.
 - `Query`, `Parse`, `Function call`, `Execute` and `Close` messages may be up to 16 MiB; a larger one ends the connection with `FATAL 54000 werbot: message exceeds 16 MiB`. A larger `Bind` is streamed and its parameters are not logged.
 - At most 10 000 prepared statements and portals per connection (`FATAL 54000 werbot: too many prepared statements`).
+- At most 65 536 client messages per connection wait for a reply from the database (`FATAL 54000 werbot: too many pending messages`).
 - Prepared statements and portals keep at most 16 MiB per connection: their names, logged text and logged parameters (`FATAL 54000 werbot: prepared statements and portals exceed 16 MiB`). A `Close` gives the bytes back.
 - A malformed protocol message closes the connection without an answer.
 - Logged text is cut at 64 KiB on a UTF-8 boundary and ends with `…[truncated]`. Bind parameters are logged up to 64 KiB in total: the values past that bound are replaced by one `…[truncated]` value. Binary values are logged as `\x<hex>`, NULL as `\N`.
@@ -98,7 +101,9 @@ A line is a JSON object; empty fields are left out except `t` and `kind`:
 | `duration_us` | Time until the answer, in microseconds. |
 | `error` | `<SQLSTATE>: <message>` of the database error when the operation failed, for example `22012: division by zero`. |
 
-In the extended protocol there is one line per statement that reached the database: a successful `Parse` writes none, a failed `Parse` writes a `parse` line, and a failed `Bind` writes an `execute` line. A fast-path function call is a `query` line with the text `fastpath function <oid>`.
+In the extended protocol there is one line per statement that reached the database: a successful `Parse` writes none, a failed `Parse` writes a `parse` line, and a failed `Bind` writes an `execute` line. After an error the database skips every message up to the next `Sync`, so the statements it skipped get no line. An error at `Sync` (for example a deferred constraint at the implicit commit) writes an `execute` line with no text and that error. A `Sync` sent during `COPY FROM STDIN` is ignored by the database and gets no line. A fast-path function call is a `query` line with the text `fastpath function <oid>`.
+
+The query log stores the text the way the client sent it. With a `client_encoding` other than `UTF8`, text that is not valid UTF-8 appears in the query log with replacement characters, so it can differ from the text the database ran.
 
 `session.queries` counts the accepted lines (cancel lines included). The web UI session page shows the table with filters for kind, decision, text and errors, the first 1000 lines and a button for the rest, and the integrity banner. A query log can hold bind parameter values: turn off `record_params` for resources where parameters carry secrets.
 
