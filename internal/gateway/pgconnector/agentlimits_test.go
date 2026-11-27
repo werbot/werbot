@@ -18,7 +18,9 @@ import (
 )
 
 // bigSeries runs far longer than any test: a result of it that ends at
-// once was canceled at the database.
+// once was canceled at the database. It streams its rows (a set-returning
+// function in the select list); in FROM it would build all of them before
+// the first one.
 const bigSeries = "select generate_series(1, 100000000)"
 
 // limitedAgent serves agent sessions of a fresh agentDB with limits l; ro
@@ -93,7 +95,7 @@ func TestCopyOutLimitedForAgent(t *testing.T) {
 		lines  int
 	}{
 		"rows":  {limits(10, 1<<20), "copy (" + bigSeries + ") to stdout", "werbot: result truncated at 10 rows", 10},
-		"bytes": {limits(1000, 1024), "copy (select repeat('x', 99) from generate_series(1, 100000000)) to stdout", "werbot: result truncated at 1024 bytes", 10},
+		"bytes": {limits(1000, 1024), "copy (select repeat('x', 99) from (" + bigSeries + ") s) to stdout", "werbot: result truncated at 1024 bytes", 10},
 	} {
 		t.Run(name, func(t *testing.T) {
 			p, cfg, _ := limitedAgent(t, tc.limits)
