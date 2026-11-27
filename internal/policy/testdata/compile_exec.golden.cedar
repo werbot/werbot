@@ -48,7 +48,7 @@ forbid (principal is Werbot::Agent, action in [Werbot::Action::"ssh.remote_forwa
 
 @id("agent:baseline:db_connect")
 permit (principal is Werbot::Agent, action in [Werbot::Action::"postgres.connect"], resource)
-when { context.kind == "stream" && resource has agent_readonly && resource.agent_readonly };
+when { (context.kind == "stream" || context.kind == "") && resource has agent_readonly && resource.agent_readonly };
 
 @id("agent:baseline:db_read")
 permit (principal is Werbot::Agent, action in [Werbot::Action::"postgres.query"], resource)

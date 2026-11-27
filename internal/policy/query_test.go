@@ -127,6 +127,10 @@ func TestAgentDBBaseline(t *testing.T) {
 	exec := agentConnect()
 	exec.Kind = "exec"
 	assert.False(t, authorize(t, s, exec).Allow, "a database connect is a stream")
+	info := agentConnect()
+	info.Kind = ""
+	assert.True(t, authorize(t, s, info).Allow, "resource info (no channel) precedes the stream")
+	assert.False(t, authorize(t, dbSnap(false), info).Allow, "resource info needs agent_readonly too")
 	d = authorize(t, s, agentQuery("read"))
 	assert.True(t, d.Allow, "%v", d.Reasons)
 	assert.Contains(t, d.Reasons, "agent:baseline:db_read")

@@ -28,7 +28,9 @@ func agentEntities(entities cedar.EntityMap, agents []SnapshotAgent) {
 // exec, commands of exactly the read class, never a dangerous class, a
 // terminal, an sftp or remote_forward action, a frozen agent, and no blocked
 // run. A database (databaseConnects, queries) opens to agents only with a
-// verified agent_readonly credential (db_connect, db_read, db_readonly):
+// verified agent_readonly credential (db_connect, db_read, db_readonly); the
+// connect is a stream, or the resource info check (empty kind, no channel)
+// db_query makes to learn the port:
 // agentReadonly guards the attribute with has, so a resource entity without
 // it never turns the forbid into an evaluation error that cedar skips. Every
 // policy but blocked_runs is written even without agents, since an agent may
@@ -56,7 +58,7 @@ func writeBaseline(b *strings.Builder, types []connector.Type, blockedRuns []uui
 	baseline(b, "sftp", "forbid", agentActions(sftp), "", len(sftp) > 0)
 	baseline(b, "remote_forward", "forbid", agentActions(rf), "", len(rf) > 0)
 	db, query := databaseConnects(types), queryActions(types)
-	baseline(b, "db_connect", "permit", agentActions(db), `when { context.kind == "stream" && `+agentReadonly+" }", len(db) > 0)
+	baseline(b, "db_connect", "permit", agentActions(db), `when { (context.kind == "stream" || context.kind == "") && `+agentReadonly+" }", len(db) > 0)
 	baseline(b, "db_read", "permit", agentActions(query), `when { ["read"].containsAll(context.classes) }`, len(query) > 0)
 	baseline(b, "db_readonly", "forbid", agentActions(slices.Concat(db, query)), "unless { "+agentReadonly+" }", len(db)+len(query) > 0)
 	baseline(b, "frozen", "forbid", anyAgent, `when { principal.status == "frozen" }`, true)
