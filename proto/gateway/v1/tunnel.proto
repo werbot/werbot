@@ -238,6 +238,8 @@ message StartSessionRequest {
   string front = 10 [(buf.validate.field).string = {in: ["ssh", "web"]}, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
   // client transport; empty is tcp
   string transport = 11 [(buf.validate.field).string = {in: ["tcp", "ws", "internal"]}, (buf.validate.field).ignore = IGNORE_IF_ZERO_VALUE];
+  // a database session: the database the client asked for (the gateway truncates)
+  string db_name = 12 [(buf.validate.field).string.max_bytes = 63];
 }
 
 message StartSessionResponse {
@@ -269,6 +271,8 @@ message EndSessionRequest {
     items: {string: {in: ["read", "write", "destructive", "privilege", "secrets", "egress", "opaque"]}}
   }];
   repeated string paths = 10 [(buf.validate.field).repeated = {max_items: 256, items: {string: {max_bytes: 1024}}}];
+  // querylog recording: the lines the gateway accepted
+  int64 queries = 7 [(buf.validate.field).int64.gte = 0];
 }
 
 message EndSessionResponse {}

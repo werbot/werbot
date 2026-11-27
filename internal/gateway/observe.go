@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/werbot/werbot/internal/connector"
 	"github.com/werbot/werbot/internal/platform/metrics"
 )
 
@@ -50,13 +51,16 @@ func (a *activeSessions) Observe(sessionID uuid.UUID) (<-chan ObserveEvent, func
 	return o.observe()
 }
 
-// recording is the recording of session id opened for r: the configured one
-// when the kind is recorded, else NopRecording. A terminal's is observed
-// either way.
-func (p *Pipeline) recording(id uuid.UUID, r OpenRequest, recorded bool) RecordingSink {
-	rec := NopRecording(id, 0, 0)
+// recording is the recording of session id opened for r in format: the
+// configured one when the kind is recorded, else NopRecording. A querylog's
+// counts its lines; a terminal's is observed either way.
+func (p *Pipeline) recording(id uuid.UUID, r OpenRequest, recorded bool, format string) RecordingSink {
+	rec := NopRecording(id, 0, 0, format)
 	if recorded {
-		rec = p.cfg.Recording(id, r.Window.Cols, r.Window.Rows)
+		rec = p.cfg.Recording(id, r.Window.Cols, r.Window.Rows, format)
+	}
+	if format == connector.RecordQuerylog {
+		return &queryCounter{RecordingSink: rec}
 	}
 	if r.Kind != KindTerminal {
 		return rec

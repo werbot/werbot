@@ -1454,7 +1454,9 @@ type StartSessionRequest struct {
 	ToolCallId string `protobuf:"bytes,9,opt,name=tool_call_id,json=toolCallId,proto3" json:"tool_call_id,omitempty"`
 	Front      string `protobuf:"bytes,10,opt,name=front,proto3" json:"front,omitempty"`
 	// client transport; empty is tcp
-	Transport     string `protobuf:"bytes,11,opt,name=transport,proto3" json:"transport,omitempty"`
+	Transport string `protobuf:"bytes,11,opt,name=transport,proto3" json:"transport,omitempty"`
+	// a database session: the database the client asked for (the gateway truncates)
+	DbName        string `protobuf:"bytes,12,opt,name=db_name,json=dbName,proto3" json:"db_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1569,6 +1571,13 @@ func (x *StartSessionRequest) GetFront() string {
 func (x *StartSessionRequest) GetTransport() string {
 	if x != nil {
 		return x.Transport
+	}
+	return ""
+}
+
+func (x *StartSessionRequest) GetDbName() string {
+	if x != nil {
+		return x.DbName
 	}
 	return ""
 }
@@ -1689,9 +1698,11 @@ type EndSessionRequest struct {
 	ExitCode     *int32 `protobuf:"varint,4,opt,name=exit_code,json=exitCode,proto3,oneof" json:"exit_code,omitempty"`
 	OutputSha256 []byte `protobuf:"bytes,5,opt,name=output_sha256,json=outputSha256,proto3" json:"output_sha256,omitempty"`
 	// console only: the last checked command (the gateway truncates), its classes and paths
-	Command       string   `protobuf:"bytes,8,opt,name=command,proto3" json:"command,omitempty"`
-	Classes       []string `protobuf:"bytes,9,rep,name=classes,proto3" json:"classes,omitempty"`
-	Paths         []string `protobuf:"bytes,10,rep,name=paths,proto3" json:"paths,omitempty"`
+	Command string   `protobuf:"bytes,8,opt,name=command,proto3" json:"command,omitempty"`
+	Classes []string `protobuf:"bytes,9,rep,name=classes,proto3" json:"classes,omitempty"`
+	Paths   []string `protobuf:"bytes,10,rep,name=paths,proto3" json:"paths,omitempty"`
+	// querylog recording: the lines the gateway accepted
+	Queries       int64 `protobuf:"varint,7,opt,name=queries,proto3" json:"queries,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1780,6 +1791,13 @@ func (x *EndSessionRequest) GetPaths() []string {
 		return x.Paths
 	}
 	return nil
+}
+
+func (x *EndSessionRequest) GetQueries() int64 {
+	if x != nil {
+		return x.Queries
+	}
+	return 0
 }
 
 type EndSessionResponse struct {
@@ -2592,7 +2610,7 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\x03web\x18\x06 \x01(\v2\x15.gateway.v1.WebTicketR\x03web\x12&\n" +
 	"\x0fmfa_age_seconds\x18\a \x01(\x03R\rmfaAgeSeconds\x12\x1d\n" +
 	"\n" +
-	"mfa_method\x18\b \x01(\tR\tmfaMethod\"\xe0\x04\n" +
+	"mfa_method\x18\b \x01(\tR\tmfaMethod\"\x82\x05\n" +
 	"\x13StartSessionRequest\x12!\n" +
 	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\x12)\n" +
 	"\vresource_id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\n" +
@@ -2611,7 +2629,8 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\x05front\x18\n" +
 	" \x01(\tB\x12\xbaH\x0f\xd8\x01\x01r\n" +
 	"R\x03sshR\x03webR\x05front\x129\n" +
-	"\ttransport\x18\v \x01(\tB\x1b\xbaH\x18\xd8\x01\x01r\x13R\x03tcpR\x02wsR\binternalR\ttransport\"m\n" +
+	"\ttransport\x18\v \x01(\tB\x1b\xbaH\x18\xd8\x01\x01r\x13R\x03tcpR\x02wsR\binternalR\ttransport\x12 \n" +
+	"\adb_name\x18\f \x01(\tB\a\xbaH\x04r\x02(?R\x06dbName\"m\n" +
 	"\x14StartSessionResponse\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x126\n" +
@@ -2621,7 +2640,7 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\n" +
 	"Credential\x12\x12\n" +
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\fR\x05value\"\xba\x04\n" +
+	"\x05value\x18\x02 \x01(\fR\x05value\"\xdd\x04\n" +
 	"\x11EndSessionRequest\x12'\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\tsessionId\x12\xae\x01\n" +
@@ -2635,7 +2654,8 @@ const file_gateway_v1_tunnel_proto_rawDesc = "" +
 	"\aclasses\x18\t \x03(\tBJ\xbaHG\x92\x01D\x10\a\"@r>R\x04readR\x05writeR\vdestructiveR\tprivilegeR\asecretsR\x06egressR\x06opaqueR\aclasses\x12&\n" +
 	"\x05paths\x18\n" +
 	" \x03(\tB\x10\xbaH\r\x92\x01\n" +
-	"\x10\x80\x02\"\x05r\x03(\x80\bR\x05pathsB\f\n" +
+	"\x10\x80\x02\"\x05r\x03(\x80\bR\x05paths\x12!\n" +
+	"\aqueries\x18\a \x01(\x03B\a\xbaH\x04\"\x02(\x00R\aqueriesB\f\n" +
 	"\n" +
 	"_exit_code\"\x14\n" +
 	"\x12EndSessionResponse\"\x86\x01\n" +

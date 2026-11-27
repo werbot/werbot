@@ -53,6 +53,7 @@ type resizeRec struct {
 func (*resizeRec) Output([]byte)               {}
 func (*resizeRec) Input([]byte)                {}
 func (*resizeRec) Marker(string)               {}
+func (*resizeRec) Event(any) error             { return nil }
 func (*resizeRec) Close(context.Context) error { return nil }
 func (r *resizeRec) Resize(cols, rows int) {
 	r.mu.Lock()

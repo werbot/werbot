@@ -145,6 +145,7 @@ func (c *tunnelClient) EndSession(ctx context.Context, sessionID uuid.UUID, reas
 		req.Command, req.Classes = TruncateUTF8(r.Command, 65536), r.Classes
 		req.Paths = r.Paths[:min(len(r.Paths), shellclass.MaxPaths)]
 		req.ExitCode, req.OutputSha256 = r.ExitCode, r.OutputSHA256
+		req.Queries = r.Queries
 	}
 	_, err := c.conn.Load().rpc.EndSession(ctx, connect.NewRequest(req))
 	return err

@@ -46,7 +46,8 @@ func (r *spyRec) Input(p []byte) {
 	r.in.Write(p)
 	r.mu.Unlock()
 }
-func (*spyRec) Marker(string) {}
+func (*spyRec) Marker(string)   {}
+func (*spyRec) Event(any) error { return nil }
 func (r *spyRec) Resize(c, w int) {
 	r.mu.Lock()
 	r.resizes = append(r.resizes, [2]int{c, w})

@@ -202,7 +202,7 @@ func (p *Pipeline) open(ctx context.Context, r OpenRequest) (*Session, AccessReq
 	if err != nil {
 		return nil, req, startErr(err)
 	}
-	rec := p.recording(id, r, recorded)
+	rec := p.recording(id, r, recorded, typ.RecordFormat)
 	t := &tracked{req: req, kind: r.Kind, host: host, version: pol.Version(), started: time.Now(), rec: rec}
 	t.idle, t.max = limits(res, p.cfg)
 	p.active.add(id, t) // reported in heartbeats from now on, so the server keeps the session

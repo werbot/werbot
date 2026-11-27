@@ -12,13 +12,14 @@ import (
 
 // SessionResult is what a session ran: a console's last checked command, its
 // classes and paths; an exec's exit status (nil: none) and the SHA-256 of its
-// recorded output.
+// recorded output; a querylog session's accepted lines.
 type SessionResult struct {
 	Command      string   `json:"command"`
 	Classes      []string `json:"classes,omitempty"`
 	Paths        []string `json:"paths,omitempty"`
 	ExitCode     *int32   `json:"exit_code,omitempty"`
 	OutputSHA256 []byte   `json:"output_sha256,omitempty"`
+	Queries      int64    `json:"queries,omitempty"`
 }
 
 // sessionEnd is an EndSession waiting in the spool.

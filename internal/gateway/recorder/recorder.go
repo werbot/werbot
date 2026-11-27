@@ -1,5 +1,6 @@
-// Package recorder writes a session's terminal stream as asciicast v2,
-// cut into gzip chunks linked by the recording hash chain.
+// Package recorder writes a session's terminal stream as asciicast v2, or its
+// operations as querylog lines, cut into gzip chunks linked by the recording
+// hash chain.
 package recorder
 
 import (
@@ -14,6 +15,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/werbot/werbot/internal/connector"
 	"github.com/werbot/werbot/internal/platform/hashchain"
 )
 
@@ -36,6 +38,7 @@ type ChunkSink interface {
 type Options struct {
 	Terminate func(sessionID uuid.UUID, reason string) // nil → no-op
 	Logger    *slog.Logger                             // nil → slog.Default()
+	Format    string                                   // connector.RecordQuerylog; anything else is asciicast
 }
 
 // stream is one direction's unfinished UTF-8 tail, carried to its next write.
@@ -54,7 +57,8 @@ type Recorder struct {
 	terminate func(uuid.UUID, string)
 	log       *slog.Logger
 	start     time.Time
-	header    []byte // written at the head of chunk seq 0
+	header    []byte // written at the head of chunk seq 0; none for querylog
+	querylog  bool   // Event lines only: the terminal stream is ignored
 	out, in   stream
 	buf       *bytes.Buffer // nil while no data is pending
 	timer     *time.Timer
@@ -74,13 +78,19 @@ func New(sessionID uuid.UUID, cols, rows int, sink ChunkSink, opts Options) *Rec
 		opts.Logger = slog.Default()
 	}
 	start := time.Now()
+	querylog := opts.Format == connector.RecordQuerylog
+	var header []byte
+	if !querylog {
+		header = castHeader(cols, rows, start.Unix())
+	}
 	return &Recorder{
 		id:        sessionID,
 		sink:      sink,
 		terminate: opts.Terminate,
 		log:       opts.Logger,
 		start:     start,
-		header:    castHeader(cols, rows, start.Unix()),
+		header:    header,
+		querylog:  querylog,
 		out:       stream{code: 'o'},
 		in:        stream{code: 'i'},
 		prev:      hashchain.Genesis(),
@@ -134,7 +144,7 @@ func (r *Recorder) Close(context.Context) error {
 		}
 	}
 	if r.seq == 0 && !r.failed {
-		r.ensureBuf() // an empty session still gets its header
+		r.ensureBuf() // an empty session still gets its header (querylog: an empty chunk)
 	}
 	r.flushLocked() // also stops the timer
 	r.closed = true
@@ -149,7 +159,7 @@ func (r *Recorder) Close(context.Context) error {
 func (r *Recorder) write(s *stream, p []byte) {
 	r.mu.Lock()
 	defer r.unlock()
-	if r.closed || r.failed {
+	if r.closed || r.failed || r.querylog {
 		return
 	}
 	if s.n > 0 {
@@ -168,7 +178,7 @@ func (r *Recorder) write(s *stream, p []byte) {
 
 // event appends one line, flushing first when the chunk would exceed MaxChunkRaw.
 func (r *Recorder) event(code byte, data []byte) {
-	if r.closed || r.failed {
+	if r.closed || r.failed || r.querylog {
 		return
 	}
 	var b [32]byte

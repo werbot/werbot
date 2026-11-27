@@ -19,7 +19,7 @@ func TestWebFrontOpensTerminalSession(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		w := newWebEnv(t, 10)
 		rec := &capturedSink{sum: sha256.New()}
-		w.p.cfg.Recording = func(uuid.UUID, int, int) RecordingSink { return rec }
+		w.p.cfg.Recording = func(uuid.UUID, int, int, string) RecordingSink { return rec }
 		ticket := w.add(terminalTicket("echo"))
 		st := w.stream(t, ticket)
 		synctest.Wait()

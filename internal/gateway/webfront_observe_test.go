@@ -39,7 +39,7 @@ func TestObserveIgnoresInput(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		w := newWebEnv(t, 10)
 		rec := &capturedSink{sum: sha256.New()}
-		w.p.cfg.Recording = func(uuid.UUID, int, int) RecordingSink { return rec }
+		w.p.cfg.Recording = func(uuid.UUID, int, int, string) RecordingSink { return rec }
 		target := w.open(t, terminalTicket("echo"))
 		synctest.Wait()
 		obs := w.open(t, observeTicket(w.session(t)))

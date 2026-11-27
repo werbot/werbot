@@ -147,10 +147,10 @@ func truncateAll(values []string, n, size int) []string {
 
 // result is the result of s for the session end: an exec's exit status and
 // output hash; a console's last line run, the classes and paths of every
-// line; nil for any other session.
+// line; a querylog session's accepted lines; nil for any other session.
 func (s *Session) result() *recorder.SessionResult {
 	if !s.Console || s.Command == "" {
-		return s.outcome.result()
+		return withQueries(s.outcome.result(), s.Recording)
 	}
 	return &recorder.SessionResult{Command: s.Command, Classes: s.Classes, Paths: s.Paths}
 }

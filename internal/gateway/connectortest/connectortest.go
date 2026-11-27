@@ -260,6 +260,7 @@ func (s *spySink) Output([]byte)             { s.output.Store(true) }
 func (s *spySink) Input([]byte)              { s.input.Store(true) }
 func (*spySink) Resize(int, int)             {}
 func (*spySink) Marker(string)               {}
+func (*spySink) Event(any) error             { return nil }
 func (*spySink) Close(context.Context) error { return nil }
 
 // lockedBuffer is a buffer safe for the connector goroutines and the test.

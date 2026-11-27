@@ -36,3 +36,14 @@ func TestTunnelEndSessionResult(t *testing.T) {
 		require.Nil(t, f.ends[1].GetPaths())
 	})
 }
+
+// EndSession sends the querylog line count of the result; none sends zero.
+func TestTunnelEndSessionQueriesSent(t *testing.T) {
+	e := newTunnelEnv(t, nil, time.Hour)
+	require.NoError(t, e.c.EndSession(t.Context(), testSessionID, "closed", nil, &recorder.SessionResult{Queries: 4}))
+	require.NoError(t, e.c.EndSession(t.Context(), testSessionID, "closed", nil, nil))
+	e.f.with(func(f *fakeTunnel) {
+		require.EqualValues(t, 4, f.ends[0].GetQueries())
+		require.Zero(t, f.ends[1].GetQueries())
+	})
+}
