@@ -68,7 +68,7 @@ func FuzzPGMessage(f *testing.F) {
 		if p, err := nextPacket(peek, func() error { return nil }); err == nil {
 			_, _ = startupMessage(peek, p)
 		}
-		g := dbproxy.NewGuard(&gateway.Session{Recording: &memRecording{}}, dbproxy.GuardConfig{Type: "postgres"})
+		g := dbproxy.NewGuard(&gateway.Session{Recording: &memRecording{}}, gateway.SessionHooks{}, dbproxy.GuardConfig{Type: "postgres"})
 		defer g.Close()
 		dbConn := struct {
 			io.Reader

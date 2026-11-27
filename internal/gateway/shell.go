@@ -132,9 +132,12 @@ func newCommandDenial(reason string, id uuid.UUID, r OpenRequest, req AccessRequ
 	d := newDenial(reason, req.User.ID, r.Identity.fingerprint(), r.Resource, KindTerminal, req.Command, r.ClientIP)
 	d.SessionId, d.Classes = id.String(), req.Classes
 	d.Paths = truncateAll(req.Paths, maxDenialPaths, 1024)
-	d.Reasons = truncateAll(reasons, maxDenialReasons, 128)
+	d.Reasons = denialReasons(reasons)
 	return d
 }
+
+// denialReasons are the deciding policies of a denial, cut to the wire bounds.
+func denialReasons(reasons []string) []string { return truncateAll(reasons, maxDenialReasons, 128) }
 
 // truncateAll is the first n values, each cut to size bytes.
 func truncateAll(values []string, n, size int) []string {

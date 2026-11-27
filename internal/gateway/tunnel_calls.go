@@ -86,7 +86,10 @@ func withAgent(u User, cert *sshca.Identity, a *gatewayv1.AgentInfo) (User, erro
 		a.GetSponsorUserId() != u.ID.String():
 		return User{}, errAgentMismatch
 	}
-	u.Agent = &Agent{ID: *cert.AgentID, RunID: *cert.RunID, AuthAt: time.Now()}
+	l := a.GetLimits()
+	u.Agent = &Agent{ID: *cert.AgentID, RunID: *cert.RunID, AuthAt: time.Now(), Limits: AgentLimits{
+		MaxRows: int(l.GetMaxRows()), MaxResultBytes: l.GetMaxResultBytes(),
+		StatementTimeout: time.Duration(l.GetStatementTimeoutMs()) * time.Millisecond, MaxQueries: int(l.GetMaxQueries())}}
 	return u, nil
 }
 

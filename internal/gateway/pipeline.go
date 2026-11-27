@@ -45,6 +45,7 @@ type control interface {
 	RecordDenial(ctx context.Context, runID uuid.UUID, resource, command string, classes, reasons []string) (paused bool, err error)
 	PinHostKey(ctx context.Context, resourceID uuid.UUID, alg string, key []byte) error
 	RequestApproval(ctx context.Context, r approvalRequest) (approvalTicket, error)
+	GetWriteCredential(ctx context.Context, sessionID uuid.UUID, approvalID string, opSHA [32]byte) (Secret, error)
 	GetApproval(ctx context.Context, id string) (status string, err error)
 	SubscribeApproval(id string) (decided <-chan struct{}, unsubscribe func())
 	Policy() *Policy
@@ -78,6 +79,7 @@ type Pipeline struct {
 	busy, notReady, spoolFull, panics *metrics.Counter
 	meters                            meters
 	denials                           *denials
+	queryDenials                      queryDenials  // agent operation denials on their way to RecordDenial
 	beats                             atomic.Uint64 // heartbeats built
 	guard                             localGuard
 	health                            *prober
@@ -240,6 +242,7 @@ func (p *Pipeline) serve(ctx context.Context, s *Session, c Connector, cancel co
 		}
 	}()
 	defer maskExec(s, p.ctl.Policy())() // flushes right after Serve, before Run returns
+	ctx = WithHooks(ctx, p.hooks(s))
 	if s.Console {
 		return false, c.(ConsoleServer).ServeConsole(ctx, s) // Open checked it: never a raw shell
 	}

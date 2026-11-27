@@ -117,7 +117,7 @@ fuzz:
 
 # Hot-path budgets (TestHotPath* of each package) against the test database
 # on localhost:27432 (make dev-db); run alone, other load skews them.
-HOT_PKGS ?= ./internal/gateway/pgconnector/ ./internal/platform/sqlclass/pg/
+HOT_PKGS ?= ./internal/gateway/pgconnector/ ./internal/platform/sqlclass/pg/ ./internal/gateway/dbproxy/
 bench-hot:
 	HOT_BUDGET=1 go test -count=1 -run '^TestHotPath' -v $(HOT_PKGS)
 

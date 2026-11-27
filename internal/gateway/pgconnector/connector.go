@@ -59,7 +59,7 @@ func (Connector) Serve(ctx context.Context, s *gateway.Session) error {
 	}
 	defer hc.Conn.Close()
 	t0 := time.Now()
-	g := dbproxy.NewGuard(s, dbproxy.GuardConfig{Type: postgres.TypeName, Metrics: s.Metrics})
+	g := dbproxy.NewGuard(s, gateway.SessionHooks{}, dbproxy.GuardConfig{Type: postgres.TypeName, Metrics: s.Metrics}) // Task 8 passes the session hooks
 	defer g.Close()
 	key, release := cancels.Register(dbproxy.CancelTarget{
 		ResourceID: s.Resource.ID,

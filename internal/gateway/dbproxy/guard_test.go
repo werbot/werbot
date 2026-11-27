@@ -50,7 +50,7 @@ func (s *spySink) texts() []string {
 }
 
 func newGuard(sink *spySink, reg *metrics.Registry) *dbproxy.Guard {
-	return dbproxy.NewGuard(&gateway.Session{Recording: sink}, dbproxy.GuardConfig{Type: "postgres", Metrics: reg})
+	return dbproxy.NewGuard(&gateway.Session{Recording: sink}, gateway.SessionHooks{}, dbproxy.GuardConfig{Type: "postgres", Metrics: reg})
 }
 
 func scrape(r *metrics.Registry) string {
@@ -135,7 +135,7 @@ func TestGuardLogAfterClose(t *testing.T) {
 }
 
 func TestCheckNoAlloc(t *testing.T) {
-	g := dbproxy.NewGuard(&gateway.Session{Recording: &spySink{}}, dbproxy.GuardConfig{Type: "postgres"}) // nil Metrics: a private registry
+	g := dbproxy.NewGuard(&gateway.Session{Recording: &spySink{}}, gateway.SessionHooks{}, dbproxy.GuardConfig{Type: "postgres"}) // nil Metrics: a private registry
 	defer g.Close()
 	ctx, op := context.Background(), dbproxy.Op{Kind: "query", Text: strings.Repeat("x", 200)}
 	assert.Zero(t, testing.AllocsPerRun(1000, func() { _, _ = g.Check(ctx, op) }))
@@ -155,7 +155,7 @@ func BenchmarkGuardCheck(b *testing.B) {
 // BenchmarkGuardLog measures the caller side of Log with a fast sink; no threshold in the plan.
 func BenchmarkGuardLog(b *testing.B) {
 	s := &gateway.Session{Recording: gateway.NopRecording(uuid.Nil, 0, 0, "querylog")}
-	g := dbproxy.NewGuard(s, dbproxy.GuardConfig{Type: "postgres"})
+	g := dbproxy.NewGuard(s, gateway.SessionHooks{}, dbproxy.GuardConfig{Type: "postgres"})
 	e := dbproxy.Entry{Kind: "query", Text: "select 1", Rows: 1}
 	b.ReportAllocs()
 	for b.Loop() {

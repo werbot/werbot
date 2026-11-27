@@ -114,7 +114,7 @@ func (p *Pipeline) reportAgentDenial(ctx context.Context, r OpenRequest, req Acc
 		return false
 	}
 	target := cmp.Or(r.Command, r.Target)
-	reasons := truncateAll(deniedReasons(err), maxDenialReasons, 128)
+	reasons := denialReasons(deniedReasons(err))
 	if stateDenial(reasons) {
 		p.denyAgentLater(r, req, err, target, reasons)
 		return true
