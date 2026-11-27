@@ -58,7 +58,7 @@ func newRelay(ctx context.Context, cr *bufio.Reader, db io.ReadWriter, client io
 	out := &clientWriter{w: bufio.NewWriterSize(client, ioBuf)}
 	c := &clientSide{ctx: ctx, r: cr, w: bufio.NewWriterSize(db, ioBuf), out: out, q: q, g: g, log: l,
 		stmts: map[string]named{}, portals: map[string]named{}}
-	d := &dbSide{r: bufio.NewReaderSize(db, ioBuf), w: out.w, out: out, q: q, g: g, sess: l, lex: &c.lex}
+	d := &dbSide{r: bufio.NewReaderSize(db, ioBuf), w: out.w, out: out, q: q, g: g, sess: l, lex: &c.lex, resets: &c.resets}
 	return c, d
 }
 
@@ -111,16 +111,9 @@ func endErr(err error) error {
 // buf (grown when short). body == nil: the n body bytes are still in r, to be
 // streamed. A parsed type other than Bind over maxParsed is errTooLarge.
 func readClient(r *bufio.Reader, buf []byte) (typ byte, body []byte, n int, err error) {
-	h, err := r.Peek(5)
-	if err != nil {
+	if typ, n, err = readHeader(r); err != nil {
 		return 0, nil, 0, err
 	}
-	typ, size := h[0], int(int32(binary.BigEndian.Uint32(h[1:]))) //nolint:gosec // a signed length word
-	if size < 4 {
-		return 0, nil, 0, errMalformed
-	}
-	_, _ = r.Discard(5)
-	n = size - 4
 	switch {
 	case strings.IndexByte("QPBEFC", typ) < 0:
 		return typ, nil, n, nil
@@ -137,6 +130,26 @@ func readClient(r *bufio.Reader, buf []byte) (typ byte, body []byte, n int, err 
 		return 0, nil, 0, err
 	}
 	return typ, body, n, nil
+}
+
+// readHeader reads the header of the next message of r: its type and the
+// length of its body.
+func readHeader(r *bufio.Reader) (typ byte, n int, err error) {
+	h, err := r.Peek(5)
+	if err != nil {
+		return 0, 0, err
+	}
+	typ, size := h[0], int(int32(binary.BigEndian.Uint32(h[1:]))) //nolint:gosec // a signed length word
+	if size < 4 {
+		return 0, 0, errMalformed
+	}
+	_, _ = r.Discard(5)
+	return typ, size - 4, nil
+}
+
+// appendHeader appends the header of a message of type typ with n body bytes.
+func appendHeader(b []byte, typ byte, n int) []byte {
+	return binary.BigEndian.AppendUint32(append(b, typ), uint32(n+4)) //nolint:gosec // n came from a 32-bit length
 }
 
 // pass copies the next n bytes of r to w through lr, never holding them whole.

@@ -22,7 +22,7 @@ import (
 	"github.com/werbot/werbot/internal/gateway/dbproxy"
 )
 
-const waitingNotice = "Waiting for approval a1, timeout 5m: https://werbot.test/requests?id=a1"
+const waitingNotice = "werbot: Waiting for approval a1, timeout 5m: https://werbot.test/requests?id=a1"
 
 func TestHoldApprovedHuman(t *testing.T) {
 	warm(t)
@@ -37,7 +37,7 @@ func TestHoldApprovedHuman(t *testing.T) {
 	assert.Equal(t, []string{waitingNotice}, notices)
 	assert.Equal(t, "2", value(t, owner, "select a from t"))
 	approvals, _ := rec.asked()
-	assert.Equal(t, []gateway.ApprovalInput{{Command: "UPDATE t SET a = 2 WHERE id = 1", Classes: []string{"write"}, Reasons: []string{"command:w"}}}, approvals)
+	assert.Equal(t, []gateway.ApprovalInput{{Command: "-- database: " + cfg.GetDatabase() + "\nUPDATE t SET a = 2 WHERE id = 1", Classes: []string{"write"}, Reasons: []string{"command:w"}}}, approvals)
 	require.NoError(t, conn.Close(t.Context()))
 	ls := lines(p.entries(t))
 	assert.Equal(t, []logLine{{kind: "query", text: "UPDATE t SET a = 2 WHERE id = 1", rows: 1}}, ls)
@@ -78,7 +78,7 @@ func TestHoldExtendedBatch(t *testing.T) {
 	assert.Equal(t, "3", value(t, owner, "select a from t"))
 	approvals, _ := rec.asked()
 	require.Len(t, approvals, 1, "one approval covers the batch")
-	assert.Equal(t, text+"\n-- params: [\"3\",\"1\"]", approvals[0].Command, "the approvers read the parameters without record_params")
+	assert.Equal(t, "-- database: "+cfg.GetDatabase()+"\n"+text+"\n-- params: [\"3\",\"1\"]", approvals[0].Command, "the approvers read the parameters without record_params")
 
 	res = conn.ExecParams(t.Context(), text, [][]byte{[]byte("4"), []byte("1")}, nil, nil, nil).Read()
 	require.NoError(t, res.Err)
@@ -104,7 +104,7 @@ func TestHoldStillWaitingNotice(t *testing.T) {
 			dbproxy.Verdict{Obligations: []string{gateway.ObligationApproval}, Classes: []string{"write"}})
 		require.NoError(t, err)
 		assert.True(t, v.Allow)
-		assert.Equal(t, []string{waitingNotice, "Still waiting for approval a1", "Still waiting for approval a1"}, notices(t, out.Bytes()))
+		assert.Equal(t, []string{waitingNotice, "werbot: Still waiting for approval a1", "werbot: Still waiting for approval a1"}, notices(t, out.Bytes()))
 	})
 }
 

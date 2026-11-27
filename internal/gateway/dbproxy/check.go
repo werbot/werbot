@@ -89,21 +89,30 @@ func (g *Guard) refresh() {
 	}
 }
 
-// parsed keeps a new prepared statement.
+// parsed keeps a new prepared statement. A Parse to a non-empty name it
+// keeps never replaces it: the database refuses that Parse (42P05) and keeps
+// the first statement; its text is judged on a statement of its own. The
+// unnamed statement is replaced, as the database does.
 // ponytail: past maxStatements an arbitrary statement is forgotten (its
-// executes become opaque); the connector bounds the live ones, the Guard does
-// not see Close.
+// executes become opaque); the connector bounds the live ones.
 func (g *Guard) parsed(op Op) *statement {
-	if _, ok := g.stmts[op.Statement]; !ok && len(g.stmts) >= maxStatements {
+	st := &statement{sha: g.sha(op)}
+	if _, ok := g.stmts[op.Statement]; ok && op.Statement != "" {
+		return st
+	} else if !ok && len(g.stmts) >= maxStatements {
 		for name := range g.stmts {
 			delete(g.stmts, name)
 			break
 		}
 	}
-	st := &statement{sha: g.sha(op)}
 	g.stmts[op.Statement] = st
 	return st
 }
+
+// Forget drops the prepared statement name: the connector closed it, the
+// database refused its Parse, or SQL PREPARE, DEALLOCATE or DISCARD changed
+// the statements. Its executes are opaque until a new Parse of the name.
+func (g *Guard) Forget(name string) { delete(g.stmts, name) }
 
 // operation classifies op; granted reports an execute whose parameters an
 // approval of its statement covers. An Opaque op is [opaque], never granted.

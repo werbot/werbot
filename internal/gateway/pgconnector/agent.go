@@ -19,14 +19,6 @@ var errNoAgentUsername = errors.New("postgres: agent_username is not set")
 // agentParams are the client start parameters an agent session keeps.
 var agentParams = []string{"application_name", "client_encoding", "DateStyle", "TimeZone", "IntervalStyle", "extra_float_digits"}
 
-// agentStartupParams are the parameters of an agent session's connection:
-// the write parameters, read-only.
-func agentStartupParams(client map[string]string, l gateway.AgentLimits) map[string]string {
-	out := writeParams(client, l)
-	out["default_transaction_read_only"] = "on"
-	return out
-}
-
 // writeParams are the parameters of an approved write's connection: the
 // allowlisted client parameters, the agent's statement_timeout in
 // milliseconds and the lexing the classifier assumes.
@@ -51,7 +43,8 @@ func login(ctx context.Context, s *gateway.Session, cfg *postgresv1.Config, clie
 		if cfg.GetAgentUsername() == "" {
 			return nil, nil, errNoAgentUsername
 		}
-		user, params = cfg.GetAgentUsername(), agentStartupParams(client, *l)
+		user, params = cfg.GetAgentUsername(), writeParams(client, *l)
+		params["default_transaction_read_only"] = "on"
 	}
 	pc, err := dialConfig(cfg, s.Secret, user, params, db, s.Dial)
 	if err != nil {
@@ -61,9 +54,10 @@ func login(ctx context.Context, s *gateway.Session, cfg *postgresv1.Config, clie
 }
 
 // agentWriter runs the approved writes of an agent session on connections
-// of their own, as the resource's username with the primary credential.
+// of their own, as the resource's username with the primary credential,
+// within the limits and the masking of the session's hooks h.
 type agentWriter struct {
-	cred   func(ctx context.Context, approvalID string, opSHA [32]byte) (gateway.Secret, error)
+	h      gateway.SessionHooks
 	cfg    *postgresv1.Config
 	params map[string]string
 	db     string
@@ -76,24 +70,25 @@ func agentOf(s *gateway.Session, h gateway.SessionHooks, cfg *postgresv1.Config,
 	if h.Limits == nil {
 		return nil
 	}
-	return &agentWriter{cred: h.WriteCredential, cfg: cfg, params: writeParams(client, *h.Limits), db: db, dial: s.Dial, name: s.Resource.Name}
+	return &agentWriter{h: h, cfg: cfg, params: writeParams(client, *h.Limits), db: db, dial: s.Dial, name: s.Resource.Name}
 }
 
-// connect logs in for one approved write with secret.
-func (a *agentWriter) connect(ctx context.Context, secret gateway.Secret) (*pgconn.HijackedConn, error) {
+// connect logs in for one approved write with secret; the PgConn sends its
+// cancel requests.
+func (a *agentWriter) connect(ctx context.Context, secret gateway.Secret) (*pgconn.HijackedConn, *pgconn.PgConn, error) {
 	pc, err := dialConfig(a.cfg, secret, a.cfg.GetUsername(), a.params, a.db, a.dial)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	hc, _, err := connect(ctx, pc)
-	return hc, err
+	return connect(ctx, pc)
 }
 
 // cycle keeps an agent session unpipelined: the first message of a query,
 // a function call or an extended batch goes on only once the database
 // answered everything before it. A person's waits so only after an
-// operation that may change the lexing settings, so its text is classified
-// under the settings the database reports.
+// operation that may change the lexing settings or the prepared statements,
+// so its text is classified under the settings the database reports and its
+// names are the ones the database holds. A Sync ends the client's cycle.
 // ponytail: a query sent inside an unsynced batch is not held back; the
 // batch has no ReadyForQuery to wait for.
 func (c *clientSide) cycle(typ byte) error {
@@ -105,6 +100,10 @@ func (c *clientSide) cycle(typ byte) error {
 			return err
 		}
 		c.relex = false
+	}
+	c.syncNames()
+	if typ == 'S' {
+		c.cycles++
 	}
 	c.inCycle = typ != 'S' && typ != 'Q' && typ != 'F'
 	return nil
@@ -133,6 +132,7 @@ func (c *clientSide) holdAgent(h *held, body []byte) error {
 	frames := []frame{{h.kind, body}}
 	op, ok := h.op, h.kind == 'Q'
 	if h.kind == 'P' {
+		c.parseRefused() // the session's database never gets it
 		rest, err := c.collect()
 		if err != nil {
 			return err
@@ -172,9 +172,9 @@ func (c *clientSide) agentApproval(v dbproxy.Verdict, op dbproxy.Op, ok bool) (d
 	case err != nil:
 		return v, err
 	case status != 'I':
-		return refusedWith(v, "approved writes run outside a transaction"), nil
+		return dbproxy.Refused(v, "approved writes run outside a transaction"), nil
 	case !ok || sqlDialect.Classify(op.Text, sqlclass.Options{}).Statements != 1:
-		return refusedWith(v, "approved writes run one statement at a time"), nil
+		return dbproxy.Refused(v, "approved writes run one statement at a time"), nil
 	}
 	return c.approve(op, v)
 }

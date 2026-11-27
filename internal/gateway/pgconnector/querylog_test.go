@@ -93,3 +93,12 @@ func TestBindParamsUnambiguous(t *testing.T) {
 		seen[v] = true
 	}
 }
+
+// A text parameter that is not valid UTF-8 (a client encoding such as
+// LATIN1) displays as \X<hex>: two such values never display the same, nor
+// like valid text that looks like the escape.
+func TestBindParamsInvalidUTF8(t *testing.T) {
+	b := &pgproto3.Bind{Parameters: [][]byte{{0xff}, {0xfe}, []byte(`\Xff`), []byte("caf\xe9"), []byte("café")}}
+	got := bindParams(b)
+	assert.Equal(t, []string{`\Xff`, `\Xfe`, `\\Xff`, `\X636166e9`, "café"}, got)
+}

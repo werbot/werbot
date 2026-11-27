@@ -3,10 +3,10 @@ package pgconnector
 import (
 	"bufio"
 	"context"
-	"encoding/binary"
 	"errors"
 	"io"
 	"strconv"
+	"sync/atomic"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgproto3"
@@ -34,12 +34,17 @@ type clientSide struct {
 	hdr     [5]byte
 	stmts   map[string]named
 	portals map[string]named
-	kept    int   // bytes held by stmts and portals, up to maxRetained
-	last    *item // the last query or execute: client COPY data counts to it
+	kept    int           // bytes held by stmts and portals, up to maxRetained
+	last    *item         // the last query or execute: client COPY data counts to it
+	made    *atomic.Int32 // the answer to the Parse or Bind that stored a name last
+	cycles  uint64        // Syncs passed
+
+	resets     atomic.Uint64 // the database side counts SQL PREPARE, DEALLOCATE and DISCARD
+	resetsSeen uint64
 
 	skipping  bool // after a denied extended message: drop messages up to Sync
 	inCycle   bool // an extended batch waits for its Sync
-	relex     bool // an allowed operation may change the lexing settings
+	relex     bool // an allowed operation may change the lexing settings or the statements
 	replaying bool // the messages of a decided held batch are being sent
 
 	query pgproto3.Query
@@ -82,9 +87,7 @@ func (c *clientSide) next() error {
 
 // header writes a message header to the database.
 func (c *clientSide) header(typ byte, n int) error {
-	c.hdr[0] = typ
-	binary.BigEndian.PutUint32(c.hdr[1:], uint32(n+4)) //nolint:gosec // n came from a 32-bit length
-	_, err := c.w.Write(c.hdr[:])
+	_, err := c.w.Write(appendHeader(c.hdr[:0], typ, n))
 	return err
 }
 
@@ -161,8 +164,7 @@ func (c *clientSide) op(typ byte, body []byte) (*item, error) {
 		if c.exec.Decode(body) != nil {
 			return nil, errMalformed
 		}
-		p := c.portals[c.exec.Portal]
-		return c.checked('E', dbproxy.Op{Kind: "execute", Text: p.text, Statement: p.stmt, DB: c.log.db, Params: p.params})
+		return c.checked('E', c.executeOp(c.exec.Portal))
 	case 'F':
 		if c.call.Decode(body) != nil {
 			return nil, errMalformed
@@ -170,50 +172,6 @@ func (c *clientSide) op(typ byte, body []byte) (*item, error) {
 		return c.checked('F', dbproxy.Op{Kind: "query", Text: "fastpath function " + strconv.FormatUint(uint64(c.call.Function), 10), DB: c.log.db})
 	}
 	return c.closed(body)
-}
-
-// parsed keeps the text of a new statement.
-func (c *clientSide) parsed(body []byte) (*item, error) {
-	if c.parse.Decode(body) != nil {
-		return nil, errMalformed
-	}
-	text := dbproxy.LogText(c.parse.Query)
-	if err := c.store(c.stmts, c.parse.Name, named{text: text, size: len(text)}); err != nil {
-		return nil, err
-	}
-	return c.checked('P', dbproxy.Op{Kind: "parse", Text: c.parse.Query, Statement: c.parse.Name, DB: c.log.db})
-}
-
-// bound keeps a new portal with its displayed parameters, which an approval
-// of its execute covers; a failed Bind is logged as its execute, with the
-// parameters when the resource records them.
-func (c *clientSide) bound(name, stmt string, params []string) (*item, error) {
-	p := named{stmt: stmt, text: c.stmts[stmt].text, params: params}
-	for _, v := range params {
-		p.size += len(v)
-	}
-	if err := c.store(c.portals, name, p); err != nil {
-		return nil, err
-	}
-	it := c.newItem('B', dbproxy.Op{Kind: "execute", Text: p.text, Statement: stmt})
-	if c.log.params {
-		it.entry.Params = params
-	}
-	return it, nil
-}
-
-// closed forgets a closed statement or portal.
-func (c *clientSide) closed(body []byte) (*item, error) {
-	if c.close.Decode(body) != nil {
-		return nil, errMalformed
-	}
-	switch c.close.ObjectType {
-	case 'S':
-		c.drop(c.stmts, c.close.Name)
-	case 'P':
-		c.drop(c.portals, c.close.Name)
-	}
-	return &item{kind: 'C'}, nil
 }
 
 // bigBind streams a Bind over maxParsed: only its portal and statement names
@@ -252,7 +210,7 @@ func (c *clientSide) bigBind(n int) error {
 // operation it does not allow is a *held. While the session lexes text
 // unlike the classifier, or may since an operation of this cycle, op is opaque.
 func (c *clientSide) checked(kind byte, op dbproxy.Op) (*item, error) {
-	op.Opaque = c.lex.unsafe.Load() || c.relex
+	op.Opaque = op.Opaque || c.lex.unsafe.Load() || c.relex
 	v, err := c.g.Check(c.ctx, op)
 	if err != nil {
 		return nil, err
@@ -272,10 +230,13 @@ func (c *clientSide) allowed(kind byte, op dbproxy.Op, v dbproxy.Verdict) *item 
 	if c.log.params {
 		e.Params = op.Params
 	}
-	if kind == 'Q' || kind == 'E' {
+	switch kind {
+	case 'P':
+		it.made = c.made
+	case 'Q', 'E':
 		c.last = it
 	}
-	c.relex = c.relex || (kind != 'P' && relexes(v.Classes))
+	c.relex = c.relex || (kind != 'P' && (relexes(v.Classes) || (v.Classes != nil && renames(op.Text))))
 	return it
 }
 

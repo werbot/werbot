@@ -2,7 +2,6 @@ package pgconnector
 
 import (
 	"context"
-	"encoding/binary"
 	"strconv"
 	"strings"
 	"time"
@@ -23,6 +22,7 @@ const cancelWait = 5 * time.Second
 // client. Only the database side uses it.
 type limiter struct {
 	bounded           bool  // an agent's: rows and bytes are limited
+	write             bool  // an approved write's: the database's own end of a cut reply passes
 	maxRows, maxBytes int64 // zero limits let no row through
 	mask              func([]byte) []byte
 	cancel            func() // cancels the database's running query, synchronously
@@ -88,31 +88,41 @@ func (l *limiter) masked(typ byte, body []byte) ([]byte, error) {
 	return l.dr.Encode(l.out[:0])
 }
 
-// truncNotice tells the client its result was cut at limit rows or bytes.
-func truncNotice(byBytes bool, limit int64) []byte {
-	unit := " rows"
-	if byBytes {
-		unit = " bytes"
+// truncNotice tells the client its result was cut at the limit it passed.
+func (l *limiter) truncNotice() []byte {
+	if l.byBytes {
+		return notice("WARNING", "01000", "result truncated at "+strconv.FormatInt(l.maxBytes, 10)+" bytes")
 	}
-	b, _ := (&pgproto3.NoticeResponse{Severity: "WARNING", SeverityUnlocalized: "WARNING", Code: "01000",
-		Message: "werbot: result truncated at " + strconv.FormatInt(limit, 10) + unit}).Encode(nil)
-	return b
+	return notice("WARNING", "01000", "result truncated at "+strconv.FormatInt(l.maxRows, 10)+" rows")
 }
 
-// limited handles a reply of a session with a limiter; h is its header.
-func (d *dbSide) limited(h []byte, typ byte, n int) error {
+// replaces reports whether the end typ (body) of a cut reply gives way to a
+// CommandComplete with the rows sent: a CommandComplete, or the cancel's
+// error of a query; never in an approved write, whose own end passes.
+func (l *limiter) replaces(typ byte, body []byte, e *pgproto3.ErrorResponse) bool {
+	return !l.write && (typ == 'C' || (typ == 'E' && !l.copyOut && errorCode(e, body) == "57014"))
+}
+
+// tag is the CommandComplete tag of a cut reply.
+func (l *limiter) tag() string {
+	if l.copyOut {
+		return "COPY " + strconv.FormatInt(l.rows, 10)
+	}
+	return "SELECT " + strconv.FormatInt(l.rows, 10)
+}
+
+// limited handles a reply of n body bytes of a session with a limiter.
+func (d *dbSide) limited(typ byte, n int) error {
 	l := d.lim
 	switch {
 	case typ == 'D' || typ == 'd':
-		_, _ = d.r.Discard(5)
 		return d.row(typ, n)
 	case l.cut && strings.IndexByte("CEs", typ) >= 0 && n <= maxReply:
-		_, _ = d.r.Discard(5)
 		return d.cutEnd(typ, n)
 	case typ == 'Z':
 		l.rows, l.bytes, l.cut, l.copyOut = 0, 0, false, false
 	}
-	return d.forward(h, typ, n)
+	return d.forward(typ, n)
 }
 
 // row forwards a DataRow or CopyData of n body bytes, masked when the
@@ -174,8 +184,9 @@ func (d *dbSide) counted(typ byte, n, sent int) {
 // cutEnd ends a cut reply with the CommandComplete, ErrorResponse or
 // PortalSuspended of n body bytes: the client reads the truncation notice,
 // then a CommandComplete with the rows it got in place of the end or of the
-// cancel's error; any other error, and the cancel's error of a COPY, passes.
-// The queue sees the database's reply.
+// cancel's error; any other error (masked when the session masks), the
+// cancel's error of a COPY and the end of an approved write pass. The
+// queue sees the database's reply.
 func (d *dbSide) cutEnd(typ byte, n int) error {
 	body, err := d.read(n)
 	if err != nil {
@@ -183,24 +194,15 @@ func (d *dbSide) cutEnd(typ byte, n int) error {
 	}
 	l := d.lim
 	l.cut = false
-	limit := l.maxRows
-	if l.byBytes {
-		limit = l.maxBytes
-	}
-	out := truncNotice(l.byBytes, limit)
-	if typ == 'C' || (typ == 'E' && !l.copyOut && errorCode(&d.er, body) == "57014") {
-		verb := "SELECT "
-		if l.copyOut {
-			verb = "COPY "
-		}
-		tag := verb + strconv.FormatInt(l.rows, 10)
+	out := l.truncNotice()
+	if l.replaces(typ, body, &d.er) {
+		tag := l.tag()
 		out, _ = (&pgproto3.CommandComplete{CommandTag: []byte(tag)}).Encode(out)
 		if typ == 'C' {
 			body = append([]byte(tag), 0)
 		}
-	} else {
-		out = binary.BigEndian.AppendUint32(append(out, typ), uint32(n+4)) //nolint:gosec // n ≤ maxReply
-		out = append(out, body...)
+	} else if out, err = replyText(out, typ, body, l.mask); err != nil {
+		return err
 	}
 	if _, err := d.w.Write(out); err != nil {
 		return err

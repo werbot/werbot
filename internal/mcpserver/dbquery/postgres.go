@@ -30,8 +30,9 @@ const closeTimeout = 5 * time.Second
 const pgDenied = "42501"
 
 var (
-	// approvalNotice is the gateway's NOTICE before it holds a query.
-	approvalNotice = regexp.MustCompile(`^Waiting for approval (\S+), timeout \S+: (\S+)$`)
+	// approvalNotice is the gateway's NOTICE before it holds a query; the
+	// gateway drops database notices with its werbot: prefix.
+	approvalNotice = regexp.MustCompile(`^werbot: Waiting for approval (\S+), timeout \S+: (\S+)$`)
 	// truncatedNotice starts the gateway's WARNING when it cut a result.
 	truncatedNotice = "werbot: result truncated"
 )

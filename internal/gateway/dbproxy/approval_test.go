@@ -2,6 +2,7 @@ package dbproxy_test
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"strings"
 	"testing"
@@ -55,7 +56,7 @@ func TestApproveHoldFlow(t *testing.T) {
 	assert.Equal(t, dbproxy.Verdict{Allow: true, Classes: []string{"write"}, Tables: []string{"public.t"}, WriteTables: []string{"public.t"},
 		PolicyIDs: []string{"binding:b"}, ApprovalID: "a1", ApprovalURL: "https://werbot.test/requests/a1"}, v)
 	assert.Equal(t, []string{"a1 https://werbot.test/requests/a1 5m"}, notices)
-	assert.Equal(t, []gateway.ApprovalInput{{Command: "update t set a = 1", Classes: []string{"write"}, Reasons: []string{"command:r1"}}}, e.approved)
+	assert.Equal(t, []gateway.ApprovalInput{{Command: "-- database: app\nupdate t set a = 1", Classes: []string{"write"}, Reasons: []string{"command:r1"}}}, e.approved)
 	ds := e.pdp.decisions()
 	assert.True(t, ds[len(ds)-1].ApprovalGranted, "decided again with the approval")
 
@@ -95,7 +96,7 @@ func TestApprovalCoversBindParams(t *testing.T) {
 	v, err := approve(t, g, exec, func(string, string, time.Duration) error { return nil })
 	require.NoError(t, err)
 	require.True(t, v.Allow)
-	assert.Equal(t, "update t set a = $1\n-- params: [\"42\",\"\\\\N\"]", e.approved[0].Command, "the approvers read the parameters")
+	assert.Equal(t, "-- database: app\nupdate t set a = $1\n-- params: [\"42\",\"\\\\N\"]", e.approved[0].Command, "the approvers read the parameters")
 	assert.Equal(t, e.approved[0].Command, dbproxy.ApprovalText(exec))
 	assert.True(t, check(t, g, exec).Allow, "an execute with the same parameters reuses the approval")
 	assert.Len(t, e.approved, 1)
@@ -161,4 +162,30 @@ func TestApproveCutParamsRefused(t *testing.T) {
 		assert.Equal(t, "query too long to approve (16384 bytes)", v.Message, "a cut display is never approved")
 	}
 	assert.Empty(t, e.approved, "no approval request")
+}
+
+// The approval text starts with the database it runs in: the SHA, the reuse
+// of an approval and the approvers' view bind it, so an approval in one
+// database never covers the same text in another.
+func TestApprovalBoundToDatabase(t *testing.T) {
+	staging := dbproxy.Op{Kind: "query", Text: "delete from users where id = 5", DB: "app_staging"}
+	prod := staging
+	prod.DB = "app_prod"
+	assert.Equal(t, "-- database: app_staging\ndelete from users where id = 5", dbproxy.ApprovalText(staging))
+	assert.NotEqual(t, sha256.Sum256([]byte(dbproxy.ApprovalText(staging))), sha256.Sum256([]byte(dbproxy.ApprovalText(prod))))
+	odd := staging
+	odd.DB = "app\n-- params: []"
+	assert.Equal(t, "-- database: \"app\\n-- params: []\"\ndelete from users where id = 5", dbproxy.ApprovalText(odd),
+		"a name with a control character is quoted")
+
+	e, g := writeEnv(t)
+	op := query("update t set a = 1")
+	_, err := approve(t, g, op, noNotice)
+	require.NoError(t, err)
+	op.DB = "other"
+	_, err = approve(t, g, op, noNotice)
+	require.NoError(t, err)
+	require.Len(t, e.approved, 2, "the other database asks again")
+	assert.Equal(t, "-- database: app\nupdate t set a = 1", e.approved[0].Command)
+	assert.Equal(t, "-- database: other\nupdate t set a = 1", e.approved[1].Command)
 }

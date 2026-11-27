@@ -8,6 +8,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"unicode/utf8"
 
 	"github.com/jackc/pgx/v5/pgproto3"
 
@@ -24,10 +25,19 @@ type item struct {
 	synth []byte
 	entry dbproxy.Entry
 	start time.Time
+	made  *atomic.Int32 // a Parse's or Bind's: the name it made
 
 	dataRows, tagRows, bytes int64        // DataRow count, CommandComplete rows, data bytes
 	copyIn                   atomic.Int64 // COPY FROM bytes the client sent
 	err                      string
+}
+
+// answered stores the database's answer to the Parse or Bind of it in the
+// name it made.
+func (it *item) answered(state int32) {
+	if it.made != nil {
+		it.made.Store(state)
+	}
 }
 
 // line is the querylog line of a finished item.
@@ -153,9 +163,10 @@ func (q *queue) pop() {
 const paramCap = dbproxy.MaxLogParams + 1
 
 // bindParams are the displayed values of b's parameters, cut by
-// dbproxy.LogParams: NULL as \N, binary as \x<hex>, text as is, but a text
-// that starts with a backslash gets one more in front, so no two values
-// display the same.
+// dbproxy.LogParams: NULL as \N, binary as \x<hex>, text that is not valid
+// UTF-8 (a client encoding such as LATIN1) as \X<hex>, other text as is,
+// but a text that starts with a backslash gets one more in front, so no two
+// values display the same.
 func bindParams(b *pgproto3.Bind) []string {
 	if len(b.Parameters) == 0 {
 		return nil
@@ -167,6 +178,8 @@ func bindParams(b *pgproto3.Bind) []string {
 			out[i] = `\N`
 		case binaryParam(b.ParameterFormatCodes, i):
 			out[i] = `\x` + hex.EncodeToString(p[:min(len(p), paramCap/2)])
+		case !utf8.Valid(p):
+			out[i] = `\X` + hex.EncodeToString(p[:min(len(p), paramCap/2)])
 		case len(p) > 0 && p[0] == '\\':
 			out[i] = `\` + string(p[:min(len(p), paramCap)])
 		default:

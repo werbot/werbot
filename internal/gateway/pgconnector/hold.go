@@ -2,7 +2,6 @@ package pgconnector
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
 	"io"
 	"strings"
@@ -111,31 +110,32 @@ func (c *clientSide) approve(op dbproxy.Op, v dbproxy.Verdict) (dbproxy.Verdict,
 	defer wg.Wait()
 	defer close(stop)
 	v, err := c.g.Approve(c.ctx, op, v, func(id, url string, timeout time.Duration) error {
-		b, _ := holdNotice(id, url, timeout).Encode(nil)
-		if err := c.out.send(b); err != nil {
+		if err := c.out.send(notice("NOTICE", "00000", "Waiting for approval "+id+", timeout "+gateway.FormatWait(timeout)+": "+url)); err != nil {
 			return err
 		}
 		wg.Go(func() { c.stillWaiting(id, stop) })
 		return nil
 	})
 	if errors.Is(err, gateway.ErrNotReady) {
-		return refusedWith(v, "approval unavailable, try again later"), nil
+		return dbproxy.Refused(v, "approval unavailable, try again later"), nil
 	}
 	return v, err
 }
 
-// holdNotice tells the client which approval its operation waits for.
-func holdNotice(id, url string, timeout time.Duration) *pgproto3.NoticeResponse {
-	return notice("Waiting for approval " + id + ", timeout " + gateway.FormatWait(timeout) + ": " + url)
-}
+// gatewayPrefix starts the message of every notice and error the gateway
+// sends a client itself; a database's notice that starts so is dropped.
+const gatewayPrefix = "werbot:"
 
-func notice(msg string) *pgproto3.NoticeResponse {
-	return &pgproto3.NoticeResponse{Severity: "NOTICE", SeverityUnlocalized: "NOTICE", Code: "00000", Message: msg}
+// notice is a NoticeResponse of the gateway with severity sev, SQLSTATE
+// code and message "werbot: " + msg.
+func notice(sev, code, msg string) []byte {
+	b, _ := (&pgproto3.NoticeResponse{Severity: sev, SeverityUnlocalized: sev, Code: code, Message: gatewayPrefix + " " + msg}).Encode(nil)
+	return b
 }
 
 // stillWaiting reminds the client of approval id until stop is closed.
 func (c *clientSide) stillWaiting(id string, stop <-chan struct{}) {
-	b, _ := notice("Still waiting for approval " + id).Encode(nil)
+	b := notice("NOTICE", "00000", "Still waiting for approval "+id)
 	t := time.NewTicker(stillWaitingEvery)
 	defer t.Stop()
 	for {
@@ -164,7 +164,18 @@ func (c *clientSide) deny(kind byte, op dbproxy.Op, v dbproxy.Verdict) error {
 	}
 	it.kind, it.log, it.ready, it.synth = 'x', true, kind == 'Q' || kind == 'F', errorResponse("42501", msg)
 	c.skipping = !it.ready
+	if kind == 'P' {
+		c.parseRefused()
+	}
 	return c.answer(it)
+}
+
+// parseRefused marks the statement the last Parse stored as refused: the
+// database never gets that Parse.
+func (c *clientSide) parseRefused() {
+	if c.made != nil {
+		c.made.Store(nameFailed)
+	}
 }
 
 // answer sends the synthetic reply it in reply order, and logs its line:
@@ -191,12 +202,6 @@ func errorResponse(code, msg string) []byte {
 	return b
 }
 
-// refusedWith is v denied with message.
-func refusedWith(v dbproxy.Verdict, message string) dbproxy.Verdict {
-	v.Allow, v.Obligations, v.Message = false, nil, message
-	return v
-}
-
 // collect reads the client's messages after a held Parse whole, up to and
 // with a Sync, a Flush (the client then waits for replies) or a Terminate,
 // within maxParsed bytes in all.
@@ -204,19 +209,14 @@ func (c *clientSide) collect() ([]frame, error) {
 	var frames []frame
 	total := 0
 	for {
-		h, err := c.r.Peek(5)
+		typ, n, err := readHeader(c.r)
 		if err != nil {
 			return nil, err
 		}
-		typ, size := h[0], int(int32(binary.BigEndian.Uint32(h[1:]))) //nolint:gosec // a signed length word
-		if size < 4 {
-			return nil, errMalformed
-		}
-		if total += size + 1; total > maxParsed {
+		if total += n + 5; total > maxParsed {
 			return nil, errHeldTooLarge
 		}
-		_, _ = c.r.Discard(5)
-		body := make([]byte, size-4)
+		body := make([]byte, n)
 		if _, err := io.ReadFull(c.r, body); err != nil {
 			return nil, err
 		}

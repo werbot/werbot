@@ -1,11 +1,13 @@
 package pgconnector
 
 import (
+	"maps"
 	"testing"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgproto3"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/werbot/werbot/internal/gateway"
 )
@@ -83,6 +85,39 @@ func TestPipelinedLexingChangeIsOpaque(t *testing.T) {
 				got = append(got, e.Classes)
 			}
 			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
+// A person's start parameters that set what the classifier cannot see
+// (non-empty options, a protected setting) make every operation opaque, as
+// the lexing guard does; the lexing settings it follows and the rest do not.
+func TestStartParamsMakeSessionOpaque(t *testing.T) {
+	warm(t)
+	for name, tc := range map[string]struct {
+		params map[string]string
+		want   string
+	}{
+		"options":         {map[string]string{"options": "-c role=pg_monitor"}, "opaque"},
+		"search_path":     {map[string]string{"search_path": "evil,pg_catalog"}, "opaque"},
+		"role":            {map[string]string{"ROLE": "pg_monitor"}, "opaque"},
+		"read only":       {map[string]string{"default_transaction_read_only": "off"}, "opaque"},
+		"empty options":   {map[string]string{"options": ""}, "read"},
+		"lexing and rest": {map[string]string{"client_encoding": "UTF8", "standard_conforming_strings": "on", "application_name": "psql"}, "read"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			h, rec := newHooks(nil)
+			rec.pdp.rule = func(gateway.AccessRequest) gateway.Decision { return allow }
+			p := fakeProxy(t.Context(), t, lexingDB, withHooks(h))
+			params := map[string]string{"user": "nobody", "database": "main"}
+			maps.Copy(params, tc.params)
+			f := rawStart(t, p, params)
+			send(t, f, &pgproto3.Query{String: "select 1"})
+			trace(t, f, 1)
+			terminate(t, f)
+			es := p.entries(t)
+			require.Len(t, es, 1)
+			assert.Equal(t, []string{tc.want}, es[0].Classes)
 		})
 	}
 }

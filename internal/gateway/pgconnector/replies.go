@@ -2,8 +2,9 @@ package pgconnector
 
 import (
 	"bufio"
-	"encoding/binary"
 	"io"
+	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgproto3"
@@ -12,8 +13,10 @@ import (
 )
 
 // dbSide forwards database replies to the client. It reads only headers, and
-// the bodies of CommandComplete, ErrorResponse, ReadyForQuery and
-// ParameterStatus; DataRow, CopyData and the rest pass through. Replies close
+// the bodies of CommandComplete, ErrorResponse, ReadyForQuery,
+// ParameterStatus and NoticeResponse (and in a masked session of
+// NotificationResponse and FunctionCallResponse); DataRow, CopyData and the
+// rest pass through. Replies close
 // the queued items; a finished operation becomes its querylog line; a
 // synthetic reply queued behind them goes to the client in their place.
 type dbSide struct {
@@ -21,6 +24,7 @@ type dbSide struct {
 	w      *bufio.Writer // to the client: out.w, written under out.mu
 	out    *clientWriter
 	lex    *lexing
+	resets *atomic.Uint64 // of the client side: SQL PREPARE, DEALLOCATE and DISCARD that ran
 	lr     io.LimitedReader
 	q      *queue
 	g      *dbproxy.Guard
@@ -33,23 +37,25 @@ type dbSide struct {
 	er     pgproto3.ErrorResponse
 }
 
-// next forwards one reply whole under the client lock; the client gets the
-// buffer once the database has nothing more pending.
+// next forwards one reply.
 func (d *dbSide) next() error {
-	h, err := d.r.Peek(5)
+	typ, n, err := readHeader(d.r)
 	if err != nil {
 		return err
 	}
-	typ, size := h[0], int(int32(binary.BigEndian.Uint32(h[1:]))) //nolint:gosec // a signed length word
-	if size < 4 {
-		return errMalformed
-	}
+	return d.relay(typ, n)
+}
+
+// relay forwards a reply of n body bytes whole under the client lock; the
+// client gets the buffer once the database has nothing more pending.
+func (d *dbSide) relay(typ byte, n int) error {
 	d.out.mu.Lock()
 	defer d.out.mu.Unlock()
+	var err error
 	if d.lim != nil {
-		err = d.limited(h, typ, size-4)
+		err = d.limited(typ, n)
 	} else {
-		err = d.forward(h, typ, size-4)
+		err = d.forward(typ, n)
 	}
 	if err != nil {
 		return err
@@ -60,21 +66,22 @@ func (d *dbSide) next() error {
 	return nil
 }
 
-// forward writes the peeked header h of a reply and forwards its n body bytes.
-func (d *dbSide) forward(h []byte, typ byte, n int) error {
-	if _, err := d.w.Write(h); err != nil {
+// forward forwards a reply of n body bytes; one that carries texts a
+// session filters or masks goes through text.
+func (d *dbSide) forward(typ byte, n int) error {
+	if typ == 'N' || (d.masks() && strings.IndexByte("EAV", typ) >= 0) {
+		return d.text(typ, n)
+	}
+	if err := d.header(typ, n); err != nil {
 		return err
 	}
-	_, _ = d.r.Discard(5)
 	return d.message(typ, n)
 }
 
 // header writes the header of a reply of n body bytes.
 func (d *dbSide) header(typ byte, n int) error {
 	var h [5]byte
-	h[0] = typ
-	binary.BigEndian.PutUint32(h[1:], uint32(n+4)) //nolint:gosec // n came from a 32-bit length
-	_, err := d.w.Write(h[:])
+	_, err := d.w.Write(appendHeader(h[:0], typ, n))
 	return err
 }
 
@@ -148,6 +155,7 @@ func (d *dbSide) reply(typ byte, body []byte) {
 	case it == nil:
 	case pops[typ] != 0:
 		if it.kind == pops[typ] {
+			it.answered(nameMade)
 			d.pop()
 		}
 	case typ == 'C':
@@ -165,8 +173,12 @@ func (d *dbSide) reply(typ byte, body []byte) {
 }
 
 // complete applies a CommandComplete: it ends an Execute; a simple query
-// adds the rows of each of its statements.
+// adds the rows of each of its statements. SQL PREPARE, DEALLOCATE and
+// DISCARD make the client side forget the named statements.
 func (d *dbSide) complete(it *item, body []byte) {
+	if renamed(body) {
+		d.resets.Add(1)
+	}
 	switch it.kind {
 	case 'E':
 		it.tagRows = tagRows(body)
@@ -193,6 +205,7 @@ func (d *dbSide) failed(it *item, body []byte) {
 	default: // Parse, Bind, Execute, Describe, Close
 		d.skip = true
 		it.err, it.log = text, it.kind != 'D' && it.kind != 'C'
+		it.answered(nameFailed)
 		d.finish(it)
 	}
 }
@@ -209,22 +222,26 @@ func (d *dbSide) endCopy() {
 // ready applies a ReadyForQuery with body: it ends the cycle up to the Sync,
 // query or function call it answers. After an extended-protocol error it
 // answers the Sync: the messages before it, queries too, never ran and get
-// no line, and a denial among them is not sent.
+// no line (a Parse or Bind among them failed), and a denial among them is
+// not sent; the replies after the Sync are the next cycle's.
 func (d *dbSide) ready(body []byte) {
 	if len(body) == 1 {
 		d.out.status = body[0]
 	}
-	defer func() { d.skip = false }()
 	for it := d.head(); it != nil; it = d.head() {
 		query := (it.kind == 'Q' || it.kind == 'F') && !d.skip
 		if query {
 			d.log(it) // before pop sends what waits behind it
 		}
+		end := query || it.kind == 'S'
+		d.skip = d.skip && !end
+		it.answered(nameFailed)
 		d.pop()
-		if query || it.kind == 'S' {
+		if end {
 			return
 		}
 	}
+	d.skip = false
 }
 
 func (d *dbSide) head() *item {
@@ -245,7 +262,7 @@ func (d *dbSide) pop() {
 		if it.log {
 			d.g.Log(it.entry)
 		}
-		if it.ready || !d.skip {
+		if !d.skip {
 			_, _ = d.w.Write(it.reply(d.out.status)) // an error stays in w for the flush
 		}
 	}

@@ -79,7 +79,7 @@ func (Connector) Serve(ctx context.Context, s *gateway.Session) error {
 	}
 	c, d := newRelay(ctx, cr, hc.Conn, s.Stream, g, sessionLog{t0: t0, db: db, params: cfg.GetRecordParams(), secret: s.Secret})
 	c.agent, c.out.status = agentOf(s, h, cfg, msg.Parameters, db), hc.TxStatus
-	c.lex.start(hc.ParameterStatuses)
+	c.lex.start(hc.ParameterStatuses, h.Limits == nil && hidesSettings(msg.Parameters))
 	d.lim = newLimiter(h, cutCanceler(ctx, key, s.Resource.ID))
 	return relay(ctx, s, hc, c, d)
 }

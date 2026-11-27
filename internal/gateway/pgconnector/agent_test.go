@@ -41,7 +41,8 @@ func TestAgentApprovedWriteUsesPrimary(t *testing.T) {
 	assert.Equal(t, []string{waitingNotice}, notices)
 	assert.Equal(t, "2", value(t, owner, "select a from t"), "the write ran as the resource's username")
 	_, writes := rec.asked()
-	assert.Equal(t, []writeCall{{approvalID, sha256.Sum256([]byte(update))}}, writes, "the credential is bound to the approval and the text")
+	db := "-- database: " + cfg.GetDatabase() + "\n"
+	assert.Equal(t, []writeCall{{approvalID, sha256.Sum256([]byte(db + update))}}, writes, "the credential is bound to the approval, the database and the text")
 	const text = "UPDATE t SET a = $1 WHERE id = $2"
 	res := conn.ExecParams(t.Context(), text, [][]byte{[]byte("5"), []byte("1")}, nil, nil, nil).Read()
 	require.NoError(t, res.Err)
@@ -49,7 +50,7 @@ func TestAgentApprovedWriteUsesPrimary(t *testing.T) {
 	assert.Equal(t, "5", value(t, owner, "select a from t"))
 	_, writes = rec.asked()
 	require.Len(t, writes, 2)
-	assert.Equal(t, sha256.Sum256([]byte(text+"\n-- params: [\"5\",\"1\"]")), writes[1].sha, "the credential is bound to the text and its parameters")
+	assert.Equal(t, sha256.Sum256([]byte(db+text+"\n-- params: [\"5\",\"1\"]")), writes[1].sha, "the credential is bound to the text and its parameters")
 	assert.Equal(t, cfg.GetAgentUsername(), value(t, conn, "select current_user"), "the agent's own session stays read-only")
 	assert.Equal(t, "on", value(t, conn, "show transaction_read_only"))
 	require.NoError(t, conn.Close(t.Context()))
@@ -127,8 +128,8 @@ func TestAgentStartupParamsFiltered(t *testing.T) {
 	assert.Equal(t, "on", value(t, person, "show standard_conforming_strings"), "but the lexing settings")
 
 	assert.Equal(t, map[string]string{"application_name": "a", "DateStyle": "ISO", "statement_timeout": "1500",
-		"standard_conforming_strings": "on", "default_transaction_read_only": "on"},
-		agentStartupParams(map[string]string{"application_name": "a", "DateStyle": "ISO", "options": "-c role=x", "backslash_quote": "on"},
+		"standard_conforming_strings": "on"},
+		writeParams(map[string]string{"application_name": "a", "DateStyle": "ISO", "options": "-c role=x", "backslash_quote": "on"},
 			gateway.AgentLimits{StatementTimeout: 1500 * time.Millisecond}))
 }
 

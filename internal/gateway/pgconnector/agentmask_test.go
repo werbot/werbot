@@ -81,3 +81,31 @@ func TestMaskDataRowForAgent(t *testing.T) {
 	assert.Equal(t, personLines[0].Bytes, agentLines[0].Bytes, "the querylog counts the bytes the database sent")
 	assert.Equal(t, personLines[0].Rows, agentLines[0].Rows)
 }
+
+// The rows of an agent's approved write obey the agent's limits and masking
+// as the session's own rows do; the write's own end passes.
+func TestApprovedWriteLimitedAndMasked(t *testing.T) {
+	warm(t)
+	cfg, ro, rw, owner := agentDB(t)
+	_, err := owner.Exec(t.Context(), "insert into t select g, 1 from generate_series(2, 50) g").ReadAll()
+	require.NoError(t, err)
+	h, rec := newHooks(limits(10, 1<<20))
+	rec.cred = rw
+	h.Mask = maskAll
+	p := serveProxy(t.Context(), t, testResource(t, cfg), ro, withHooks(h))
+	var notices []string
+	conn := clientOf(t, p, cfg.GetDatabase(), &notices, nil)
+	rs, err := conn.Exec(t.Context(), "UPDATE t SET a = 2 WHERE id > 0 RETURNING '"+token+"' AS v").ReadAll()
+	require.NoError(t, err)
+	if len(rs[0].Rows) != 10 {
+		t.Fatal("an approved write's rows are not limited") // never print the cells
+	}
+	for _, r := range rs[0].Rows {
+		if string(r[0]) != "[masked]" {
+			t.Fatal("a cell of an approved write is not masked")
+		}
+	}
+	assert.Equal(t, "UPDATE 50", rs[0].CommandTag.String(), "the write's own end passes")
+	assert.Contains(t, notices, "werbot: result truncated at 10 rows")
+	assert.Equal(t, "2", value(t, owner, "select a from t where id = 50"))
+}

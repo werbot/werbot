@@ -134,8 +134,17 @@ func TestDeniedExtendedSkipsToSync(t *testing.T) {
 		&pgproto3.Query{String: "select 2"})
 	assert.Equal(t, []string{"E XX000 boom", "Z I", "T", "D 1", "C SELECT 1", "Z I"}, trace(t, f, 2),
 		"after the database's error the batch's denial is not sent")
+	send(t, f,
+		&pgproto3.Parse{Query: "select fail"}, &pgproto3.Bind{}, &pgproto3.Execute{},
+		&pgproto3.Query{String: "drop table t"}, &pgproto3.Sync{},
+		&pgproto3.Query{String: "drop table t"}, &pgproto3.Query{String: "select 2"})
+	assert.Equal(t, []string{"E XX000 boom", "Z I",
+		"E 42501 werbot: query denied: not allowed (destructive)", "Z I",
+		"T", "D 1", "C SELECT 1", "Z I"}, trace(t, f, 3),
+		"a simple query's denial inside the failed batch is not sent; one after its Sync is")
 	terminate(t, f)
-	assert.Equal(t, []string{"P select 1", "B", "E", "S", "Q select 2", "P select 1", "H", "S", "P select fail", "S", "Q select 2"}, db.all(),
+	assert.Equal(t, []string{"P select 1", "B", "E", "S", "Q select 2", "P select 1", "H", "S", "P select fail", "S", "Q select 2",
+		"P select fail", "S", "Q select 2"}, db.all(),
 		"messages after the denial up to Sync never reached the database")
 }
 

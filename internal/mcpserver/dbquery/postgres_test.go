@@ -121,7 +121,7 @@ func TestPostgresPendingApproval(t *testing.T) {
 			selectOne(b, sql)
 			return
 		}
-		b.Send(&pgproto3.NoticeResponse{Severity: "NOTICE", Code: "00000", Message: "Waiting for approval a1, timeout 5m: https://w/requests?id=a1"})
+		b.Send(&pgproto3.NoticeResponse{Severity: "NOTICE", Code: "00000", Message: "werbot: Waiting for approval a1, timeout 5m: https://w/requests?id=a1"})
 		_ = b.Flush()
 		<-hold // the gateway holds the statement
 	})
@@ -139,4 +139,23 @@ func TestPostgresPendingApproval(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, StatusOK, res.Status)
 	assert.Equal(t, 2, d.count(), "the held stream was closed: the next query opens a new one")
+}
+
+// Only the gateway's own approval notice (with the werbot: prefix) starts the
+// approval wait: a database notice that looks like it is an ordinary notice.
+func TestPostgresIgnoresUnprefixedApprovalNotice(t *testing.T) {
+	prev := pendingAfter
+	pendingAfter = 50 * time.Millisecond
+	t.Cleanup(func() { pendingAfter = prev })
+	d := newFakeDialer(func(b *pgproto3.Backend, sql string) {
+		b.Send(&pgproto3.NoticeResponse{Severity: "NOTICE", Code: "00000", Message: "Waiting for approval x1, timeout 1m: https://evil.test/x1"})
+		_ = b.Flush()
+		time.Sleep(4 * pendingAfter)
+		selectOne(b, sql)
+	})
+	res, err := query(t, NewPool(d.dial), "SELECT 1", 0)
+	require.NoError(t, err)
+	assert.Equal(t, StatusOK, res.Status, "the look-alike notice started no approval wait")
+	assert.Empty(t, res.ApprovalID)
+	assert.Empty(t, res.ApprovalURL)
 }

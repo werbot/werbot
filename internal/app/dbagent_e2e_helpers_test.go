@@ -164,13 +164,14 @@ func (m *mcpClient) query(t *testing.T, sql string) dbquery.Result {
 	return out
 }
 
-// pendingQuery waits up to 5s for the pending command approval of sql and returns its id.
+// pendingQuery waits up to 5s for the pending command approval of sql and
+// returns its id. The approved text is sql after its database line.
 func (s *stack) pendingQuery(t *testing.T, sql string) string {
 	t.Helper()
 	var id string
 	require.Eventually(t, func() bool {
-		return s.pool.QueryRow(context.Background(),
-			"SELECT id::text FROM approval WHERE status = 'pending' AND command = $1", sql).Scan(&id) == nil
+		return s.pool.QueryRow(context.Background(), `SELECT id::text FROM approval WHERE status = 'pending'
+			AND command LIKE '-- database: %' AND right(command, length($1) + 1) = E'\n' || $1`, sql).Scan(&id) == nil
 	}, 5*time.Second, 50*time.Millisecond)
 	return id
 }

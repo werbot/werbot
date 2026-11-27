@@ -5,7 +5,10 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
+	"strconv"
+	"strings"
 	"time"
+	"unicode"
 
 	"github.com/werbot/werbot/internal/gateway"
 )
@@ -15,15 +18,21 @@ import (
 const maxApprovalText = 16384
 
 // ApprovalText is what the approvers of op read and what its approval
-// covers (op_sha256 is its SHA-256): the text, and for an execute with
-// parameters a line with them as the querylog shows them. An approval of one
-// set of parameters never covers another.
+// covers (op_sha256 is its SHA-256): a line with the database (quoted when
+// it holds a control character), the text, and for an execute with
+// parameters a line with them as the querylog shows them. An approval in one
+// database, or of one set of parameters, never covers another.
 func ApprovalText(op Op) string {
+	db := op.DB
+	if strings.ContainsFunc(db, unicode.IsControl) {
+		db = strconv.Quote(db)
+	}
+	text := "-- database: " + db + "\n" + op.Text
 	if len(op.Params) == 0 {
-		return op.Text
+		return text
 	}
 	params, _ := json.Marshal(LogParams(op.Params)) // a []string always marshals
-	return op.Text + "\n-- params: " + string(params)
+	return text + "\n-- params: " + string(params)
 }
 
 // Approve asks for the approval v obliges op to and waits for it: notify
@@ -36,11 +45,11 @@ func ApprovalText(op Op) string {
 func (g *Guard) Approve(ctx context.Context, op Op, v Verdict, notify func(id, url string, timeout time.Duration) error) (Verdict, error) {
 	text := ApprovalText(op)
 	if len(text) > maxApprovalText || cutParams(op.Params) {
-		return refused(v, "query too long to approve (16384 bytes)"), nil
+		return Refused(v, "query too long to approve (16384 bytes)"), nil
 	}
 	st, ok := g.approvable(op)
 	if !ok {
-		return refused(v, denyMessage("", v.Classes)), nil
+		return Refused(v, denyMessage("", v.Classes)), nil
 	}
 	err := g.h.Approve(ctx, gateway.ApprovalInput{Command: text, Classes: v.Classes, Reasons: v.PolicyIDs},
 		func(id, url string, timeout time.Duration) error {
@@ -52,9 +61,9 @@ func (g *Guard) Approve(ctx context.Context, op Op, v Verdict, notify func(id, u
 		})
 	switch {
 	case errors.Is(err, gateway.ErrApprovalDenied):
-		return refused(v, "approval denied"), nil
+		return Refused(v, "approval denied"), nil
 	case errors.Is(err, gateway.ErrApprovalTimeout):
-		return refused(v, "approval timed out"), nil
+		return Refused(v, "approval timed out"), nil
 	case err != nil:
 		return v, err
 	}
@@ -66,13 +75,14 @@ func (g *Guard) Approve(ctx context.Context, op Op, v Verdict, notify func(id, u
 func cutParams(ps []string) bool { return len(ps) > 0 && ps[len(ps)-1] == Truncated }
 
 // approvable is the statement of a parse or execute op, which must be the
-// parsed text; a query has none.
+// parsed text; a query has none. An execute without a text (the connector
+// cannot tell which statement runs) is never approvable.
 func (g *Guard) approvable(op Op) (*statement, bool) {
 	if op.Kind != "parse" && op.Kind != "execute" {
 		return nil, true
 	}
 	st := g.stmts[op.Statement]
-	return st, st != nil && st.sha == g.sha(op)
+	return st, st != nil && st.sha == g.sha(op) && (op.Text != "" || op.Kind == "parse")
 }
 
 // approved decides op again with its approval granted and, once allowed,
@@ -82,7 +92,7 @@ func (g *Guard) approved(op Op, st *statement, text string, v Verdict) Verdict {
 	if !d.Allow {
 		g.denied(op.Text, v.Classes, d.Reasons)
 		v.PolicyIDs = d.Reasons
-		return refused(v, denyMessage(d.Message, v.Classes))
+		return Refused(v, denyMessage(d.Message, v.Classes))
 	}
 	if st != nil {
 		st.approved, st.hasApproval = sha256.Sum256([]byte(text)), true
@@ -91,8 +101,8 @@ func (g *Guard) approved(op Op, st *statement, text string, v Verdict) Verdict {
 	return v
 }
 
-// refused is v denied with message.
-func refused(v Verdict, message string) Verdict {
+// Refused is v denied with message.
+func Refused(v Verdict, message string) Verdict {
 	v.Allow, v.Obligations, v.Message = false, nil, message
 	return v
 }
