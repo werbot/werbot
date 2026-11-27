@@ -13,9 +13,9 @@ jobs:
   go:
     runs-on: ubuntu-latest
     env:
-      # ./cmd/werbot for linux/amd64 without the web build: 87 695 590 bytes
-      # after --vnet linked gVisor (+4.9 MB), plus 2 MiB of headroom
-      MAX_BINARY_BYTES: 89792742
+      # ./cmd/werbot for linux/amd64 without the web build: 96 976 304 bytes
+      # after the PostgreSQL parser (go-pgquery, +8.8 MB), plus 2 MiB of headroom
+      MAX_BINARY_BYTES: 99073456
     services:
       postgres:
         image: postgres:18-alpine

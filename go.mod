@@ -23,6 +23,7 @@ require (
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/oschwald/maxminddb-golang/v2 v2.9.0
 	github.com/peterldowns/pgtestdb v0.1.1
+	github.com/pganalyze/pg_query_go/v6 v6.2.5
 	github.com/pires/go-proxyproto v0.16.0
 	github.com/pquerna/otp v1.5.0
 	github.com/pressly/goose/v3 v3.30.1
@@ -30,6 +31,7 @@ require (
 	github.com/riverqueue/river/riverdriver/riverpgxv5 v0.51.0
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
+	github.com/wasilibs/go-pgquery v0.0.0-20261106060434-4301e51f8dbf
 	github.com/wneessen/go-mail v0.8.1
 	github.com/zitadel/oidc/v3 v3.51.17
 	golang.org/x/crypto v0.58.0
@@ -91,11 +93,13 @@ require (
 	github.com/segmentio/encoding v0.5.4 // indirect
 	github.com/sethvargo/go-retry v0.5.0 // indirect
 	github.com/spf13/pflag v1.0.9 // indirect
+	github.com/tetratelabs/wazero v1.12.0 // indirect
 	github.com/tidwall/gjson v1.20.0 // indirect
 	github.com/tidwall/match v1.2.0 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/tinylib/msgp v1.6.4 // indirect
+	github.com/wasilibs/wazero-helpers v0.0.0-20250123031827-cd30c44769bb // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	github.com/zitadel/schema v1.3.2 // indirect
