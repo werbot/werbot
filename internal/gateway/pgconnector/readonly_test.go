@@ -103,6 +103,12 @@ func TestReadonlyCheckerFindsWrite(t *testing.T) {
 		"owner of function": {grant: func(t *testing.T, d roDB, role string) {
 			ownTo(t, d, role, "CREATE FUNCTION public.g() RETURNS int LANGUAGE sql AS 'SELECT 1'", "ALTER FUNCTION public.g() OWNER TO "+role)
 		}, want: "owner of function <db>.public.g"},
+		"owner of type": {grant: func(t *testing.T, d roDB, role string) {
+			ownTo(t, d, role, "CREATE TYPE public.mood AS ENUM ('a')", "ALTER TYPE public.mood OWNER TO "+role)
+		}, want: "owner of type <db>.public.mood"},
+		"owner of domain": {grant: func(t *testing.T, d roDB, role string) {
+			ownTo(t, d, role, "CREATE DOMAIN public.pos AS int", "ALTER DOMAIN public.pos OWNER TO "+role)
+		}, want: "owner of type <db>.public.pos"},
 		"admin option": {grant: func(t *testing.T, _ roDB, role string) {
 			other, _ := dbtest.Role(t, "")
 			dbtest.Exec(t, "GRANT "+other+" TO "+role+" WITH ADMIN OPTION, INHERIT FALSE")
@@ -140,6 +146,24 @@ func ownTo(t *testing.T, d roDB, role string, sql ...string) {
 	d.exec(t, "GRANT CREATE ON SCHEMA public TO "+role)
 	d.exec(t, sql...)
 	d.exec(t, "REVOKE CREATE ON SCHEMA public FROM "+role)
+}
+
+// Default privileges of the agent role (pg_default_acl) only shape objects it
+// would create, and it can create none: they are no finding.
+func TestReadonlyCheckerDefaultPrivileges(t *testing.T) {
+	name, pass := dbtest.Role(t, "")
+	d := newRODB(t, name)
+	var owner string
+	require.NoError(t, d.pool.QueryRow(t.Context(), "SELECT current_user").Scan(&owner))
+	dbtest.Exec(t, "GRANT "+name+" TO "+owner)
+	t.Cleanup(func() { dbtest.Exec(t, "REVOKE "+name+" FROM "+owner) })
+	d.exec(t, "ALTER DEFAULT PRIVILEGES FOR ROLE "+name+" GRANT SELECT ON TABLES TO PUBLIC")
+	t.Cleanup(func() {
+		_, err := d.pool.Exec(context.Background(), "ALTER DEFAULT PRIVILEGES FOR ROLE "+name+" REVOKE SELECT ON TABLES FROM PUBLIC")
+		require.NoError(t, err)
+	})
+	status, detail := check(t, d.cfg, pass)
+	require.Equal(t, [2]string{gateway.ReadonlyOK, ""}, [2]string{status, detail})
 }
 
 // Every allowed database is checked: a write in the second is has_write.

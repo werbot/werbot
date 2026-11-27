@@ -18,12 +18,16 @@ WHERE datallowconn AND NOT datistemplate AND has_database_privilege(current_user
 // database: CREATE on it or a schema, owning it or an object in it, a write
 // privilege on a relation or sequence, UPDATE on a large object, EXECUTE on a
 // SECURITY DEFINER function of another owner outside pg_catalog and
-// information_schema, lo_compat_privileges on. Temporary schemas are skipped.
+// information_schema, lo_compat_privileges on, owning any other object of
+// the database or of the cluster (pg_shdepend: a type, a domain, an
+// operator, another database...; not default privileges, which only shape
+// objects it cannot create). Temporary schemas are skipped.
 const databaseSQL = `WITH r AS (
   SELECT oid, CASE WHEN rolname = current_user THEN '' ELSE ' (via ' || rolname || ')' END AS via
   FROM pg_roles WHERE pg_has_role(current_user, oid, 'MEMBER')),
 d AS (SELECT current_database() AS db, current_setting('server_version_num')::int >= 170000 AS v17,
-             (SELECT oid FROM pg_roles WHERE rolname = current_user) AS self),
+             (SELECT oid FROM pg_roles WHERE rolname = current_user) AS self,
+             (SELECT oid FROM pg_database WHERE datname = current_database()) AS dbo),
 f (k, finding) AS (
   SELECT 1, CASE WHEN g.datdba = r.oid THEN 'owner of database ' ELSE 'CREATE on database ' END || g.datname || r.via
   FROM pg_database g, r WHERE g.datname = current_database() AND (g.datdba = r.oid OR has_database_privilege(r.oid, g.oid, 'CREATE'))
@@ -66,5 +70,13 @@ f (k, finding) AS (
      OR EXISTS (SELECT 1 FROM aclexplode(m.lomacl) a WHERE a.privilege_type = 'UPDATE' AND a.grantee IN (r.oid, 0))
   UNION ALL
   SELECT 9, 'lo_compat_privileges on in database ' || d.db FROM d WHERE current_setting('lo_compat_privileges')::bool
+  UNION ALL
+  SELECT 10, 'owner of ' || i.type || ' ' || CASE WHEN s.dbid = 0 THEN '' ELSE d.db || '.' END
+             || coalesce(i.identity, s.objid::text) || r.via
+  FROM pg_shdepend s JOIN r ON r.oid = s.refobjid, d, pg_identify_object(s.classid, s.objid, s.objsubid) i
+  WHERE s.deptype = 'o' AND s.refclassid = 'pg_authid'::regclass AND s.dbid IN (0, d.dbo)
+    AND s.classid NOT IN ('pg_class'::regclass, 'pg_namespace'::regclass, 'pg_proc'::regclass, 'pg_largeobject'::regclass,
+                          'pg_default_acl'::regclass)
+    AND NOT (s.classid = 'pg_database'::regclass AND s.objid = d.dbo)
 )
 SELECT finding FROM f ORDER BY k, finding LIMIT 5`
