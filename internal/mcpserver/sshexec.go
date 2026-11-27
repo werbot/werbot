@@ -13,6 +13,7 @@ import (
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
 	"github.com/werbot/werbot/internal/clientauth"
 	"github.com/werbot/werbot/internal/connectcli"
+	"github.com/werbot/werbot/internal/mcpserver/dbquery"
 	"github.com/werbot/werbot/internal/platform/sshca"
 	"github.com/werbot/werbot/internal/platform/version"
 )
@@ -25,7 +26,7 @@ const (
 )
 
 // pendingAfter is how long a call waits for an approval; tests shrink it.
-var pendingAfter = 50 * time.Second
+var pendingAfter = dbquery.PendingAfter
 
 // ExecInput is the input of ssh_exec.
 type ExecInput struct {
