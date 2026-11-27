@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -225,11 +224,12 @@ func TestConnectorLifecycle(t *testing.T) {
 }
 
 // BenchmarkPostgresConnect compares a direct connect to the test database with
-// one through the connector; threshold: added p99 ≤ 30 ms.
+// one through the connector and reports the added p99 (budget 30 ms, gated by
+// TestHotPathBudget).
 func BenchmarkPostgresConnect(b *testing.B) {
 	cfg, secret := realPG(b)
 	p := serveProxy(b.Context(), b, testResource(b, cfg), secret)
-	direct := "postgres://" + cfg.GetUsername() + ":" + string(secret.Value) + "@" + net.JoinHostPort(cfg.GetHost(), strconv.Itoa(int(cfg.GetPort()))) + "/" + cfg.GetDatabase() + "?sslmode=disable"
+	direct := directURL(cfg, secret)
 	var d, v []time.Duration
 	connect := func(url string) time.Duration {
 		t0 := time.Now()
@@ -245,15 +245,6 @@ func BenchmarkPostgresConnect(b *testing.B) {
 		d = append(d, connect(direct))
 		v = append(v, connect(p.connectURL(cfg.GetDatabase())))
 	}
-	added := p99(v) - p99(d)
+	added := pct(v, 99) - pct(d, 99)
 	b.ReportMetric(float64(added.Microseconds())/1000, "added-p99-ms")
-	if len(v) >= 50 && added > 30*time.Millisecond {
-		b.Errorf("connect adds %v at p99, budget 30ms", added)
-	}
-}
-
-func p99(ds []time.Duration) time.Duration {
-	s := slices.Clone(ds)
-	slices.Sort(s)
-	return s[(len(s)*99)/100]
 }

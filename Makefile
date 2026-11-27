@@ -100,7 +100,7 @@ load:
 
 # Short fuzz runs of the parser targets; a crasher is written under testdata/fuzz and committed.
 FUZZTIME ?= 30s
-FUZZ_TARGETS = ./internal/platform/shellclass:FuzzClassify ./internal/platform/shellclass:FuzzAnalyze ./internal/platform/sshdgram:FuzzReadFrame ./internal/tunnel:FuzzStreamFrame
+FUZZ_TARGETS = ./internal/platform/shellclass:FuzzClassify ./internal/platform/shellclass:FuzzAnalyze ./internal/platform/sshdgram:FuzzReadFrame ./internal/tunnel:FuzzStreamFrame ./internal/gateway/pgconnector:FuzzPGMessage
 fuzz:
 	@for t in $(FUZZ_TARGETS); do pkg=$${t%%:*}; fn=$${t##*:}; echo "== $$fn"; \
 	  go test -run '^$$' -fuzz "^$$fn$$" -fuzztime $(FUZZTIME) $$pkg || exit 1; done

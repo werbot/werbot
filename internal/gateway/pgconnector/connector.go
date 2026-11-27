@@ -7,10 +7,8 @@ import (
 	"bufio"
 	"context"
 	"errors"
-	"io"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgproto3"
 
 	postgresv1 "github.com/werbot/werbot/gen/werbot/connector/postgres/v1"
@@ -72,7 +70,8 @@ func (Connector) Serve(ctx context.Context, s *gateway.Session) error {
 	if _, err := s.Stream.Write(handshake(m.msg, hc.ParameterStatuses, key, hc.TxStatus)); err != nil {
 		return nil // the client is gone
 	}
-	return relay(ctx, s, cr, hc)
+	c, d := newRelay(ctx, cr, hc.Conn, s.Stream, g, sessionLog{t0: t0, db: db, params: m.cfg.GetRecordParams(), secret: s.Secret})
+	return relay(ctx, s, hc, c, d)
 }
 
 // startup is the admitted start of a session.
@@ -97,31 +96,4 @@ func start(cr *bufio.Reader, s *gateway.Session) (startup, string, error) {
 		return startup{}, "", refuse(s.Stream, refusal)
 	}
 	return startup{msg: m, cfg: cfg}, db, nil
-}
-
-// relay copies the session both ways; the first end closes both sides.
-func relay(ctx context.Context, s *gateway.Session, cr io.Reader, hc *pgconn.HijackedConn) error {
-	sctx, stop := context.WithCancel(ctx)
-	defer stop()
-	closeBoth := func() { _ = s.Stream.Close(); _ = hc.Conn.Close() }
-	defer context.AfterFunc(sctx, closeBoth)()
-	g := gateway.NewGuard(stop, s.Secret)
-	g.Go(func() error { defer stop(); return copyEnd(hc.Conn, cr) })
-	g.Go(func() error { defer stop(); return copyEnd(s.Stream, hc.Conn) })
-	err := g.Wait()
-	closeBoth()
-	if ctx.Err() != nil {
-		return nil
-	}
-	return err
-}
-
-// copyEnd copies src to dst; a side closed by the other direction or by the
-// session end is a normal end.
-func copyEnd(dst io.Writer, src io.Reader) error {
-	_, err := gateway.CopyBuffer(dst, src)
-	if gateway.IsClosed(err) {
-		return nil
-	}
-	return err
 }

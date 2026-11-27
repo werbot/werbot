@@ -79,12 +79,13 @@ func (m *memRecording) len() int {
 // proxy serves postgres sessions of one resource the way the pipeline does:
 // PreSession on the peeked stream, then Serve on the replayed one.
 type proxy struct {
-	addr    string
-	rec     *memRecording
-	dials   atomic.Int32
-	serves  atomic.Int32
-	errs    chan error // Serve results
-	dialErr error      // when set, Session.Dial refuses with it
+	addr      string
+	rec       *memRecording
+	recording gateway.RecordingSink // what Serve records to; rec unless a test sets it
+	dials     atomic.Int32
+	serves    atomic.Int32
+	errs      chan error // Serve results
+	dialErr   error      // when set, Session.Dial refuses with it
 }
 
 func serveProxy(ctx context.Context, t testing.TB, res gateway.Resource, secret gateway.Secret, opts ...func(*proxy)) *proxy {
@@ -93,6 +94,7 @@ func serveProxy(ctx context.Context, t testing.TB, res gateway.Resource, secret 
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = ln.Close() })
 	p := &proxy{addr: ln.Addr().String(), rec: &memRecording{}, errs: make(chan error, 64)}
+	p.recording = p.rec
 	for _, o := range opts {
 		o(p)
 	}
@@ -133,7 +135,7 @@ func (p *proxy) serve(ctx context.Context, res gateway.Resource, secret gateway.
 			io.Reader
 			io.WriteCloser
 		}{br, conn},
-		Dial: p.dial, Recording: p.rec,
+		Dial: p.dial, Recording: p.recording,
 	}
 	p.errs <- Connector{}.Serve(ctx, s)
 }
@@ -218,16 +220,25 @@ const fakePID = 4242
 
 var fakeSecret = []byte{1, 2, 3, 4}
 
-// acceptSession completes a login and answers every query with one row "1".
-func acceptSession(b *pgproto3.Backend) {
+// fakeLogin completes a login; false when the connection is gone.
+func fakeLogin(b *pgproto3.Backend) bool {
 	b.Send(&pgproto3.AuthenticationOk{})
 	b.Send(&pgproto3.ParameterStatus{Name: "server_version", Value: "18.0 (fake)"})
 	b.Send(&pgproto3.ParameterStatus{Name: "client_encoding", Value: "UTF8"})
 	b.Send(&pgproto3.BackendKeyData{ProcessID: fakePID, SecretKey: fakeSecret})
 	b.Send(&pgproto3.ReadyForQuery{TxStatus: 'I'})
-	if b.Flush() != nil {
-		return
+	return b.Flush() == nil
+}
+
+// acceptSession completes a login and answers every query with one row "1".
+func acceptSession(b *pgproto3.Backend) {
+	if fakeLogin(b) {
+		answerQueries(b)
 	}
+}
+
+// answerQueries answers every query with one row "1".
+func answerQueries(b *pgproto3.Backend) {
 	for {
 		msg, err := b.Receive()
 		if err != nil {
