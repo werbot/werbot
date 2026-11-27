@@ -14,7 +14,7 @@ import (
 
 // When the page count changes, update README.md, site/astro.config.mjs and this list.
 var docPages = []string{
-	"agents", "cli", "configuration", "connect", "connectors", "failure-modes", "gateway", "install", "jit", "mfa",
+	"agents", "cli", "configuration", "connect", "connectors", "databases", "failure-modes", "gateway", "install", "jit", "mfa",
 	"migrate-from-boundary", "policies", "scaling", "security", "ssh-hardening", "sso", "upgrading", "vnet",
 	"web-terminal", "web",
 }

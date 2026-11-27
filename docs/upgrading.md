@@ -8,6 +8,14 @@ In `v0.x` an upgrade needs a full stop: every server replica and every gateway i
 
 ## Release notes
 
+### PostgreSQL connector
+
+This release adds the `postgres` resource type ([databases.md](databases.md)). Check these changes before you upgrade:
+
+- **Preset renamed.** `postgres` is now a built-in type name, so migration `00262` renames every resource preset named `postgres` to `postgres-<first 8 hex digits of its id>`. Resources keep their preset (the link is the id) and the display name does not change. Create a resource of the built-in `postgres` type for database proxying; the renamed preset keeps working as a `tcp` preset.
+- **Migrations.** `00260` to `00262` add the query log recording format and the `session.queries` counter, the credential slot and the `client_cert` credential kind, and the preset rename. They run at server start as usual.
+- **Gateways.** Upgrade standalone gateways with the server: older ones do not serve `postgres` resources.
+
 ### Web terminal, live view and terminate
 
 This release adds a web terminal, a live view and Terminate ([web-terminal.md](web-terminal.md)). Check these changes before you upgrade:

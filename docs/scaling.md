@@ -62,6 +62,10 @@ Connect directly, or through PgBouncer in **session mode** only: transaction and
 - High availability is the operator's job (Patroni, CloudNativePG). A failover needs no Werbot restart.
 - Read replicas are not used.
 
+## Database connections
+
+The `postgres` connector opens one database connection per session and keeps no pool between sessions. The proxy parses message headers only and copies `DataRow` and `CopyData` through. Budgets for a simple or prepared query added by the gateway (best of 3 runs, 5000 measured operations after 200 warm-up): p50 at most 100 µs, p99 at most 500 µs. A streamed result keeps at least 0.9 of the direct throughput. Connect adds at most 30 ms at p99. Check them on a database next to the gateway with `make bench-hot`. The metrics are in [databases.md](databases.md#metrics).
+
 ## Session recordings
 
 The file system (`WERBOT_DATA_DIR/recordings`, used while `WERBOT_RECORDINGS_S3_BUCKET` is empty) is for one server replica or a ReadWriteMany volume. With more than one replica use S3-compatible storage (AWS S3, R2, SeaweedFS) through `WERBOT_RECORDINGS_S3_*`. Otherwise chunks of one session land on different nodes and `Verify` reports `chunk_missing`.
