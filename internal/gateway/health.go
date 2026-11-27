@@ -57,13 +57,16 @@ type healthResult struct {
 	err string
 }
 
-// prober checks the TCP targets of the pool resources this instance is a prober
-// of and keeps the latest result of each until the next heartbeat takes them.
+// prober checks the targets of the pool resources this instance is a prober of
+// (TCP, or the type's Prober) and keeps the latest result of each until the
+// next heartbeat takes them.
 type prober struct {
 	policy func() *Policy
 	dial   func(ctx context.Context, addr string) error
-	ok     *metrics.Counter
-	fail   *metrics.Counter
+	// probeDial is the guarded dialer a type's Prober gets; the pipeline sets it.
+	probeDial func(ctx context.Context, network, address string) (net.Conn, error)
+	ok        *metrics.Counter
+	fail      *metrics.Counter
 
 	mu      sync.Mutex
 	pending map[uuid.UUID]*gatewayv1.ResourceHealth
@@ -109,11 +112,21 @@ func (h *prober) run(ctx context.Context, self uuid.UUID, instances func() []uui
 	}
 }
 
-// probeTarget is a resource this instance checks.
+// probeTarget is a resource this instance checks; probe is the Prober of its
+// type, nil for the TCP probe.
 type probeTarget struct {
 	id    uuid.UUID
 	host  string
 	ports []uint16
+	res   Resource
+	probe Prober
+}
+
+// proberOf is the Prober of the connector of typ; nil when it has none.
+func proberOf(typ string) Prober {
+	c, _ := LookupConnector(typ)
+	pr, _ := c.(Prober)
+	return pr
 }
 
 // pass checks the resources of the snapshot this instance is a prober of, at most
@@ -133,7 +146,7 @@ func (h *prober) pass(ctx context.Context, self uuid.UUID, pool []uuid.UUID) boo
 		if err != nil || !ok || ep.NoHealth || ep.Host == "" || !slices.Contains(probers(r.ID, pool, probersPerResource), self) {
 			continue
 		}
-		t := probeTarget{id: r.ID, host: ep.Host}
+		t := probeTarget{id: r.ID, host: ep.Host, res: r, probe: proberOf(r.Type)}
 		for _, p := range ep.Ports {
 			t.ports = append(t.ports, p.Port)
 		}
@@ -156,10 +169,19 @@ func (h *prober) pass(ctx context.Context, self uuid.UUID, pool []uuid.UUID) boo
 	return true
 }
 
-// check connects to the first port of each range; the result is ok when all
-// succeed, else the error of the first that failed. The text is cut to the
-// server's bound and holds only what the dial reported: no credentials.
+// check runs the Prober of the type or else connects to the first port of
+// each range; the result is ok when all succeed, else the error of the first
+// that failed. The text is cut to the server's bound and holds only what the
+// probe reported: no credentials.
 func (h *prober) check(ctx context.Context, t probeTarget) healthResult {
+	if t.probe != nil {
+		cctx, cancel := context.WithTimeout(ctx, probeTimeout)
+		defer cancel()
+		if err := t.probe.Probe(cctx, t.res, h.probeDial); err != nil {
+			return healthResult{err: TruncateUTF8(err.Error(), maxHealthError)}
+		}
+		return healthResult{ok: true}
+	}
 	for _, port := range t.ports {
 		cctx, cancel := context.WithTimeout(ctx, probeTimeout)
 		err := h.dial(cctx, net.JoinHostPort(t.host, strconv.Itoa(int(port))))

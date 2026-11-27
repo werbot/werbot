@@ -14,12 +14,13 @@ import (
 )
 
 // startArgs is what StartSession records besides the access request: the
-// front and transport of the session and, for an agent's, its run and the
-// tool call it serves (zero for a person's session).
+// front and transport of the session, the database a PreSession chose and,
+// for an agent's, its run and the tool call it serves (zero for a person's session).
 type startArgs struct {
 	Front           string
 	Transport       string // "tcp" | "ws" | "internal"
 	RunID, ToolCall uuid.UUID
+	DBName          string // "": none
 }
 
 // startOf is the start of u's session for r: the front and transport of r

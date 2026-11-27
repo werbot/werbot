@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"net"
 	"net/netip"
@@ -37,26 +36,6 @@ var (
 type Identity struct {
 	Method, Value string
 	Cert          *sshca.Identity
-}
-
-// OpenRequest is what a front asks the pipeline to open.
-type OpenRequest struct {
-	Front    string
-	Kind     Kind
-	Identity Identity
-	Resource string // resource name
-	Target   string // KindStream, KindDatagram: host:port
-	ClientIP netip.Addr
-	Window   Window    // KindTerminal: initial size for the recorder
-	Command  string    // KindExec, KindTerminal with a command: the command to run
-	Notice   io.Writer // the user's side channel: stderr of an exec, the PTY of a terminal
-	// Handshake is the user the front authenticated for Identity; nil: none.
-	Handshake *Handshake
-	ToolCall  uuid.UUID // an agent's tool call (sshca.EnvToolCall); uuid.Nil: none
-	MFA       MFAStep
-	Transport string // "tcp" | "ws" | "internal" (the web terminal); "": tcp
-	// RemoteForward: KindStream from tcpip-forward, Target "<bind_host>:<bind_port>".
-	RemoteForward bool
 }
 
 // control is the control plane of the pipeline; *tunnelClient implements it.
@@ -143,6 +122,7 @@ func newPipeline(ctl control, cfg Config, logger *slog.Logger) *Pipeline {
 	}
 	p.dial = p.guard.dialer()
 	p.health = newProber(ctl.Policy, tcpProbe(p.dial), reg)
+	p.health.probeDial = p.dial
 	return p
 }
 
@@ -198,7 +178,11 @@ func (p *Pipeline) open(ctx context.Context, r OpenRequest) (*Session, AccessReq
 		return nil, req, err
 	}
 	u, res := req.User, req.Resource
-	id, secret, err := p.ctl.StartSession(ctx, u.ID, res.ID, r.ClientIP, r.Kind, r.Target, req.Command, req.Classes, req.Paths, startOf(u, r))
+	args, stream, err := p.preSession(ctx, r, res, startOf(u, r))
+	if err != nil {
+		return nil, req, err
+	}
+	id, secret, err := p.ctl.StartSession(ctx, u.ID, res.ID, r.ClientIP, r.Kind, r.Target, req.Command, req.Classes, req.Paths, args)
 	if err != nil {
 		return nil, req, startErr(err)
 	}
@@ -207,7 +191,7 @@ func (p *Pipeline) open(ctx context.Context, r OpenRequest) (*Session, AccessReq
 	t.idle, t.max = limits(res, p.cfg)
 	p.active.add(id, t) // reported in heartbeats from now on, so the server keeps the session
 	s := &Session{
-		ID: id, Kind: r.Kind, Front: r.Front, User: u, Resource: res, Secret: secret, ClientIP: r.ClientIP, Target: r.Target,
+		ID: id, Kind: r.Kind, Front: r.Front, User: u, Resource: res, Secret: secret, ClientIP: r.ClientIP, Target: r.Target, Stream: stream,
 		Command: r.Command, Classes: req.Classes, Paths: req.Paths, Console: req.Console,
 		PinKey:    func(alg string, key []byte) error { return p.pinKey(res, alg, key) },
 		Dial:      p.dial,

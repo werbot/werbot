@@ -51,10 +51,10 @@ func (d *denials) take() []*gatewayv1.Denial {
 }
 
 // denialReason is the Denial.reason of an Open error; "" for ErrNotReady, which is
-// not reported: the server is out of reach then.
+// not reported: the server is out of reach then, and for ErrHandled: no refusal.
 func denialReason(err error) string {
 	switch {
-	case errors.Is(err, ErrNotReady):
+	case errors.Is(err, ErrNotReady), errors.Is(err, ErrHandled):
 		return ""
 	case errors.Is(err, ErrBusy):
 		return "busy"
