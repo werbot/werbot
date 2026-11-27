@@ -33,13 +33,26 @@ read, write | public.s, public.t | public.t | WITH n AS (INSERT INTO t SELECT * 
 read, write | public.t | public.t | WITH d AS (DELETE FROM t WHERE id = 1 RETURNING *) SELECT * FROM d
 write | public.a, public.b | public.a, public.b | WITH d AS (DELETE FROM a WHERE id = 1 RETURNING *) INSERT INTO b SELECT * FROM d
 
-# EXPLAIN runs the statement only with ANALYZE
+# EXPLAIN runs the statement only with ANALYZE; planning may run functions,
+# so their classes stay
 destructive | public.t | public.t | EXPLAIN ANALYZE DELETE FROM t
 write | public.t | public.t | EXPLAIN (ANALYZE, BUFFERS) UPDATE t SET a = 1 WHERE id = 1
 write | public.s, public.t | public.t | EXPLAIN ANALYZE INSERT INTO t SELECT nextval('q') FROM s
 privilege, read | - | - | EXPLAIN ANALYZE SELECT set_config('search_path', 'x', false)
 read | public.t | - | EXPLAIN DELETE FROM t
-read | - | - | EXPLAIN SELECT set_config('search_path', 'x', false)
+privilege, read | - | - | EXPLAIN SELECT set_config('search_path', 'x', false)
+opaque, read | - | - | EXPLAIN SELECT public.f(1)
+read, write | public.t | - | EXPLAIN SELECT nextval('q') FROM t
+
+# attribute notation (expr).name may call a function of the row type: opaque;
+# subscripts and .* stay read. A two-part column reference (t.f) stays read:
+# a classifier limit (computed fields need the catalog)
+opaque, read | public.t | - | SELECT (t).f FROM t
+opaque, read | public.t | - | SELECT (t.a).f FROM t
+opaque, read | - | - | SELECT (ROW(1, 2)).f1
+opaque, read | public.t | - | SELECT * FROM t WHERE (t).f IS NULL
+read | public.t | - | SELECT (a)[1], (t).* FROM t
+read | public.t | - | SELECT t.f FROM t
 
 # read functions
 read | public.t | - | SELECT count(*), max(a), string_agg(b, ',') FROM t

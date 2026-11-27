@@ -82,17 +82,17 @@ func Register(d Dialect, p Parser) {
 func Classify(d Dialect, sql string, opt Options) (r Result) {
 	p, ok := parsers[d]
 	if !ok || len(sql) > MaxText {
-		return transient()
+		return Transient()
 	}
 	defer func() {
 		if recover() != nil {
-			r = transient()
+			r = Transient()
 		}
 	}()
 	r = p.Classify(sql, opt)
 	switch {
 	case r.Transient:
-		return transient()
+		return Transient()
 	case len(r.Classes) == 0:
 		return Opaque()
 	}
@@ -104,7 +104,9 @@ func Opaque() Result {
 	return Result{Classes: []shellclass.Class{shellclass.Opaque}}
 }
 
-func transient() Result {
+// Transient is the fail-closed result of a failure that may pass on retry;
+// it is never cached.
+func Transient() Result {
 	r := Opaque()
 	r.Transient = true
 	return r

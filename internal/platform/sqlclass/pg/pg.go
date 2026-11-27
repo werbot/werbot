@@ -57,7 +57,7 @@ func Broken() bool { return eng.broken.Load() }
 
 func (e *engine) classify(sql string) sqlclass.Result {
 	if e.broken.Load() || !e.isReady() || !acquire() {
-		return transient()
+		return sqlclass.Transient()
 	}
 	defer func() { <-sem }()
 	scan, err := guarded(e.scan, sql)
@@ -101,10 +101,4 @@ func acquire() bool {
 	case <-t.C:
 		return false
 	}
-}
-
-func transient() sqlclass.Result {
-	r := sqlclass.Opaque()
-	r.Transient = true
-	return r
 }

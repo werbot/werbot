@@ -74,7 +74,7 @@ func (e *engine) trapped() sqlclass.Result {
 	if err := e.check(); err != nil {
 		e.latch("canary parse failed", err)
 	}
-	return transient()
+	return sqlclass.Transient()
 }
 
 func (e *engine) check() error {

@@ -25,7 +25,7 @@ type refs struct {
 	tables, writes []string
 	funcs          set
 	ctes           []string // CTE names in scope
-	dry            bool     // inside EXPLAIN without ANALYZE: nothing runs
+	dry            bool     // inside EXPLAIN without ANALYZE: no table is written
 	lock           bool     // inside the FROM clause of SELECT … FOR UPDATE/SHARE
 }
 
@@ -38,6 +38,7 @@ func init() {
 		"RangeVar":      func(r *refs, m protoreflect.Message) { r.ref(m.Interface().(*pgq.RangeVar)) },
 		"LockingClause": func(*refs, protoreflect.Message) {}, // OF names are aliases; FROM lists the tables
 		"FuncCall":      (*refs).funcCall,
+		"A_Indirection": (*refs).indirection,
 		"ExplainStmt":   (*refs).explain,
 		"SelectStmt":    (*refs).selectStmt,
 		"InsertStmt":    (*refs).targetStmt,
@@ -112,9 +113,22 @@ func (r *refs) add(name string, write bool) {
 	}
 }
 
+// funcCall adds the class of a call. EXPLAIN without ANALYZE keeps it: the
+// planner may run immutable and stable functions with constant arguments.
 func (r *refs) funcCall(m protoreflect.Message) {
-	if f := m.Interface().(*pgq.FuncCall); !r.dry {
-		r.funcs = sqlclass.Merge(r.funcs, set{funcClass(strs(f.GetFuncname()), f.GetArgs())})
+	f := m.Interface().(*pgq.FuncCall)
+	r.funcs = sqlclass.Merge(r.funcs, set{funcClass(strs(f.GetFuncname()), f.GetArgs())})
+	r.fields(m)
+}
+
+// indirection makes (expr).name opaque: PostgreSQL reads it as name(expr)
+// when the row has no such column, a call the classifier cannot see.
+func (r *refs) indirection(m protoreflect.Message) {
+	for _, n := range m.Interface().(*pgq.A_Indirection).GetIndirection() {
+		if n.GetString_() != nil {
+			r.funcs = sqlclass.Merge(r.funcs, set{shellclass.Opaque})
+			break
+		}
 	}
 	r.fields(m)
 }
