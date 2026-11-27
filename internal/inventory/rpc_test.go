@@ -28,25 +28,33 @@ import (
 	"github.com/werbot/werbot/internal/platform/principal"
 )
 
-// fakeCreds keeps credentials in memory.
+// credKey is one credential slot of a resource.
+type credKey struct {
+	id   uuid.UUID
+	slot string
+}
+
+// fakeCreds keeps credentials in memory per slot.
 type fakeCreds struct {
-	m map[uuid.UUID]connector.CredentialKind
+	m map[credKey]connector.CredentialKind
 }
 
-func (f fakeCreds) Set(_ context.Context, _, id uuid.UUID, k connector.CredentialKind, _ []byte) error {
-	f.m[id] = k
+func newFakeCreds() fakeCreds { return fakeCreds{map[credKey]connector.CredentialKind{}} }
+
+func (f fakeCreds) Set(_ context.Context, _, id uuid.UUID, slot string, k connector.CredentialKind, _ []byte) error {
+	f.m[credKey{id, slot}] = k
 	return nil
 }
 
-func (f fakeCreds) Clear(_ context.Context, _, id uuid.UUID) error {
-	delete(f.m, id)
+func (f fakeCreds) Clear(_ context.Context, _, id uuid.UUID, slot string) error {
+	delete(f.m, credKey{id, slot})
 	return nil
 }
 
-func (f fakeCreds) Kinds(_ context.Context, _ uuid.UUID, ids []uuid.UUID) (map[uuid.UUID]connector.CredentialKind, error) {
+func (f fakeCreds) Kinds(_ context.Context, _ uuid.UUID, ids []uuid.UUID, slot string) (map[uuid.UUID]connector.CredentialKind, error) {
 	out := map[uuid.UUID]connector.CredentialKind{}
 	for _, id := range ids {
-		if k, ok := f.m[id]; ok {
+		if k, ok := f.m[credKey{id, slot}]; ok {
 			out[id] = k
 		}
 	}
@@ -56,7 +64,7 @@ func (f fakeCreds) Kinds(_ context.Context, _ uuid.UUID, ids []uuid.UUID) (map[u
 func newHandler(t *testing.T) (*inventory.Handler, env) {
 	t.Helper()
 	e := setup(t)
-	return inventory.NewHandler(e.svc, fakeCreds{map[uuid.UUID]connector.CredentialKind{}}, nil, nil, nil), e
+	return inventory.NewHandler(e.svc, newFakeCreds(), nil, nil, nil), e
 }
 
 func createReq(name string, cfg *sshv1.Config) *connect.Request[werbotv1.CreateResourceRequest] {

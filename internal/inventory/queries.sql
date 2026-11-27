@@ -8,7 +8,10 @@ RETURNING id;
 UPDATE resource
 SET name = @name, gateway_id = @gateway_id, config = coalesce(sqlc.narg(config)::jsonb, config),
     idle_timeout = make_interval(secs => sqlc.narg(idle_secs)::bigint),
-    max_duration = make_interval(secs => sqlc.narg(max_secs)::bigint), updated_at = now()
+    max_duration = make_interval(secs => sqlc.narg(max_secs)::bigint), updated_at = now(),
+    -- A configuration change invalidates the check of the agent_readonly credential.
+    agent_readonly_status = CASE WHEN agent_readonly_status = 'none' THEN 'none' ELSE 'pending' END,
+    agent_readonly_detail = CASE WHEN agent_readonly_status = 'none' THEN agent_readonly_detail ELSE '' END
 WHERE id = @id AND org_id = @org_id;
 
 -- name: DeleteResource :execrows
@@ -24,7 +27,8 @@ SELECT r.id, r.org_id, r.name, r.type, r.category, r.gateway_id, r.config, r.pre
        coalesce(extract(epoch FROM r.max_duration), 0)::bigint AS max_secs,
        CASE WHEN hs.n = 0 THEN 'unknown' WHEN hs.any_ok THEN 'healthy' ELSE 'unhealthy' END::text AS health_state,
        coalesce(hs.checked_at, 'epoch'::timestamptz)::timestamptz AS health_checked_at,
-       coalesce(hs.last_error, '')::text AS health_error
+       coalesce(hs.last_error, '')::text AS health_error,
+       r.agent_readonly_status, r.agent_readonly_detail
 FROM resource r
 LEFT JOIN resource_host_key h ON h.resource_id = r.id
 -- Fresh (3 min) probes of the online instances of the resource's pool.
@@ -48,7 +52,8 @@ SELECT r.id, r.org_id, r.name, r.type, r.category, r.gateway_id, r.config, r.pre
        coalesce(extract(epoch FROM r.max_duration), 0)::bigint AS max_secs,
        CASE WHEN hs.n = 0 THEN 'unknown' WHEN hs.any_ok THEN 'healthy' ELSE 'unhealthy' END::text AS health_state,
        coalesce(hs.checked_at, 'epoch'::timestamptz)::timestamptz AS health_checked_at,
-       coalesce(hs.last_error, '')::text AS health_error
+       coalesce(hs.last_error, '')::text AS health_error,
+       r.agent_readonly_status, r.agent_readonly_detail
 FROM resource r
 LEFT JOIN resource_host_key h ON h.resource_id = r.id
 -- Fresh (3 min) probes of the online instances of the resource's pool.

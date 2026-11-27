@@ -46,8 +46,11 @@ type Resource struct {
 	// IdleTimeout and MaxDuration are nil when the gateway default applies.
 	IdleTimeout, MaxDuration *time.Duration
 	Health                   HealthStatus
-	CreatedAt                time.Time
-	UpdatedAt                time.Time
+	// AgentReadonlyStatus is the check of the agent_readonly credential: none,
+	// pending, ok, has_write or error; AgentReadonlyDetail holds its findings.
+	AgentReadonlyStatus, AgentReadonlyDetail string
+	CreatedAt                                time.Time
+	UpdatedAt                                time.Time
 }
 
 // CreateInput describes a new resource.
@@ -152,7 +155,8 @@ func toResource(r dbq.GetResourceRow) (Resource, error) {
 		ID: r.ID, OrgID: r.OrgID, Name: r.Name, Type: r.Type, Category: connector.Category(r.Category),
 		GatewayID: r.GatewayID, PresetID: r.PresetID, CreatedAt: r.CreatedAt, UpdatedAt: r.UpdatedAt,
 		IdleTimeout: secsToDuration(r.IdleSecs), MaxDuration: secsToDuration(r.MaxSecs),
-		Health: healthStatus(r.HealthState, r.HealthCheckedAt, r.HealthError),
+		Health:              healthStatus(r.HealthState, r.HealthCheckedAt, r.HealthError),
+		AgentReadonlyStatus: r.AgentReadonlyStatus, AgentReadonlyDetail: r.AgentReadonlyDetail,
 	}
 	if err := json.Unmarshal(r.Labels, &res.Labels); err != nil {
 		return Resource{}, fmt.Errorf("inventory: decode labels: %w", err)

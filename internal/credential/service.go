@@ -34,15 +34,24 @@ func (s *Service) tx(ctx context.Context, orgID uuid.UUID, fn func(Store, pgx.Tx
 	return dbx.InOrg(ctx, s.pool, orgID, p.UserID, func(tx pgx.Tx) error { return fn(newStore(tx), tx) })
 }
 
-// audit records action; data holds ids and kind only, never the secret.
-func audit(ctx context.Context, tx pgx.Tx, orgID, resourceID uuid.UUID, action string, kind connector.CredentialKind) error {
+// audit records action; data holds ids, slot and kind only, never the secret.
+func audit(ctx context.Context, tx pgx.Tx, orgID, resourceID uuid.UUID, action, slot string, kind connector.CredentialKind) error {
 	e := auditlog.Event{OrgID: &orgID, ActorKind: "system", Action: action, TargetType: "resource",
 		TargetID: resourceID.String(), IP: clientip.From(ctx),
-		Data: map[string]any{"resource_id": resourceID.String(), "kind": string(kind)}}
+		Data: map[string]any{"resource_id": resourceID.String(), "slot": slot, "kind": string(kind)}}
 	if p, ok := principal.From(ctx); ok {
 		e.ActorUserID, e.ActorKind = &p.UserID, "user"
 	}
 	return auditlog.Write(ctx, tx, e)
+}
+
+// markAgentReadonly sets the verification status of the agent_readonly slot
+// (pending after Set, none after Clear); the primary slot has none.
+func markAgentReadonly(ctx context.Context, st Store, orgID, resourceID uuid.UUID, slot, status string) error {
+	if slot != SlotAgentReadonly {
+		return nil
+	}
+	return st.SetAgentReadonlyStatus(ctx, dbq.SetAgentReadonlyStatusParams{Status: status, ResourceID: resourceID, OrgID: orgID})
 }
 
 func notFound(err error) error {
@@ -52,8 +61,13 @@ func notFound(err error) error {
 	return err
 }
 
-// Set replaces the credential of a resource, sealing value with the current key.
-func (s *Service) Set(ctx context.Context, orgID, resourceID uuid.UUID, kind connector.CredentialKind, value []byte) error {
+// Set replaces the credential of a resource in slot, sealing value with the
+// current key. The agent_readonly slot marks the resource pending in the same
+// transaction.
+func (s *Service) Set(ctx context.Context, orgID, resourceID uuid.UUID, slot string, kind connector.CredentialKind, value []byte) error {
+	if err := checkSlot(slot); err != nil {
+		return err
+	}
 	if err := validate(kind, value); err != nil {
 		return err
 	}
@@ -63,39 +77,54 @@ func (s *Service) Set(ctx context.Context, orgID, resourceID uuid.UUID, kind con
 	}
 	return notFound(s.tx(ctx, orgID, func(st Store, tx pgx.Tx) error {
 		n, err := st.UpsertCredential(ctx, dbq.UpsertCredentialParams{
-			OrgID: orgID, ResourceID: resourceID, Kind: string(kind), Ciphertext: sealed, KeyID: keyID})
+			OrgID: orgID, ResourceID: resourceID, Kind: string(kind), Ciphertext: sealed, KeyID: keyID, Slot: slot})
 		if err != nil {
 			return err
 		}
 		if n == 0 {
 			return pgx.ErrNoRows
 		}
-		return audit(ctx, tx, orgID, resourceID, "credential.set", kind)
+		if err := markAgentReadonly(ctx, st, orgID, resourceID, slot, "pending"); err != nil {
+			return err
+		}
+		return audit(ctx, tx, orgID, resourceID, "credential.set", slot, kind)
 	}))
 }
 
-// Clear removes the credential of a resource; none stored is not an error.
-func (s *Service) Clear(ctx context.Context, orgID, resourceID uuid.UUID) error {
+// Clear removes the credential of a resource in slot; none stored is not an
+// error. The agent_readonly slot marks the resource none in the same transaction.
+func (s *Service) Clear(ctx context.Context, orgID, resourceID uuid.UUID, slot string) error {
+	if err := checkSlot(slot); err != nil {
+		return err
+	}
 	return s.tx(ctx, orgID, func(st Store, tx pgx.Tx) error {
-		cur, err := st.GetCredential(ctx, dbq.GetCredentialParams{ResourceID: resourceID, OrgID: orgID})
+		key := dbq.GetCredentialParams{ResourceID: resourceID, OrgID: orgID, Slot: slot}
+		cur, err := st.GetCredential(ctx, key)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil
 		}
 		if err != nil {
 			return err
 		}
-		if _, err := st.DeleteCredential(ctx, dbq.DeleteCredentialParams{ResourceID: resourceID, OrgID: orgID}); err != nil {
+		if _, err := st.DeleteCredential(ctx, dbq.DeleteCredentialParams(key)); err != nil {
 			return err
 		}
-		return audit(ctx, tx, orgID, resourceID, "credential.clear", connector.CredentialKind(cur.Kind))
+		if err := markAgentReadonly(ctx, st, orgID, resourceID, slot, "none"); err != nil {
+			return err
+		}
+		return audit(ctx, tx, orgID, resourceID, "credential.clear", slot, connector.CredentialKind(cur.Kind))
 	})
 }
 
-// Kinds returns the stored kind per resource; a resource without credential has no key.
-func (s *Service) Kinds(ctx context.Context, orgID uuid.UUID, resourceIDs []uuid.UUID) (map[uuid.UUID]connector.CredentialKind, error) {
+// Kinds returns the stored kind of slot per resource; a resource without a
+// credential in slot has no key.
+func (s *Service) Kinds(ctx context.Context, orgID uuid.UUID, resourceIDs []uuid.UUID, slot string) (map[uuid.UUID]connector.CredentialKind, error) {
+	if err := checkSlot(slot); err != nil {
+		return nil, err
+	}
 	out := map[uuid.UUID]connector.CredentialKind{}
 	err := s.tx(ctx, orgID, func(st Store, _ pgx.Tx) error {
-		rows, err := st.ListCredentialKinds(ctx, dbq.ListCredentialKindsParams{OrgID: orgID, ResourceIds: resourceIDs})
+		rows, err := st.ListCredentialKinds(ctx, dbq.ListCredentialKindsParams{OrgID: orgID, Slot: slot, ResourceIds: resourceIDs})
 		for _, r := range rows {
 			out[r.ResourceID] = connector.CredentialKind(r.Kind)
 		}
@@ -104,12 +133,15 @@ func (s *Service) Kinds(ctx context.Context, orgID uuid.UUID, resourceIDs []uuid
 	return out, err
 }
 
-// Reveal decrypts the credential. Only the gateway session path may call it.
-func (s *Service) Reveal(ctx context.Context, orgID, resourceID uuid.UUID) (Secret, error) {
+// Reveal decrypts the credential in slot. Only the gateway paths may call it.
+func (s *Service) Reveal(ctx context.Context, orgID, resourceID uuid.UUID, slot string) (Secret, error) {
+	if err := checkSlot(slot); err != nil {
+		return Secret{}, err
+	}
 	var row dbq.GetCredentialRow
 	p, _ := principal.From(ctx)
 	err := dbx.ReadInOrg(s.pool, orgID, p.UserID, func(r *dbx.Read) (err error) {
-		row, err = newStore(r).GetCredential(ctx, dbq.GetCredentialParams{ResourceID: resourceID, OrgID: orgID})
+		row, err = newStore(r).GetCredential(ctx, dbq.GetCredentialParams{ResourceID: resourceID, OrgID: orgID, Slot: slot})
 		return err
 	})
 	if err != nil {
@@ -119,5 +151,5 @@ func (s *Service) Reveal(ctx context.Context, orgID, resourceID uuid.UUID) (Secr
 	if err != nil {
 		return Secret{}, fmt.Errorf("credential: open: %w", err)
 	}
-	return Secret{Kind: connector.CredentialKind(row.Kind), Value: value}, nil
+	return Secret{Kind: connector.CredentialKind(row.Kind), Value: value, Version: row.UpdatedAt.UnixMicro()}, nil
 }

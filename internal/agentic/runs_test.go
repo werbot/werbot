@@ -2,6 +2,7 @@ package agentic_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -22,7 +23,8 @@ func TestCheckRun(t *testing.T) {
 	run, err := svc.CheckRun(bg, f.OrgID, id)
 	require.NoError(t, err)
 	assert.Equal(t, agentic.Run{ID: id, OrgID: f.OrgID, AgentID: agent, SponsorID: f.MemberID, Client: "test",
-		Status: "running", MaxActions: 10, MaxConcurrent: 2, ExpiresAt: run.ExpiresAt, StartedAt: run.StartedAt}, run)
+		Status: "running", MaxActions: 10, MaxConcurrent: 2, ExpiresAt: run.ExpiresAt, StartedAt: run.StartedAt,
+		MaxRows: 1000, MaxResultBytes: 1 << 20, StatementTimeout: 30 * time.Second, MaxQueries: 1000}, run)
 
 	paused, ended, expired := newRun(), newRun(), newRun()
 	pause(t, pool, paused, 5)

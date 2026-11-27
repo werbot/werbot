@@ -33,7 +33,7 @@ func presetSetup(t *testing.T) presetEnv {
 	t.Helper()
 	e := setup(t)
 	return presetEnv{e, inventory.NewPresetHandler(e.svc),
-		inventory.NewHandler(e.svc, fakeCreds{map[uuid.UUID]connector.CredentialKind{}}, nil, nil, nil)}
+		inventory.NewHandler(e.svc, newFakeCreds(), nil, nil, nil)}
 }
 
 func (e presetEnv) as(role string) context.Context {

@@ -112,7 +112,7 @@ func (c tunnelCredentials) Reveal(ctx context.Context, orgID, resourceID uuid.UU
 	if t, ok := connector.Lookup(resourceType); ok && len(t.Credentials) == 0 {
 		return tunnel.Secret{}, nil
 	}
-	sec, err := c.c.Reveal(ctx, orgID, resourceID)
+	sec, err := c.c.Reveal(ctx, orgID, resourceID, credential.SlotPrimary)
 	if errors.Is(err, apperr.ErrNotFound) {
 		return tunnel.Secret{}, nil
 	}

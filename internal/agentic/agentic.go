@@ -24,7 +24,12 @@ const (
 	DefaultMaxActions    = 100
 	DefaultMaxDuration   = time.Hour
 	DefaultMaxConcurrent = 4
-	PauseAfterDenials    = 5 // consecutive denials that pause a run
+	// Database limits of an agent session (agent.limits overrides them).
+	DefaultMaxRows          = 1000
+	DefaultMaxResultBytes   = 1 << 20
+	DefaultStatementTimeout = 30 * time.Second
+	DefaultMaxQueries       = 1000
+	PauseAfterDenials       = 5 // consecutive denials that pause a run
 )
 
 // Errors of a run that refuses an action; both map to FailedPrecondition.
@@ -50,11 +55,16 @@ type Agent struct {
 
 // Run is one working period of an agent. MaxActions and MaxConcurrent are
 // copied from the agent's limits at start: a later limits change never alters it.
+// The database limits (defaults applied) are the agent's at CheckRun; other
+// reads leave them zero.
 type Run struct {
 	ID, OrgID, AgentID, SponsorID uuid.UUID
 	Client, Reason, Status        string // Status "running" | "paused" | "ended"
 	Actions, DenialsInRow         int
 	MaxActions, MaxConcurrent     int
+	MaxRows, MaxQueries           int
+	MaxResultBytes                int64
+	StatementTimeout              time.Duration
 	ExpiresAt, StartedAt          time.Time
 	EndedAt                       *time.Time
 	EndReason                     string // "client_exit" | "ended_by_user" | "expired"; "" while not ended

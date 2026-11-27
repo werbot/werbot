@@ -12,4 +12,5 @@ type Store interface {
 	DeleteCredential(ctx context.Context, arg dbq.DeleteCredentialParams) (int64, error)
 	GetCredential(ctx context.Context, arg dbq.GetCredentialParams) (dbq.GetCredentialRow, error)
 	ListCredentialKinds(ctx context.Context, arg dbq.ListCredentialKindsParams) ([]dbq.ListCredentialKindsRow, error)
+	SetAgentReadonlyStatus(ctx context.Context, arg dbq.SetAgentReadonlyStatusParams) error
 }

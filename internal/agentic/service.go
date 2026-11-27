@@ -151,7 +151,19 @@ func (s *Service) CheckRun(ctx context.Context, orgID, runID uuid.UUID) (Run, er
 	if !g.Active {
 		return Run{}, ErrRunNotActive
 	}
-	return toRun(g.AgentRun), nil
+	return withDBLimits(toRun(g.AgentRun), g.AgentLimits)
+}
+
+// withDBLimits sets the database limits of run from the agent's limits, the
+// defaults applied; stored limits out of range refuse the run.
+func withDBLimits(run Run, raw []byte) (Run, error) {
+	l, err := parseLimits(raw)
+	if err != nil {
+		return Run{}, fmt.Errorf("agentic: limits of agent %s: %w", run.AgentID, err)
+	}
+	l = l.WithDefaults()
+	run.MaxRows, run.MaxResultBytes, run.StatementTimeout, run.MaxQueries = l.MaxRows, l.MaxResultBytes, l.StatementTimeout, l.MaxQueries
+	return run, nil
 }
 
 // EndRun ends a run with reason (audit agent.run.end); an ended run stays as

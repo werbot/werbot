@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -241,6 +240,5 @@ func marshalLimits(l Limits) ([]byte, error) {
 	if err := l.Validate(); err != nil {
 		return nil, err
 	}
-	return json.Marshal(limitsJSON{MaxActions: l.MaxActions, MaxDuration: int64(l.MaxDuration / time.Second),
-		MaxConcurrent: l.MaxConcurrent})
+	return json.Marshal(l.toJSON())
 }
