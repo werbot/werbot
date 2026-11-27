@@ -5,12 +5,12 @@ import { openNew } from './support/resources';
 import { removeNamed } from './support/rpc';
 import { shot } from './support/screens';
 
-const presetRow = (page: Page) => page.getByRole('row', { name: /PostgreSQL/ });
+const presetRow = (page: Page) => page.getByRole('row', { name: /PostgreSQL over TCP/ });
 
 // a failed step leaves the resource and the preset behind: remove them, the resource first
 test.afterEach(async ({ page }) => {
 	await removeNamed(page, 'ResourceService', 'Resource', 'resources', 'pg');
-	await removeNamed(page, 'ResourcePresetService', 'ResourcePreset', 'presets', 'postgres');
+	await removeNamed(page, 'ResourcePresetService', 'ResourcePreset', 'presets', 'pgtcp');
 });
 
 test('preset becomes a type, its resource shows the launch hint, a used preset stays', async ({ page }) => {
@@ -21,8 +21,8 @@ test('preset becomes a type, its resource shows the launch hint, a used preset s
 
 	await page.getByRole('button', { name: en.presets_create }).first().click();
 	const drawer = page.getByRole('dialog', { name: en.presets_create });
-	await drawer.getByLabel(en.presets_name_label, { exact: true }).fill('postgres');
-	await drawer.getByLabel(en.presets_display_name_label).fill('PostgreSQL');
+	await drawer.getByLabel(en.presets_name_label, { exact: true }).fill('pgtcp');
+	await drawer.getByLabel(en.presets_display_name_label).fill('PostgreSQL over TCP');
 	await drawer.getByLabel(en.presets_ports_label).fill('5432');
 	await drawer.getByLabel(en.presets_launch_hint_label).fill('psql -h {host} -p {port}');
 	await expect(drawer).toBeInViewport();
@@ -31,13 +31,13 @@ test('preset becomes a type, its resource shows the launch hint, a used preset s
 	await expect(presetRow(page)).toBeVisible();
 	await shot(page, 'sdd/stage15-wave1/screens/t12-presets-list.png');
 
-	await openNew(page, 'PostgreSQL', en.resources_category_databases);
+	await openNew(page, 'PostgreSQL over TCP', en.resources_category_databases);
 	await expect(page.getByLabel(en.resources_ports, { exact: true })).toHaveValue('5432');
 	await page.getByLabel(en.resources_name).fill('pg');
 	await page.getByLabel(en.resources_ssh_host).fill('db.internal');
 	await page.getByRole('button', { name: en.resources_save, exact: true }).click();
 	await expect(page).toHaveURL(/\/resources\/[0-9a-f-]{36}$/);
-	await expect(page.getByText('Preset: PostgreSQL')).toBeVisible();
+	await expect(page.getByText('Preset: PostgreSQL over TCP')).toBeVisible();
 	await expect(page.locator('code', { hasText: 'psql -h 127.0.0.1 -p 5432' })).toBeVisible();
 	await shot(page, 'sdd/stage15-wave1/screens/t12-resource-preset.png');
 	const resourceUrl = page.url();

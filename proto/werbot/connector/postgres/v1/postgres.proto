@@ -1,0 +1,24 @@
+syntax = "proto3";
+package werbot.connector.postgres.v1;
+
+message Config {
+  string host = 1;
+  // 0 → 5432
+  uint32 port = 2;
+  // "" → postgres
+  string database = 3;
+  // path.Match globs of databases a client may open; empty = any
+  repeated string allowed_databases = 4;
+  // "" → verify-full | require | disable
+  string sslmode = 5;
+  // PEM CA certificates that verify the server (≤ 65536 bytes)
+  string ca_pem = 6;
+  // log query parameters; unset → true
+  optional bool record_params = 7;
+  // globs of tables of class secrets (stage 18)
+  repeated string secret_tables = 8;
+  // database user of sessions
+  string username = 9;
+  // database user of agent sessions (stage 18)
+  string agent_username = 10;
+}

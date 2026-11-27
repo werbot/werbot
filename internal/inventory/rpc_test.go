@@ -22,6 +22,7 @@ import (
 	werbotv1 "github.com/werbot/werbot/gen/werbot/v1"
 	"github.com/werbot/werbot/gen/werbot/v1/werbotv1connect"
 	"github.com/werbot/werbot/internal/connector"
+	_ "github.com/werbot/werbot/internal/connector/postgres"
 	"github.com/werbot/werbot/internal/inventory"
 	"github.com/werbot/werbot/internal/platform/db/dbtest"
 	"github.com/werbot/werbot/internal/platform/principal"
@@ -228,4 +229,19 @@ func TestResourceTimeoutsAndHealthOverRPC(t *testing.T) {
 		_, err = c.CreateResource(context.Background(), connect.NewRequest(bad))
 		assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err), d.String())
 	}
+}
+
+func TestSetCredentialPostgresKinds(t *testing.T) {
+	h, e := newHandler(t)
+	res, err := h.CreateResource(e.ctx, connect.NewRequest(&werbotv1.CreateResourceRequest{Name: "pg", Type: "postgres",
+		ConfigJson: `{"host":"db","username":"app"}`}))
+	require.NoError(t, err)
+	id := res.Msg.GetResource().GetId()
+	set := func(kind string) error {
+		_, err := h.SetCredential(e.ctx, connect.NewRequest(&werbotv1.SetCredentialRequest{ResourceId: id, Kind: kind, Value: []byte("x")}))
+		return err
+	}
+	require.NoError(t, set("password"))
+	require.NoError(t, set("client_cert"))
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(set("private_key")))
 }

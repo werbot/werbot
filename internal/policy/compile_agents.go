@@ -26,25 +26,24 @@ func agentEntities(entities cedar.EntityMap, agents []SnapshotAgent) {
 
 // writeBaseline emits the built-in agent policies of types: connect for an
 // exec, commands of exactly the read class, never a dangerous class, a
-// terminal, an sftp or remote_forward action or a frozen agent, and no
-// blocked run. Every
+// terminal, an sftp or remote_forward action, a connect to a database
+// (db_readonly) or a frozen agent, and no blocked run. Every
 // policy but blocked_runs is written even without agents, since an agent
 // may act before the snapshot lists it.
 func writeBaseline(b *strings.Builder, types []connector.Type, blockedRuns []uuid.UUID) {
-	ref := func(a string) string { return fmt.Sprintf("Werbot::Action::%q", a) }
 	var connect, exec, sftp, rf []string
 	for _, t := range types {
 		if a, ok := t.ExecAction(); ok {
-			exec = append(exec, ref(a))
+			exec = append(exec, actionRef(a))
 			if c := t.Name + ".connect"; slices.Contains(t.Actions, c) {
-				connect = append(connect, ref(c))
+				connect = append(connect, actionRef(c))
 			}
 		}
 		if a := t.Name + ".sftp"; slices.Contains(t.Actions, a) {
-			sftp = append(sftp, ref(a))
+			sftp = append(sftp, actionRef(a))
 		}
 		if a := t.Name + ".remote_forward"; slices.Contains(t.Actions, a) {
-			rf = append(rf, ref(a))
+			rf = append(rf, actionRef(a))
 		}
 	}
 	baseline(b, "connect", "permit", "principal is Werbot::Agent, action in ["+strings.Join(connect, ", ")+"], resource", `context.kind == "exec"`, len(connect) > 0)
@@ -53,9 +52,27 @@ func writeBaseline(b *strings.Builder, types []connector.Type, blockedRuns []uui
 	baseline(b, "terminal", "forbid", anyAgent, `context.kind == "terminal"`, true)
 	baseline(b, "sftp", "forbid", "principal is Werbot::Agent, action in ["+strings.Join(sftp, ", ")+"], resource", "", len(sftp) > 0)
 	baseline(b, "remote_forward", "forbid", "principal is Werbot::Agent, action in ["+strings.Join(rf, ", ")+"], resource", "", len(rf) > 0)
+	db := databaseConnects(types)
+	baseline(b, "db_readonly", "forbid", "principal is Werbot::Agent, action in ["+strings.Join(db, ", ")+"], resource", "", len(db) > 0)
 	baseline(b, "frozen", "forbid", anyAgent, `principal.status == "frozen"`, true)
 	baseline(b, "blocked_runs", "forbid", "principal, action, resource",
 		"["+strings.Join(cedarStrings(rpcid.Strings(blockedRuns)), ", ")+"].contains(context.run_id)", len(blockedRuns) > 0)
+}
+
+// actionRef is the Cedar reference of action a.
+func actionRef(a string) string { return fmt.Sprintf("Werbot::Action::%q", a) }
+
+// databaseConnects are the references of "<name>.connect" of the types
+// recorded as querylog. Agents never get them: no permit lifts the forbid
+// until stage 18 checks a read-only database user.
+func databaseConnects(types []connector.Type) []string {
+	var out []string
+	for _, t := range types {
+		if c := t.Name + ".connect"; t.RecordFormat == connector.RecordQuerylog && slices.Contains(t.Actions, c) {
+			out = append(out, actionRef(c))
+		}
+	}
+	return out
 }
 
 // baseline writes the agent:baseline:<name> policy, with its when clause

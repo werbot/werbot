@@ -46,6 +46,9 @@ forbid (principal is Werbot::Agent, action in [Werbot::Action::"sftpy.sftp"], re
 @id("agent:baseline:remote_forward")
 forbid (principal is Werbot::Agent, action in [Werbot::Action::"ssh.remote_forward"], resource);
 
+@id("agent:baseline:db_readonly")
+forbid (principal is Werbot::Agent, action in [Werbot::Action::"postgres.connect"], resource);
+
 @id("agent:baseline:frozen")
 forbid (principal is Werbot::Agent, action, resource)
 when { principal.status == "frozen" };

@@ -7,6 +7,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	_ "github.com/werbot/werbot/internal/connector/postgres" // a type recorded as querylog
 )
 
 // agentRule is a command rule of every agent on r1.
@@ -225,4 +227,40 @@ func TestAgentContext(t *testing.T) {
 	human := execReq("read")
 	human.Kind = "terminal" // the terminal baseline is for agents only
 	assert.True(t, ps.Authorize(human).Allow)
+}
+
+// Input class "agent on a querylog type" (C10): until stage 18 checks a
+// read-only database user, an agent never connects to a postgres resource,
+// with only its sponsor's binding, with a custom permit on agents or with an
+// untyped permit; its sponsor connects with the same binding.
+func TestAgentPostgresConnectDenied(t *testing.T) {
+	pgID := uuid.MustParse("019a0000-0000-7000-8000-0000000000b6")
+	pgSnap := func(custom ...string) Snapshot {
+		s := agentSnap()
+		s.Resources = append(s.Resources, SnapshotResource{ID: pgID, Name: "pg", Type: "postgres"})
+		s.Bindings[0].ResourceIDs = []uuid.UUID{resID, pgID}
+		for i, text := range custom {
+			s.CustomPolicies = append(s.CustomPolicies, SnapshotCustomPolicy{ID: uuid.NewSHA1(customID, []byte{byte(i)}), Cedar: text})
+		}
+		return s
+	}
+	r := agentReq()
+	r.ResourceID, r.Action, r.Kind, r.Port = pgID, "postgres.connect", "stream", 5432
+
+	for name, custom := range map[string][]string{
+		"binding only": nil,
+		"agent permit": {`permit (principal is Werbot::Agent, action == Werbot::Action::"postgres.connect", resource) when { context.kind == "stream" };`},
+		"untyped":      {`permit (principal, action == Werbot::Action::"postgres.connect", resource);`},
+		"everything":   {`permit (principal, action, resource);`},
+	} {
+		d := authorize(t, pgSnap(custom...), r)
+		assert.False(t, d.Allow, name)
+		assert.Contains(t, d.Reasons, "agent:baseline:db_readonly", name)
+	}
+
+	human := r
+	human.AgentID, human.RunID = nil, nil
+	d := authorize(t, pgSnap(), human)
+	assert.True(t, d.Allow, "the sponsor connects")
+	assert.Equal(t, []string{"binding:" + bindID.String()}, d.Reasons)
 }

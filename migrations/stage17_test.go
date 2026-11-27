@@ -2,6 +2,7 @@ package migrations_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5/stdlib"
@@ -101,4 +102,48 @@ func TestMigrations17CredentialSlot(t *testing.T) {
 	_, err = p.Up(ctx)
 	require.NoError(t, err)
 	require.NoError(t, insert("agent_readonly", "client_cert"))
+}
+
+// TestMigrations17PresetRename: 00262 renames a preset named after the builtin
+// type postgres to postgres-<8 hex of its id>, its resources keep preset_id,
+// other presets keep their names; Down changes nothing, and Up runs again.
+func TestMigrations17PresetRename(t *testing.T) {
+	pool, _ := dbtest.New(t)
+	ctx := context.Background()
+	f := dbtest.Seed(t, pool)
+
+	sqlDB := stdlib.OpenDBFromPool(pool)
+	defer func() { _ = sqlDB.Close() }()
+	p, err := goose.NewProvider(goose.DialectPostgres, sqlDB, migrations.FS)
+	require.NoError(t, err)
+	_, err = p.DownTo(ctx, 261)
+	require.NoError(t, err)
+
+	preset := func(name string) (id string) {
+		require.NoError(t, pool.QueryRow(ctx, `INSERT INTO resource_preset (org_id, name, base_type, display_name, default_ports, category)
+			VALUES ($1, $2, 'tcp', 'PostgreSQL', '[{"port":5432}]', 'databases') RETURNING id`, f.OrgID, name).Scan(&id))
+		return id
+	}
+	pg, other := preset("postgres"), preset("pgtcp")
+	_, err = pool.Exec(ctx, "UPDATE resource SET preset_id = $1 WHERE id = $2", pg, f.ResourceID)
+	require.NoError(t, err)
+
+	_, err = p.Up(ctx)
+	require.NoError(t, err)
+	name := func(id string) (n string) {
+		require.NoError(t, pool.QueryRow(ctx, "SELECT name FROM resource_preset WHERE id = $1", id).Scan(&n))
+		return n
+	}
+	want := "postgres-" + strings.ReplaceAll(pg, "-", "")[:8]
+	assert.Equal(t, want, name(pg))
+	assert.Equal(t, "pgtcp", name(other))
+	var presetID string
+	require.NoError(t, pool.QueryRow(ctx, "SELECT preset_id FROM resource WHERE id = $1", f.ResourceID).Scan(&presetID))
+	assert.Equal(t, pg, presetID, "the resource keeps its preset")
+
+	_, err = p.DownTo(ctx, 221)
+	require.NoError(t, err)
+	assert.Equal(t, want, name(pg), "down keeps the new name")
+	_, err = p.Up(ctx)
+	require.NoError(t, err)
 }
