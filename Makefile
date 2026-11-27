@@ -110,14 +110,14 @@ load:
 
 # Short fuzz runs of the parser targets; a crasher is written under testdata/fuzz and committed.
 FUZZTIME ?= 30s
-FUZZ_TARGETS = ./internal/platform/shellclass:FuzzClassify ./internal/platform/shellclass:FuzzAnalyze ./internal/platform/sshdgram:FuzzReadFrame ./internal/tunnel:FuzzStreamFrame ./internal/gateway/pgconnector:FuzzPGMessage
+FUZZ_TARGETS = ./internal/platform/shellclass:FuzzClassify ./internal/platform/shellclass:FuzzAnalyze ./internal/platform/sshdgram:FuzzReadFrame ./internal/tunnel:FuzzStreamFrame ./internal/gateway/pgconnector:FuzzPGMessage ./internal/platform/sqlclass/pg:FuzzSQLClass
 fuzz:
 	@for t in $(FUZZ_TARGETS); do pkg=$${t%%:*}; fn=$${t##*:}; echo "== $$fn"; \
 	  go test -run '^$$' -fuzz "^$$fn$$" -fuzztime $(FUZZTIME) $$pkg || exit 1; done
 
 # Hot-path budgets (TestHotPath* of each package) against the test database
 # on localhost:27432 (make dev-db); run alone, other load skews them.
-HOT_PKGS ?= ./internal/gateway/pgconnector/
+HOT_PKGS ?= ./internal/gateway/pgconnector/ ./internal/platform/sqlclass/pg/
 bench-hot:
 	HOT_BUDGET=1 go test -count=1 -run '^TestHotPath' -v $(HOT_PKGS)
 

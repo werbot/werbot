@@ -1,0 +1,185 @@
+# PostgreSQL texts and their expected classification:
+# <classes> | <tables or -> | <write tables or -> | <sql>
+# Lists are comma-separated; "\n" in the SQL column is a line break.
+# The SQL column seeds FuzzSQLClass.
+
+# comments with write keywords inside
+read | - | - | SELECT 1 -- ; DROP TABLE t
+read | - | - | /* DELETE FROM t; */ SELECT 1
+read | public.t | - | SELECT a /* ; DROP TABLE t */ FROM t
+read | - | - | /* /* */ DROP TABLE t; */ SELECT 1
+read | - | - | -- DELETE FROM t\nSELECT 1
+destructive, read | public.t | public.t | SELECT 1 /* x */; DROP TABLE t -- y
+
+# quoted strings and identifiers with ";" and write keywords
+read | - | - | SELECT 'DROP TABLE t; DELETE FROM u'
+read | public.t | - | SELECT "drop; delete" FROM t
+read | - | - | SELECT $$; DROP TABLE t$$
+read | - | - | SELECT $x$ $$; DELETE FROM t; $$ $x$
+read | - | - | SELECT E'\'; DROP TABLE t; --'
+read | - | - | SELECT U&'\0027; DROP TABLE t'
+destructive, read | public.t | public.t | SELECT '\'; DROP TABLE t; --'
+read | public.Drop;Table | - | SELECT * FROM "Drop;Table"
+
+# several statements: the union of their classes
+destructive, read, write | public.t, public.u | public.t, public.u | INSERT INTO t VALUES (1); SELECT * FROM u; DELETE FROM u
+privilege, read | public.t | - | SELECT * FROM t; SET ROLE admin
+egress, read, write | public.t | public.t | SELECT 1; COPY t FROM PROGRAM 'cmd'
+opaque, read | - | - | SELECT 1; DO $$ BEGIN END $$
+
+# writing CTEs
+read, write | public.t | public.t | WITH u AS (UPDATE t SET a = 1 WHERE id = 1 RETURNING id) SELECT * FROM u
+read, write | public.s, public.t | public.t | WITH n AS (INSERT INTO t SELECT * FROM s RETURNING id) SELECT count(*) FROM n
+read, write | public.t | public.t | WITH d AS (DELETE FROM t WHERE id = 1 RETURNING *) SELECT * FROM d
+write | public.a, public.b | public.a, public.b | WITH d AS (DELETE FROM a WHERE id = 1 RETURNING *) INSERT INTO b SELECT * FROM d
+
+# EXPLAIN runs the statement only with ANALYZE
+destructive | public.t | public.t | EXPLAIN ANALYZE DELETE FROM t
+write | public.t | public.t | EXPLAIN (ANALYZE, BUFFERS) UPDATE t SET a = 1 WHERE id = 1
+write | public.s, public.t | public.t | EXPLAIN ANALYZE INSERT INTO t SELECT nextval('q') FROM s
+privilege, read | - | - | EXPLAIN ANALYZE SELECT set_config('search_path', 'x', false)
+read | public.t | - | EXPLAIN DELETE FROM t
+read | - | - | EXPLAIN SELECT set_config('search_path', 'x', false)
+
+# read functions
+read | public.t | - | SELECT count(*), max(a), string_agg(b, ',') FROM t
+read | - | - | SELECT lower('A'), length('abc'), now(), date_trunc('day', now())
+read | - | - | SELECT jsonb_build_object('a', 1), array_length(ARRAY[1], 1), to_tsvector('a b')
+read | - | - | SELECT * FROM generate_series(1, 3) g
+read | - | - | SELECT pg_catalog.current_setting('search_path'), current_database(), version()
+read | - | - | SELECT row_number() OVER (ORDER BY 1), extract(year FROM now()), trim(' a ')
+read | - | - | SELECT 'a' LIKE 'b' ESCAPE 'c', 'a' SIMILAR TO 'b', now() AT TIME ZONE 'UTC'
+read | - | - | SELECT gen_random_uuid(), uuidv7(), pg_typeof(1), pg_backend_pid(), pg_sleep(0)
+read | public.t | - | SELECT pg_size_pretty(pg_total_relation_size('t')), has_table_privilege('t', 'SELECT') FROM t
+
+# write functions
+read, write | - | - | SELECT nextval('s')
+read, write | - | - | SELECT setval('s', 1)
+read, write | - | - | SELECT pg_advisory_lock(1)
+read, write | - | - | SELECT pg_advisory_xact_lock(1)
+read, write | - | - | SELECT pg_notify('ch', 'x')
+read, write | - | - | SELECT lo_create(0)
+read, write | - | - | SELECT lo_unlink(1)
+read, write | - | - | SELECT lo_put(1, 0, 'x')
+read, write | - | - | SELECT lo_from_bytea(0, 'x')
+write | public.t | public.t | INSERT INTO t VALUES (nextval('s'))
+
+# privilege functions
+privilege, read | - | - | SELECT pg_terminate_backend(1)
+privilege, read | - | - | SELECT pg_cancel_backend(1)
+privilege, read | - | - | SELECT pg_reload_conf()
+privilege, read | - | - | SELECT pg_rotate_logfile()
+privilege, read | - | - | SELECT pg_promote()
+privilege, read | - | - | SELECT pg_switch_wal()
+privilege, read | - | - | SELECT pg_create_restore_point('x')
+privilege, read | - | - | SELECT pg_create_physical_replication_slot('x')
+privilege, read | - | - | SELECT pg_create_logical_replication_slot('x', 'pgoutput')
+privilege, read | - | - | SELECT pg_drop_replication_slot('x')
+privilege, read | - | - | SELECT pg_stat_reset()
+privilege, read | - | - | SELECT pg_stat_reset_shared('io')
+privilege, read | - | - | SELECT pg_stat_reset_single_table_counters(1)
+privilege, read | - | - | SELECT pg_stat_reset_single_function_counters(1)
+privilege, read | - | - | SELECT pg_stat_reset_slru()
+privilege, read | - | - | SELECT pg_stat_reset_replication_slot('x')
+privilege, read | - | - | SELECT pg_stat_reset_subscription_stats(1)
+
+# secrets functions
+read, secrets | - | - | SELECT pg_read_file('x')
+read, secrets | - | - | SELECT pg_read_binary_file('x')
+read, secrets | - | - | SELECT * FROM pg_ls_dir('.')
+read, secrets | - | - | SELECT pg_stat_file('x')
+read, secrets | - | - | SELECT * FROM pg_ls_logdir()
+read, secrets | - | - | SELECT * FROM pg_ls_waldir()
+read, secrets | - | - | SELECT * FROM pg_ls_tmpdir()
+read, secrets | - | - | SELECT * FROM pg_ls_archive_statusdir()
+
+# egress functions
+egress, read | - | - | SELECT lo_import('/x')
+egress, read | - | - | SELECT lo_export(1, '/x')
+egress, read | - | - | SELECT dblink('c', 'SELECT 1')
+egress, read | - | - | SELECT * FROM dblink_exec('c', 'x')
+
+# functions of another schema and unknown functions
+opaque, read | - | - | SELECT public.lower('a')
+opaque, read | - | - | SELECT my_func()
+opaque, read | public.t | - | SELECT * FROM t WHERE a = audit.log_access()
+opaque, read | - | - | SELECT "LOWER"('a')
+opaque, read | - | - | SELECT query_to_xml('x', true, true, '')
+opaque, write | public.t | public.t | INSERT INTO t VALUES (my_func())
+
+# set_config
+privilege, read | - | - | SELECT set_config('search_path', 'x', false)
+privilege, read | - | - | SELECT pg_catalog.set_config('STANDARD_CONFORMING_STRINGS', 'off', true)
+read | - | - | SELECT set_config('work_mem', '64MB', false)
+privilege, read | - | - | SELECT set_config(current_user, 'x', false)
+privilege, read | public.t | - | SELECT set_config(name, 'x', false) FROM t
+
+# protected parameters
+privilege | - | - | SET statement_timeout = 0
+privilege | - | - | SET default_transaction_read_only = off
+privilege | - | - | SET transaction_read_only = off
+privilege | - | - | SET ROLE admin
+privilege | - | - | SET SESSION AUTHORIZATION admin
+privilege | - | - | SET search_path = x
+privilege | - | - | SET standard_conforming_strings = off
+privilege | - | - | SET client_encoding = 'SJIS'
+privilege | - | - | SET NAMES 'BIG5'
+privilege | - | - | SET backslash_quote = on
+privilege | - | - | SET max_execution_time = 1
+privilege | - | - | SET sql_safe_updates = 0
+privilege | - | - | SET transaction_isolation = 'serializable'
+privilege | - | - | RESET standard_conforming_strings
+privilege, read | - | - | SELECT set_config('client_encoding', 'GBK', false)
+privilege, write | pg_catalog.pg_settings | pg_catalog.pg_settings | UPDATE pg_settings SET setting = 'off' WHERE name = 'standard_conforming_strings'
+read | - | - | SET work_mem = '64MB'
+
+# tables with and without a schema
+read | public.t, s.u | - | SELECT * FROM t JOIN s.u ON true
+read | pg_catalog.pg_class | - | SELECT relname FROM pg_class
+read | pg_catalog.pg_namespace | - | SELECT * FROM pg_catalog.pg_namespace
+read | public.t | - | SELECT * FROM db.public.t
+read | public.a, public.b | - | SELECT * FROM a WHERE id IN (SELECT id FROM b)
+
+# CTE names are not tables
+read | public.t | - | WITH x AS (SELECT * FROM t) SELECT * FROM x
+read | public.x | - | WITH x AS (SELECT * FROM x) SELECT * FROM x
+read | public.t | - | WITH RECURSIVE r AS (SELECT 1 AS n UNION ALL SELECT n FROM r) SELECT * FROM r, t
+read | public.x | - | SELECT * FROM (WITH x AS (SELECT 1) SELECT * FROM x) q, x
+read | s.x | - | WITH x AS (SELECT 1) SELECT * FROM s.x
+write | public.x | public.x | WITH x AS (SELECT 1) INSERT INTO x SELECT * FROM x
+
+# built-in secret tables
+read, secrets | pg_catalog.pg_authid | - | SELECT * FROM pg_authid
+read, secrets | pg_catalog.pg_shadow | - | SELECT passwd FROM pg_catalog.pg_shadow
+read, secrets | pg_catalog.pg_user_mapping | - | SELECT * FROM pg_user_mapping
+read, secrets | pg_catalog.pg_user_mappings | - | SELECT * FROM pg_user_mappings
+read, secrets | pg_catalog.pg_authid, public.t | - | SELECT * FROM t WHERE EXISTS (SELECT 1 FROM pg_authid)
+
+# write tables
+write | public.t | public.t | UPDATE t SET a = 1 WHERE id = 2
+write | public.s, public.t | public.t | UPDATE t SET a = s.a FROM s WHERE t.id = s.id
+write | public.s, public.t | public.t | MERGE INTO t USING s ON t.id = s.id WHEN MATCHED THEN UPDATE SET a = s.a
+destructive | public.t | public.t | DELETE FROM t
+destructive | public.a, s.b | public.a, s.b | TRUNCATE a, s.b
+destructive | public.t, s.u | public.t, s.u | DROP TABLE t, s.u
+write | public.t | public.t | COPY t FROM STDIN
+read | public.t | - | COPY t TO STDOUT
+write | public.t, public.u | public.u | CREATE TABLE u AS SELECT * FROM t
+write | public.t, public.u | public.u | SELECT * INTO u FROM t
+read, write | public.t | public.t | SELECT * FROM t FOR UPDATE
+read, write | public.t | public.t | SELECT * FROM t a FOR UPDATE OF a
+read, write | public.t, public.u | public.t, public.u | SELECT * FROM t JOIN u ON true FOR SHARE
+write | public.t | public.t | ALTER TABLE t ADD c int
+destructive | public.t | public.t | ALTER TABLE t DROP COLUMN c
+write | public.t | public.t | ALTER TABLE t RENAME TO u
+
+# PostgreSQL 18-only syntax: the PostgreSQL 17 grammar rejects it
+opaque | - | - | CREATE TABLE t (a int, b int GENERATED ALWAYS AS (a * 2) VIRTUAL)
+opaque | - | - | ALTER TABLE t ADD CONSTRAINT c CHECK (a > 0) NOT ENFORCED
+opaque | - | - | UPDATE t SET a = 1 WHERE id = 1 RETURNING WITH (OLD AS o) o.a
+
+# statements the classifier cannot see into
+opaque | - | - | DO $$ BEGIN END $$
+opaque | - | - | CALL p()
+opaque | - | - | EXECUTE s
+opaque | - | - | SELEC 1

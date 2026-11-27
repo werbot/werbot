@@ -76,17 +76,20 @@ func init() {
 
 var nodeOneof = (&pgq.Node{}).ProtoReflect().Descriptor().Oneofs().ByName("node")
 
-// classes is the union of the statement classes of tree; no statement is read.
+// classes is the union of the statement and function classes of tree with
+// its tables; no statement is read.
 func classes(tree *pgq.ParseResult) sqlclass.Result {
 	stmts := tree.GetStmts()
 	if len(stmts) == 0 {
 		return sqlclass.Result{Classes: cRead}
 	}
 	var out set
+	var r refs
 	for _, s := range stmts {
 		out = sqlclass.Merge(out, stmtClasses(s.GetStmt()))
+		r.visit(s.GetStmt().ProtoReflect())
 	}
-	return sqlclass.Result{Classes: out, Statements: len(stmts)}
+	return r.result(out, len(stmts))
 }
 
 func stmtClasses(n *pgq.Node) set {
@@ -191,12 +194,17 @@ func readWrite(opts []*pgq.Node) bool {
 
 // explainClasses: EXPLAIN without ANALYZE does not run the statement.
 func explainClasses(s *pgq.ExplainStmt) set {
-	for _, o := range s.GetOptions() {
-		if d := o.GetDefElem(); d.GetDefname() == "analyze" && !isFalse(d.GetArg()) {
-			return stmtClasses(s.GetQuery())
-		}
+	if analyzed(s) {
+		return stmtClasses(s.GetQuery())
 	}
 	return cRead
+}
+
+func analyzed(s *pgq.ExplainStmt) bool {
+	return slices.ContainsFunc(s.GetOptions(), func(o *pgq.Node) bool {
+		d := o.GetDefElem()
+		return d.GetDefname() == "analyze" && !isFalse(d.GetArg())
+	})
 }
 
 // isFalse reports an option argument PostgreSQL reads as false; anything
